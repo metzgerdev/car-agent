@@ -2,25 +2,60 @@
 
 from __future__ import annotations
 
+from typing import Any, Literal
+
 from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from .crewai_agent import CrewAISalesAgent
-
-app = FastAPI(title="Classic Sports Car Sales Agent", version="0.1.0")
-agent = CrewAISalesAgent(use_live_model=True)
+from .modality import normalize_command
 
 
 class ChatRequest(BaseModel):
     conversation_id: str = Field(min_length=1)
     message: str = Field(min_length=1)
+    modality: Literal["text", "voice"] = "text"
+
+    @field_validator("conversation_id", "message")
+    @classmethod
+    def require_nonblank(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("value must not be blank")
+        return cleaned
 
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+class HealthResponse(BaseModel):
+    status: Literal["ok"]
 
 
-@app.post("/chat")
-def chat(request: ChatRequest) -> dict:
-    return agent.respond(request.conversation_id, request.message).to_dict()
+class ChatResponse(BaseModel):
+    message: str
+    state: dict[str, Any]
+    trace: list[dict[str, Any]]
+
+
+def create_app(sales_agent: CrewAISalesAgent | None = None) -> FastAPI:
+    """Create an API app with an injectable agent for offline verification."""
+
+    api = FastAPI(title="Classic Sports Car Sales Agent", version="0.1.0")
+    service = sales_agent or CrewAISalesAgent(use_live_model=True)
+    api.state.agent = service
+
+
+    @api.get("/health", response_model=HealthResponse)
+    def health() -> HealthResponse:
+        return HealthResponse(status="ok")
+
+
+    @api.post("/chat", response_model=ChatResponse)
+    def chat(request: ChatRequest) -> ChatResponse:
+        command = normalize_command(request.conversation_id, request.message, request.modality)
+        response = service.respond(command.conversation_id, command.message)
+        return ChatResponse.model_validate(response.to_dict())
+
+    return api
+
+
+app = create_app()
+agent: CrewAISalesAgent = app.state.agent

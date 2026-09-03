@@ -16,7 +16,7 @@ retrieval grounding, and deterministic verification.
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
 | 2 — Data and knowledge | complete | Pydantic source models, Craigslist streaming normalization, recorded NHTSA/EPA adapters, SQLite ingestion, and notebook verification pass | Phase 3 scenario evaluation |
 | 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass | Phase 4 API and conversion tests |
-| 4 — Conversion and polish | not started | P4-T2 has scheduler validation foundations | API, redaction, and voice boundary tests |
+| 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, text/voice command normalization, and clean offline demo pass | none |
 
 ### Update protocol
 
@@ -35,6 +35,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-03 | Python 3.12 and notebook verification | Python 3.12.13 environment, 19 tests, and headless Phase 2 notebook pass | `abc390b` | Official NHTSA/EPA adapters |
 | 2026-09-03 | Phase 2 multi-source adapters | 29 tests pass for Pydantic Craigslist rows, streaming CSV validation, NHTSA vPIC/recall fixtures, EPA facts, and provenance-preserving enrichment | `2a3d692` | Phase 3 scenario evaluation |
 | 2026-09-03 | Phase 3 sales behavior | 35 tests pass; `car-agent-evaluate --strict` reports 20/20 scenarios and zero budget violations | `3770b2c` | Phase 4 API and conversion tests |
+| 2026-09-03 | Phase 4 conversion and polish | 41 tests pass; API, scheduling, redaction, modality, and `car-agent-demo` clean-checkout smoke tests pass | pending | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
 | 2026-09-03 | OpenRouter runtime configuration | OpenRouter key loading, LiteLLM dependency, explicit OpenRouter base URL/model, and 23 tests pass without exposing the key | `fa3f3a3` | Scenario evaluation set |
 
@@ -51,6 +52,12 @@ Phase 3 can be verified with the deterministic scenario evaluator:
 
 ```bash
 car-agent-evaluate --strict
+```
+
+Phase 4 can be verified with the clean offline happy-path demo:
+
+```bash
+car-agent-demo
 ```
 
 Phase 2 can also be verified interactively with [notebooks/verify_phase2.ipynb](../notebooks/verify_phase2.ipynb). Run it with `jupyter lab` after installing `.[notebook]`; its final cell asserts P2-T1 through P2-T5 and prints a single summary. For headless verification:
@@ -105,12 +112,12 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
-| P4-T1 | Call `/health`, `/chat`, and malformed `/chat` | 200, valid response, and 422 respectively | planned |
-| P4-T2 | Submit invalid scheduling data | Error is returned and request count does not change | partial |
-| P4-T3 | Retry an identical booking | No duplicate booking is created | planned |
-| P4-T4 | Inspect a trace/log | Tool trace remains inspectable and contact values are redacted | planned |
-| P4-T5 | Send equivalent text and voice intents | Both use the same normalized domain command | planned |
-| P4-T6 | Follow clean-checkout instructions | Setup, tests, and demo transcript complete successfully | planned |
+| P4-T1 | Call `/health`, `/chat`, and malformed `/chat` | 200, valid response, and 422 respectively | implemented |
+| P4-T2 | Submit invalid scheduling data | Error is returned and request count does not change | implemented |
+| P4-T3 | Retry an identical booking | No duplicate booking is created | implemented |
+| P4-T4 | Inspect a trace/log | Tool trace remains inspectable and contact values are redacted | implemented |
+| P4-T5 | Send equivalent text and voice intents | Both use the same normalized domain command | implemented |
+| P4-T6 | Follow clean-checkout instructions | Setup, tests, and demo transcript complete successfully | implemented |
 
 ## Completion rule
 

@@ -95,6 +95,7 @@ class TestDriveScheduler:
     def __init__(self, inventory: InventoryRepository) -> None:
         self.inventory = inventory
         self.requests: list[dict[str, str]] = []
+        self._request_index: dict[tuple[str, str, str, str], dict[str, str]] = {}
 
     def schedule(
         self,
@@ -113,6 +114,16 @@ class TestDriveScheduler:
         if not preferred_time.strip():
             return {"ok": False, "error": "A preferred day and time are required."}
 
+        request_key = (
+            vehicle_id,
+            name.strip().casefold(),
+            email.strip().casefold(),
+            preferred_time.strip().casefold(),
+        )
+        existing = self._request_index.get(request_key)
+        if existing:
+            return {"ok": True, "duplicate": True, "request": dict(existing)}
+
         request_id = f"td-{len(self.requests) + 1:04d}"
         request = {
             "request_id": request_id,
@@ -123,4 +134,5 @@ class TestDriveScheduler:
             "status": "requested",
         }
         self.requests.append(request)
-        return {"ok": True, "request": request}
+        self._request_index[request_key] = request
+        return {"ok": True, "duplicate": False, "request": request}

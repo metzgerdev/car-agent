@@ -189,7 +189,7 @@ class DemoSalesAgent:
         state.stage = "scheduled"
         request = result["request"]
         return AgentResponse(
-            f"Your test-drive request is in: {vehicle.name} on {request['preferred_time']}. I’ll use {request['email']} to follow up. Request {request['request_id']}.",
+            f"Your test-drive request is in: {vehicle.name} on {request['preferred_time']}. Request {request['request_id']}.",
             state,
             trace,
         )

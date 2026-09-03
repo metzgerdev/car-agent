@@ -81,10 +81,15 @@ class ConversationState:
     stage: str = "qualifying"
     last_vehicle_ids: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, *, redact_sensitive: bool = False) -> dict[str, Any]:
+        preferences = self.preferences.to_dict()
+        if redact_sensitive:
+            for field_name in ("name", "email"):
+                if preferences.get(field_name) is not None:
+                    preferences[field_name] = "[REDACTED]"
         return {
             "conversation_id": self.conversation_id,
-            "preferences": self.preferences.to_dict(),
+            "preferences": preferences,
             "stage": self.stage,
             "last_vehicle_ids": self.last_vehicle_ids,
         }
@@ -96,8 +101,12 @@ class ToolCall:
     arguments: dict[str, Any]
     result: dict[str, Any]
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+    def to_dict(self, *, redact_sensitive: bool = False) -> dict[str, Any]:
+        result = asdict(self)
+        if redact_sensitive and self.name == "schedule_test_drive":
+            result["arguments"] = _redact_contact_values(result["arguments"])
+            result["result"] = _redact_contact_values(result["result"])
+        return result
 
 
 @dataclass(frozen=True)
@@ -106,9 +115,20 @@ class AgentResponse:
     state: ConversationState
     trace: list[ToolCall]
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, *, redact_sensitive: bool = True) -> dict[str, Any]:
         return {
             "message": self.message,
-            "state": self.state.to_dict(),
-            "trace": [call.to_dict() for call in self.trace],
+            "state": self.state.to_dict(redact_sensitive=redact_sensitive),
+            "trace": [call.to_dict(redact_sensitive=redact_sensitive) for call in self.trace],
         }
+
+
+def _redact_contact_values(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: "[REDACTED]" if key in {"name", "email", "phone"} else _redact_contact_values(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_contact_values(item) for item in value]
+    return value

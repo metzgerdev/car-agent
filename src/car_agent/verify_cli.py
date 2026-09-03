@@ -189,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         if command == "/state":
             if verifier.last_response:
-                print(json.dumps(verifier.last_response.state.to_dict(), indent=2))
+                print(json.dumps(verifier.last_response.state.to_dict(redact_sensitive=True), indent=2))
             else:
                 print("  (no conversation state yet)")
             continue

@@ -25,6 +25,18 @@ curl -X POST http://127.0.0.1:8000/chat \
 
 The response includes the assistant message, current qualification state, and the tools used for that turn.
 
+## Run the clean offline demo
+
+Run the complete qualification, recommendation, fact lookup, and test-drive
+flow without a live model or network connection:
+
+```bash
+car-agent-demo
+```
+
+The demo prints each shopper turn, the assistant response, the current stage,
+and the tool trace, ending with `Demo result: PASS`.
+
 ## Evaluate Phase 3
 
 Run the deterministic 20-conversation sales evaluation without a live model:
