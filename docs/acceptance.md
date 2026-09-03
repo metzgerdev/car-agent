@@ -6,9 +6,9 @@ This document is the executable-minded checklist for the phases in [plan.md](../
 
 | Phase | Status | Current evidence | Next gate |
 | --- | --- | --- | --- |
-| 0 — Contract and skeleton | complete | Python 3.14.7 compile and serialization checks pass | none |
+| 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
-| 2 — Data and knowledge | in progress | Local provenance pipeline and SQLite ingestion pass | Official NHTSA/EPA adapters |
+| 2 — Data and knowledge | in progress | Local provenance pipeline, SQLite ingestion, and notebook verification pass | Official NHTSA/EPA adapters |
 | 3 — Sales behavior | not started | P3-T1 and P3-T2 are partial foundations | Scenario evaluation set |
 | 4 — Conversion and polish | not started | P4-T2 has scheduler validation foundations | API, redaction, and voice boundary tests |
 
@@ -24,8 +24,9 @@ At every phase checkpoint, update this file in the same commit as the implementa
 
 | Date | Phase/checkpoint | Evidence | Commit | Next gate |
 | --- | --- | --- | --- | --- |
-| 2026-09-03 | Phase 0/1 baseline | Python 3.14.7 smoke flow and guided verifier pass | `e5e5c79` | none |
+| 2026-09-03 | Phase 0/1 baseline | Python 3.14.7 smoke flow and guided verifier pass | `e5e5c79` | superseded by Python 3.12.13 baseline |
 | 2026-09-03 | Phase 2 local ingestion | Normalization, provenance rejection, idempotent SQLite ingest, and compile checks pass | `282ff33` | Official NHTSA/EPA adapters |
+| 2026-09-03 | Python 3.12 and notebook verification | Python 3.12.13 environment, 19 tests, and headless Phase 2 notebook pass | pending | Official NHTSA/EPA adapters |
 
 ## Test commands
 
@@ -46,7 +47,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
-| P0-T1 | Read the version files | `.python-version` is `3.14.7`; packaging accepts Python 3.14 only | implemented |
+| P0-T1 | Read the version files | `.python-version` is `3.12.13`; packaging accepts Python 3.12 only | implemented |
 | P0-T2 | Compile source and tests | `compileall` exits 0 | implemented |
 | P0-T3 | Serialize a response | `AgentResponse.to_dict()` is JSON serializable and contains message, state, and trace | implemented |
 

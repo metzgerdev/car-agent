@@ -7,13 +7,13 @@ The current slice is deterministic and runs without an API key. It supports pref
 ## Run locally
 
 ```bash
-/opt/homebrew/bin/python3.14 -m venv .venv
+/opt/homebrew/bin/python3.12 -m venv .venv
 source .venv/bin/activate
-pip install -e '.[dev]'
+python -m pip install -e '.[dev]'
 uvicorn car_agent.app:app --reload
 ```
 
-The project targets Python 3.14.7. `.python-version` records the exact development version; use the equivalent Python 3.14.7 executable if your Python manager installs it elsewhere.
+The project targets Python 3.12.13. `.python-version` records the exact development version; use the equivalent Python 3.12 executable if your Python manager installs it elsewhere.
 
 Then send a message:
 
@@ -52,6 +52,12 @@ car-agent-ingest --input data/inventory.json --output data/inventory.sqlite
 To verify Phase 2 interactively, install the notebook extra and open [notebooks/verify_phase2.ipynb](notebooks/verify_phase2.ipynb):
 
 ```bash
-pip install -e '.[notebook]'
+python -m pip install -e '.[dev,notebook]'
+python -m ipykernel install --user \
+  --name car-agent-py312 \
+  --display-name "Python 3.12.13 (car-agent)"
 jupyter lab notebooks/verify_phase2.ipynb
 ```
+
+In Jupyter, select the `Python 3.12.13 (car-agent)` kernel. The notebook is
+offline and ends with a PASS summary for P2-T1 through P2-T5.

@@ -4,8 +4,8 @@ import sys
 from car_agent.models import AgentResponse, ConversationState
 
 
-def test_supported_runtime_is_python_314_or_newer() -> None:
-    assert sys.version_info >= (3, 14)
+def test_supported_runtime_is_python_312() -> None:
+    assert sys.version_info[:2] == (3, 12)
 
 
 def test_agent_response_contract_is_json_serializable() -> None:
