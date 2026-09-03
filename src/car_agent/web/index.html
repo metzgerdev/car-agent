@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A transparent classic sports car sales agent demo">
+    <title>Classic Car Advisor</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">AI engineering demo</p>
+          <h1>Classic Car Advisor</h1>
+          <p class="subtitle">Find a car, inspect the evidence, and request a test drive.</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="connection-status" class="status-pill pending">Checking API…</span>
+          <button id="reset-button" class="button button-secondary" type="button">New conversation</button>
+        </div>
+      </header>
+
+      <section class="demo-banner" aria-label="Demo instructions">
+        <div>
+          <strong>Try the guided flow</strong>
+          <span>Start with the Porsche prompt, then add preferences, ask about maintenance, and schedule a drive.</span>
+        </div>
+        <button id="clear-button" class="text-button" type="button">Start over</button>
+      </section>
+
+      <div class="workspace">
+        <section class="conversation-card card" aria-label="Conversation">
+          <div id="transcript" class="transcript" aria-live="polite">
+            <div class="message assistant-message">
+              <div class="message-label">Advisor</div>
+              <p>What kind of classic or modern-classic sports car are you looking for?</p>
+            </div>
+          </div>
+          <form id="chat-form" class="composer">
+            <label class="sr-only" for="message-input">Message the advisor</label>
+            <textarea id="message-input" rows="2" placeholder="Tell me what you want to drive…" required></textarea>
+            <div class="composer-footer">
+              <div class="composer-options">
+                <label for="modality-select">Input</label>
+                <select id="modality-select">
+                  <option value="text">Text</option>
+                  <option value="voice">Voice transcript</option>
+                </select>
+                <span class="hint">Voice uses the same domain command boundary.</span>
+              </div>
+              <button id="send-button" class="button button-primary" type="submit">Send message</button>
+            </div>
+          </form>
+        </section>
+
+        <aside class="sidebar" aria-label="Agent evidence">
+          <section class="card quick-start">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Demo prompts</p>
+                <h2>Guide the shopper</h2>
+              </div>
+              <span class="step-count">6 steps</span>
+            </div>
+            <div id="quick-prompts" class="quick-prompts">
+              <button class="prompt-button" data-prompt="I want a weekend sports car under $50k. I like Porsche, but I am not sure which model.">1. Start with a make</button>
+              <button class="prompt-button" data-prompt="I am open to a 911 Carrera or 718 Cayman GTS. I prefer a manual, spirited car for weekend drives.">2. Add preferences</button>
+              <button class="prompt-button" data-prompt="What should I inspect on the Porsche 911 Carrera?">3. Ask for facts</button>
+              <button class="prompt-button" data-prompt="The maintenance risk worries me. What is the trade-off?">4. Raise an objection</button>
+              <button class="prompt-button" data-prompt="I would like to schedule a test drive for the Porsche 911 Carrera.">5. Request a drive</button>
+              <button class="prompt-button" data-prompt="My name is Alex Rivera, my email is alex@example.com, and Saturday at 10am works.">6. Complete booking</button>
+            </div>
+          </section>
+
+          <section class="card evidence-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Inspectable state</p>
+                <h2>Shopper profile</h2>
+              </div>
+              <span id="stage-badge" class="stage-badge">qualifying</span>
+            </div>
+            <dl id="profile" class="profile-list">
+              <div><dt>Budget</dt><dd>Not set</dd></div>
+              <div><dt>Use</dt><dd>Not set</dd></div>
+              <div><dt>Style</dt><dd>Not set</dd></div>
+              <div><dt>Vehicle</dt><dd>Not selected</dd></div>
+            </dl>
+          </section>
+
+          <section class="card evidence-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Tool trace</p>
+                <h2>Grounding evidence</h2>
+              </div>
+              <span id="trace-count" class="step-count">0 calls</span>
+            </div>
+            <div id="trace" class="trace-list">
+              <p class="empty-state">Tool calls will appear here after the advisor searches inventory or retrieves facts.</p>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

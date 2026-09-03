@@ -25,6 +25,12 @@ curl -X POST http://127.0.0.1:8000/chat \
 
 The response includes the assistant message, current qualification state, and the tools used for that turn.
 
+For the browser demo, open [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+after starting the server. The page includes guided prompts for the six-turn
+sales flow and panels that expose the current shopper state and redacted tool
+trace. The “Voice transcript” option demonstrates the shared text/voice input
+boundary; it does not perform speech-to-text.
+
 ## Run the clean offline demo
 
 Run the complete qualification, recommendation, fact lookup, and test-drive

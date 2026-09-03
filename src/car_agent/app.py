@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from .crewai_agent import CrewAISalesAgent
 from .modality import normalize_command
+
+
+WEB_ROOT = Path(__file__).parent / "web"
 
 
 class ChatRequest(BaseModel):
@@ -41,6 +47,12 @@ def create_app(sales_agent: CrewAISalesAgent | None = None) -> FastAPI:
     api = FastAPI(title="Classic Sports Car Sales Agent", version="0.1.0")
     service = sales_agent or CrewAISalesAgent(use_live_model=True)
     api.state.agent = service
+    api.mount("/static", StaticFiles(directory=WEB_ROOT), name="static")
+
+
+    @api.get("/", include_in_schema=False)
+    def home() -> FileResponse:
+        return FileResponse(WEB_ROOT / "index.html")
 
 
     @api.get("/health", response_model=HealthResponse)

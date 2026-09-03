@@ -39,6 +39,24 @@ def test_p4_t1_api_contract_and_validation() -> None:
     assert malformed.status_code == 422
 
 
+def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
+    client, _ = _offline_client()
+
+    page = client.get("/")
+    stylesheet = client.get("/static/styles.css")
+    script = client.get("/static/app.js")
+
+    assert page.status_code == 200
+    assert "Classic Car Advisor" in page.text
+    assert "data-prompt" in page.text
+    assert "Shopper profile" in page.text
+    assert "Grounding evidence" in page.text
+    assert stylesheet.status_code == 200
+    assert "conversation-card" in stylesheet.text
+    assert script.status_code == 200
+    assert 'fetch("/chat"' in script.text
+
+
 def test_p4_t2_invalid_schedule_never_creates_a_request() -> None:
     client, agent = _offline_client()
     _recommend(agent, "invalid-schedule")
