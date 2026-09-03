@@ -24,7 +24,7 @@ The test suite must run without network access or a live model. Integration test
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
 | P1-T1 | Send only a budget | Agent asks for missing preferences and calls no tools | implemented |
-| P1-T2 | Add use and driving style | Agent searches inventory and emits an ordered multi-tool trace | implemented |
+| P1-T2 | Add use and driving style | Agent emits the ordered trace `search_inventory → get_vehicle × 2 → retrieve_vehicle_facts` | implemented |
 | P1-T3 | Inspect a recommended model | Facts match the selected vehicle and include a source | implemented |
 | P1-T4 | Provide valid scheduling details | Exactly one test-drive request is created | implemented |
 | P1-T5 | Search with a budget cap | Every result price is at or below the cap | implemented |
