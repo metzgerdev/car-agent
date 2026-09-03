@@ -1,0 +1,66 @@
+# Acceptance Matrix
+
+This document is the executable-minded checklist for the phases in [plan.md](../plan.md). Each test case has an ID so implementation, CI output, and the portfolio write-up can refer to the same contract.
+
+## Test commands
+
+```bash
+python -m compileall -q src tests
+pytest -q
+```
+
+The test suite must run without network access or a live model. Integration tests for a provider or external data source belong in a separate opt-in command.
+
+## Phase 0 — Contract and skeleton
+
+| ID | Scenario | Expected result | Status |
+| --- | --- | --- | --- |
+| P0-T1 | Read the version files | `.python-version` is `3.14.7`; packaging accepts Python 3.14 only | implemented |
+| P0-T2 | Compile source and tests | `compileall` exits 0 | implemented |
+| P0-T3 | Serialize a response | `AgentResponse.to_dict()` is JSON serializable and contains message, state, and trace | implemented |
+
+## Phase 1 — Thin vertical slice
+
+| ID | Scenario | Expected result | Status |
+| --- | --- | --- | --- |
+| P1-T1 | Send only a budget | Agent asks for missing preferences and calls no tools | implemented |
+| P1-T2 | Add use and driving style | Agent searches inventory and emits an ordered multi-tool trace | implemented |
+| P1-T3 | Inspect a recommended model | Facts match the selected vehicle and include a source | implemented |
+| P1-T4 | Provide valid scheduling details | Exactly one test-drive request is created | implemented |
+| P1-T5 | Search with a budget cap | Every result price is at or below the cap | implemented |
+
+## Phase 2 — Data and knowledge
+
+| ID | Scenario | Expected result | Status |
+| --- | --- | --- | --- |
+| P2-T1 | Ingest a valid source fixture | A normalized 1990–2020 record is produced | planned |
+| P2-T2 | Ingest without provenance | Record is rejected with a field-level error | planned |
+| P2-T3 | Ingest the same fixture twice | Inventory remains duplicate-free | planned |
+| P2-T4 | Ask for one model’s ownership notes | Only that model’s sourced facts are returned | planned |
+| P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | planned |
+
+## Phase 3 — Sales behavior
+
+| ID | Scenario | Expected result | Status |
+| --- | --- | --- | --- |
+| P3-T1 | Give preferences over multiple turns | State persists and each turn asks at most two useful questions | partial |
+| P3-T2 | Combine hard and soft preferences | Hard constraints always win; soft preferences affect ranking | partial |
+| P3-T3 | Say only “I like Porsche” | Agent asks which Porsche instead of selecting one | planned |
+| P3-T4 | Ask for an unavailable specification | Agent states the limitation and offers inspection or source lookup | planned |
+| P3-T5 | Object to maintenance or price | Agent gives a sourced trade-off and next action | planned |
+| P3-T6 | Run 20 scripted conversations | At least 18 expected outcomes pass; budget compliance is 100% | planned |
+
+## Phase 4 — Conversion and polish
+
+| ID | Scenario | Expected result | Status |
+| --- | --- | --- | --- |
+| P4-T1 | Call `/health`, `/chat`, and malformed `/chat` | 200, valid response, and 422 respectively | planned |
+| P4-T2 | Submit invalid scheduling data | Error is returned and request count does not change | partial |
+| P4-T3 | Retry an identical booking | No duplicate booking is created | planned |
+| P4-T4 | Inspect a trace/log | Tool trace remains inspectable and contact values are redacted | planned |
+| P4-T5 | Send equivalent text and voice intents | Both use the same normalized domain command | planned |
+| P4-T6 | Follow clean-checkout instructions | Setup, tests, and demo transcript complete successfully | planned |
+
+## Completion rule
+
+A phase can be marked complete only when all of its test cases are implemented and passing, or when an explicit exception is documented with a replacement test and rationale.
