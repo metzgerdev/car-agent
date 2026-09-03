@@ -15,7 +15,7 @@ retrieval grounding, and deterministic verification.
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
 | 2 — Data and knowledge | complete | Pydantic source models, Craigslist streaming normalization, recorded NHTSA/EPA adapters, SQLite ingestion, and notebook verification pass | Phase 3 scenario evaluation |
-| 3 — Sales behavior | in progress | CrewAI/OpenRouter orchestration and local key loading are configured; P3-T1 and P3-T2 remain partial foundations | Scenario evaluation set |
+| 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass | Phase 4 API and conversion tests |
 | 4 — Conversion and polish | not started | P4-T2 has scheduler validation foundations | API, redaction, and voice boundary tests |
 
 ### Update protocol
@@ -34,6 +34,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-03 | Phase 2 local ingestion | Normalization, provenance rejection, idempotent SQLite ingest, and compile checks pass | `282ff33` | Pydantic source adapters |
 | 2026-09-03 | Python 3.12 and notebook verification | Python 3.12.13 environment, 19 tests, and headless Phase 2 notebook pass | `abc390b` | Official NHTSA/EPA adapters |
 | 2026-09-03 | Phase 2 multi-source adapters | 29 tests pass for Pydantic Craigslist rows, streaming CSV validation, NHTSA vPIC/recall fixtures, EPA facts, and provenance-preserving enrichment | `2a3d692` | Phase 3 scenario evaluation |
+| 2026-09-03 | Phase 3 sales behavior | 35 tests pass; `car-agent-evaluate --strict` reports 20/20 scenarios and zero budget violations | pending | Phase 4 API and conversion tests |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
 | 2026-09-03 | OpenRouter runtime configuration | OpenRouter key loading, LiteLLM dependency, explicit OpenRouter base URL/model, and 23 tests pass without exposing the key | `fa3f3a3` | Scenario evaluation set |
 
@@ -45,6 +46,12 @@ pytest -q
 ```
 
 The test suite must run without network access or a live model. Integration tests for a provider or external data source belong in a separate opt-in command.
+
+Phase 3 can be verified with the deterministic scenario evaluator:
+
+```bash
+car-agent-evaluate --strict
+```
 
 Phase 2 can also be verified interactively with [notebooks/verify_phase2.ipynb](../notebooks/verify_phase2.ipynb). Run it with `jupyter lab` after installing `.[notebook]`; its final cell asserts P2-T1 through P2-T5 and prints a single summary. For headless verification:
 
@@ -87,12 +94,12 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
 | P3-T0 | Construct the CrewAI sales crew and OpenRouter configuration | One CrewAI agent, one structured task, all five domain tools, and an OpenRouter LLM configuration are available without exposing the key | implemented |
-| P3-T1 | Give preferences over multiple turns | State persists and each turn asks at most two useful questions | partial |
-| P3-T2 | Combine hard and soft preferences | Hard constraints always win; soft preferences affect ranking | partial |
-| P3-T3 | Say only “I like Porsche” | Agent asks which Porsche instead of selecting one | planned |
-| P3-T4 | Ask for an unavailable specification | Agent states the limitation and offers inspection or source lookup | planned |
-| P3-T5 | Object to maintenance or price | Agent gives a sourced trade-off and next action | planned |
-| P3-T6 | Run 20 scripted conversations | At least 18 expected outcomes pass; budget compliance is 100% | planned |
+| P3-T1 | Give preferences over multiple turns | State persists and each turn asks at most two useful questions | implemented |
+| P3-T2 | Combine hard and soft preferences | Hard constraints always win; soft preferences affect ranking | implemented |
+| P3-T3 | Say only “I like Porsche” | Agent asks which Porsche instead of selecting one | implemented |
+| P3-T4 | Ask for an unavailable specification | Agent states the limitation and offers inspection or source lookup | implemented |
+| P3-T5 | Object to maintenance or price | Agent gives a sourced trade-off and next action | implemented |
+| P3-T6 | Run 20 scripted conversations | 20/20 expected outcomes pass; budget compliance is 100% | implemented |
 
 ## Phase 4 — Conversion and polish
 

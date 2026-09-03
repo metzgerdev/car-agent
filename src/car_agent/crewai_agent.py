@@ -181,7 +181,11 @@ class CrewAISalesAgent:
             backstory=(
                 "You are a careful specialist in used classic and modern-classic sports cars. "
                 "You ask only useful questions, respect hard budgets, distinguish sourced facts "
-                "from judgment, and never invent inventory or ownership claims."
+                "from judgment, and never invent inventory or ownership claims. If a shopper "
+                "names only a make with multiple matches, ask them to choose a specific model. "
+                "If a requested specification is not sourced, say so plainly and offer an "
+                "official lookup or inspection. When a shopper raises price or maintenance, "
+                "retrieve a sourced note and explain the trade-off."
             ),
             llm=self._live_llm(),
             tools=crew_tools,
@@ -196,8 +200,10 @@ class CrewAISalesAgent:
                 "Shopper message:\n{user_message}\n\n"
                 "Current domain state as JSON:\n{state_json}\n\n"
                 "Use the inventory and knowledge tools whenever a claim needs grounding. "
-                "Preserve prior state, enforce the budget, and return a concise response plus "
-                "the complete updated domain state."
+                "Preserve prior state, enforce the budget as a hard constraint, and ask no more "
+                "than two useful questions in one turn. Never guess an ambiguous model or an "
+                "unsupported specification. Return a concise response plus the complete "
+                "updated domain state."
             ),
             expected_output="A JSON object with message (string) and state (object).",
             agent=salesperson,

@@ -25,6 +25,18 @@ curl -X POST http://127.0.0.1:8000/chat \
 
 The response includes the assistant message, current qualification state, and the tools used for that turn.
 
+## Evaluate Phase 3
+
+Run the deterministic 20-conversation sales evaluation without a live model:
+
+```bash
+car-agent-evaluate --strict
+```
+
+The strict evaluator checks state progression, tool use, ambiguity handling,
+uncertainty responses, objection handling, question count, and hard-budget
+compliance.
+
 ## Run with CrewAI and OpenRouter
 
 The HTTP app uses `CrewAISalesAgent` with OpenRouter. The copied `.env` already supplies `OPENROUTER_API_KEY`; the model defaults to `openrouter/deepseek/deepseek-chat` and can be changed with `CAR_AGENT_CREWAI_MODEL`.
