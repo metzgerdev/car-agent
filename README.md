@@ -48,3 +48,10 @@ To normalize an inventory fixture and write it to an idempotent SQLite store:
 ```bash
 car-agent-ingest --input data/inventory.json --output data/inventory.sqlite
 ```
+
+To verify Phase 2 interactively, install the notebook extra and open [notebooks/verify_phase2.ipynb](notebooks/verify_phase2.ipynb):
+
+```bash
+pip install -e '.[notebook]'
+jupyter lab notebooks/verify_phase2.ipynb
+```

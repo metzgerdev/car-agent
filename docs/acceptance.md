@@ -36,6 +36,12 @@ pytest -q
 
 The test suite must run without network access or a live model. Integration tests for a provider or external data source belong in a separate opt-in command.
 
+Phase 2 can also be verified interactively with [notebooks/verify_phase2.ipynb](../notebooks/verify_phase2.ipynb). Run it with `jupyter lab` after installing `.[notebook]`; its final cell asserts P2-T1 through P2-T5 and prints a single summary. For headless verification:
+
+```bash
+jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.ipynb notebooks/verify_phase2.ipynb
+```
+
 ## Phase 0 — Contract and skeleton
 
 | ID | Scenario | Expected result | Status |

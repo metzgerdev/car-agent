@@ -15,6 +15,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
+notebook = [
+    "jupyterlab>=4,<5",
+    "nbconvert>=7,<8",
+    "ipykernel>=6,<7",
+]
 
 [project.scripts]
 car-agent-verify = "car_agent.verify_cli:main"
