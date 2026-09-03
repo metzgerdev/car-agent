@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from car_agent.app import create_app
 from car_agent.crewai_agent import CrewAISalesAgent
 from car_agent.modality import VoiceConversationAdapter, TextConversationAdapter
+from car_agent.models import AgentResponse, ConversationState, ToolCall
 
 
 def _offline_client() -> tuple[TestClient, CrewAISalesAgent]:
@@ -57,13 +58,20 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert "conversation-card" in stylesheet.text
     assert script.status_code == 200
     assert 'fetch("/chat"' in script.text
-    assert "/vehicles/${encodeURIComponent(vehicleId)}/reviews" in script.text
+    assert "payload.reviews" in script.text
 
 
 def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:
     client, _ = _offline_client()
 
     response = client.get("/vehicles/honda-s2000-2004/reviews")
+    recommendation = client.post(
+        "/chat",
+        json={
+            "conversation_id": "review-recommendation",
+            "message": "I want a weekend coupe under $40k with spirited driving.",
+        },
+    )
     missing = client.get("/vehicles/unknown-vehicle/reviews")
 
     assert response.status_code == 200
@@ -76,7 +84,42 @@ def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:
     }
     assert all(review["url"].startswith("https://") for review in payload["reviews"])
     assert all(review["summary"] for review in payload["reviews"])
+    recommendation_payload = recommendation.json()
+    assert recommendation.status_code == 200
+    assert recommendation_payload["reviews"]
+    assert any(
+        group["vehicle_name"] == "2008 BMW Z4 M Coupe"
+        for group in recommendation_payload["reviews"]
+    )
     assert missing.status_code == 404
+
+    agent = CrewAISalesAgent(use_live_model=False)
+    vehicle = agent.tools.inventory.get("bmw-z4-m-2008")
+    assert vehicle is not None
+
+    def respond_with_tool_suggestion(conversation_id: str, user_message: str) -> AgentResponse:
+        return AgentResponse(
+            "The BMW M3 is unavailable, but consider the BMW Z4 M Coupe.",
+            ConversationState(conversation_id),
+            [
+                ToolCall(
+                    name="search_inventory",
+                    arguments={"filters": {"query": "BMW M3"}},
+                    result={"count": 1, "vehicles": [vehicle.to_dict()]},
+                )
+            ],
+        )
+
+    agent.respond = respond_with_tool_suggestion  # type: ignore[method-assign]
+    trace_client = TestClient(create_app(agent))
+    trace_payload = trace_client.post(
+        "/chat",
+        json={"conversation_id": "trace-review", "message": "Find another BMW."},
+    ).json()
+
+    assert [group["vehicle_name"] for group in trace_payload["reviews"]] == [
+        "2008 BMW Z4 M Coupe"
+    ]
 
 
 def test_p4_t2_invalid_schedule_never_creates_a_request() -> None:

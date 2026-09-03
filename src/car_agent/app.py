@@ -37,16 +37,17 @@ class HealthResponse(BaseModel):
     status: Literal["ok"]
 
 
+class VehicleReviewsResponse(BaseModel):
+    vehicle_id: str
+    vehicle_name: str
+    reviews: list[MagazineReview]
+
+
 class ChatResponse(BaseModel):
     message: str
     state: dict[str, Any]
     trace: list[dict[str, Any]]
-
-
-class ReviewResponse(BaseModel):
-    vehicle_id: str
-    vehicle_name: str
-    reviews: list[MagazineReview]
+    reviews: list[VehicleReviewsResponse] = Field(default_factory=list)
 
 
 def create_app(
@@ -77,15 +78,17 @@ def create_app(
     def chat(request: ChatRequest) -> ChatResponse:
         command = normalize_command(request.conversation_id, request.message, request.modality)
         response = service.respond(command.conversation_id, command.message)
-        return ChatResponse.model_validate(response.to_dict())
+        payload = response.to_dict()
+        payload["reviews"] = _reviews_for_response(service, response, reviews)
+        return ChatResponse.model_validate(payload)
 
 
-    @api.get("/vehicles/{vehicle_id}/reviews", response_model=ReviewResponse)
-    def vehicle_reviews(vehicle_id: str) -> ReviewResponse:
+    @api.get("/vehicles/{vehicle_id}/reviews", response_model=VehicleReviewsResponse)
+    def vehicle_reviews(vehicle_id: str) -> VehicleReviewsResponse:
         vehicle = service.tools.inventory.get(vehicle_id)
         if not vehicle:
             raise HTTPException(status_code=404, detail="Vehicle not found.")
-        return ReviewResponse(
+        return VehicleReviewsResponse(
             vehicle_id=vehicle.id,
             vehicle_name=vehicle.name,
             reviews=reviews.retrieve(vehicle),
@@ -96,3 +99,52 @@ def create_app(
 
 app = create_app()
 agent: CrewAISalesAgent = app.state.agent
+
+
+def _reviews_for_response(
+    service: CrewAISalesAgent,
+    response: Any,
+    repository: ReviewRepository,
+) -> list[VehicleReviewsResponse]:
+    vehicle_ids: list[str] = []
+    seen_ids: set[str] = set()
+
+    def add_vehicle_id(value: Any) -> None:
+        if isinstance(value, str) and value and value not in seen_ids:
+            seen_ids.add(value)
+            vehicle_ids.append(value)
+
+    add_vehicle_id(response.state.preferences.selected_vehicle_id)
+    for vehicle_id in response.state.last_vehicle_ids:
+        add_vehicle_id(vehicle_id)
+    for call in response.trace:
+        _add_tool_result_vehicle_ids(call.result, add_vehicle_id)
+
+    groups: list[VehicleReviewsResponse] = []
+    for vehicle_id in vehicle_ids:
+        vehicle = service.tools.inventory.get(vehicle_id)
+        if not vehicle:
+            continue
+        vehicle_reviews = repository.retrieve(vehicle)
+        if vehicle_reviews:
+            groups.append(
+                VehicleReviewsResponse(
+                    vehicle_id=vehicle.id,
+                    vehicle_name=vehicle.name,
+                    reviews=vehicle_reviews,
+                )
+            )
+    return groups
+
+
+def _add_tool_result_vehicle_ids(result: Any, add_vehicle_id: Any) -> None:
+    if not isinstance(result, dict):
+        return
+    vehicle = result.get("vehicle")
+    if isinstance(vehicle, dict):
+        add_vehicle_id(vehicle.get("id"))
+    vehicles = result.get("vehicles")
+    if isinstance(vehicles, list):
+        for candidate in vehicles:
+            if isinstance(candidate, dict):
+                add_vehicle_id(candidate.get("id"))

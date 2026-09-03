@@ -154,28 +154,6 @@ function closeReview() {
   else reviewDialog.removeAttribute("open");
 }
 
-async function loadReviews(state) {
-  const preferences = state.preferences || {};
-  const ids = [...new Set([
-    preferences.selected_vehicle_id,
-    ...(state.last_vehicle_ids || []),
-  ].filter(Boolean))].slice(0, 3);
-  if (!ids.length) {
-    renderReviews([]);
-    return;
-  }
-  try {
-    const responses = await Promise.all(ids.map(async (vehicleId) => {
-      const response = await fetch(`/vehicles/${encodeURIComponent(vehicleId)}/reviews`);
-      if (!response.ok) return null;
-      return response.json();
-    }));
-    renderReviews(responses.filter(Boolean));
-  } catch (error) {
-    renderReviews([]);
-  }
-}
-
 async function checkHealth() {
   try {
     const response = await fetch("/health");
@@ -209,7 +187,7 @@ async function sendMessage(message) {
     if (!response.ok) throw new Error(payload.detail || "The advisor could not process that message.");
     appendMessage("advisor", payload.message);
     updateEvidence(payload.state, payload.trace || []);
-    await loadReviews(payload.state);
+    renderReviews(payload.reviews || []);
   } catch (error) {
     appendMessage("advisor", error.message || "The advisor is unavailable. Check the API and try again.", "error-message");
   } finally {
