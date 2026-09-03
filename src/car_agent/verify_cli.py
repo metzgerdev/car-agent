@@ -22,7 +22,7 @@ class Phase1Verifier:
     """Runs real agent turns and accumulates Phase 1 acceptance evidence."""
 
     def __init__(self, agent: CrewAISalesAgent | None = None, conversation_id: str = "phase1-cli") -> None:
-        self.agent = agent or CrewAISalesAgent()
+        self.agent = agent or CrewAISalesAgent(use_live_model=False)
         self.conversation_id = conversation_id
         self.last_response: AgentResponse | None = None
         self.turns: list[tuple[str, AgentResponse]] = []
@@ -50,7 +50,7 @@ class Phase1Verifier:
         return response
 
     def reset(self) -> None:
-        self.agent = CrewAISalesAgent()
+        self.agent = CrewAISalesAgent(use_live_model=False)
         self.last_response = None
         self.turns = []
         self.checks = self._new_checks()

@@ -1,6 +1,7 @@
 from crewai import Crew
 
 from car_agent.crewai_agent import CrewAISalesAgent, CrewTurnOutput
+from car_agent.models import ConversationState, ShopperPreferences
 
 
 def test_crewai_crew_is_constructed_without_an_api_key() -> None:
@@ -44,6 +45,10 @@ def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
 
 def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
+    agent.sessions["live-contract"] = ConversationState(
+        "live-contract",
+        preferences=ShopperPreferences(budget_max=40000),
+    )
 
     class FakeCrew:
         def kickoff(self, *, inputs):
@@ -56,7 +61,6 @@ def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) ->
                         message="I found a grounded match.",
                         state={
                             "stage": "recommending",
-                            "preferences": {"budget_max": 40000},
                             "last_vehicle_ids": ["honda-s2000-2004"],
                         },
                     )

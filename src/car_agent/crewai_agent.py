@@ -248,9 +248,9 @@ def _state_from_dict(
     if not isinstance(preferences_payload, dict):
         preferences_payload = {}
     fields = set(ShopperPreferences.__dataclass_fields__)
-    preferences = ShopperPreferences(
-        **{key: value for key, value in preferences_payload.items() if key in fields}
-    )
+    preference_values = previous.preferences.to_dict()
+    preference_values.update({key: value for key, value in preferences_payload.items() if key in fields})
+    preferences = ShopperPreferences(**preference_values)
     stage = payload.get("stage") or previous.stage
     last_vehicle_ids = payload.get("last_vehicle_ids", previous.last_vehicle_ids)
     if not isinstance(last_vehicle_ids, list) or not all(isinstance(value, str) for value in last_vehicle_ids):
