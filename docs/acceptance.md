@@ -9,7 +9,7 @@ This document is the executable-minded checklist for the phases in [plan.md](../
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
 | 2 — Data and knowledge | in progress | Local provenance pipeline, SQLite ingestion, and notebook verification pass | Official NHTSA/EPA adapters |
-| 3 — Sales behavior | in progress | CrewAI orchestration is wired; P3-T1 and P3-T2 remain partial foundations | Scenario evaluation set |
+| 3 — Sales behavior | in progress | CrewAI/OpenRouter orchestration and local key loading are configured; P3-T1 and P3-T2 remain partial foundations | Scenario evaluation set |
 | 4 — Conversion and polish | not started | P4-T2 has scheduler validation foundations | API, redaction, and voice boundary tests |
 
 ### Update protocol
@@ -28,6 +28,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-03 | Phase 2 local ingestion | Normalization, provenance rejection, idempotent SQLite ingest, and compile checks pass | `282ff33` | Official NHTSA/EPA adapters |
 | 2026-09-03 | Python 3.12 and notebook verification | Python 3.12.13 environment, 19 tests, and headless Phase 2 notebook pass | `abc390b` | Official NHTSA/EPA adapters |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
+| 2026-09-03 | OpenRouter runtime configuration | OpenRouter key loading, LiteLLM dependency, explicit OpenRouter base URL/model, and 23 tests pass without exposing the key | pending | Scenario evaluation set |
 
 ## Test commands
 
@@ -78,7 +79,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
-| P3-T0 | Construct the CrewAI sales crew without a provider key | One CrewAI agent, one structured task, and all five domain tools are available without an LLM call | implemented |
+| P3-T0 | Construct the CrewAI sales crew and OpenRouter configuration | One CrewAI agent, one structured task, all five domain tools, and an OpenRouter LLM configuration are available without exposing the key | implemented |
 | P3-T1 | Give preferences over multiple turns | State persists and each turn asks at most two useful questions | partial |
 | P3-T2 | Combine hard and soft preferences | Hard constraints always win; soft preferences affect ranking | partial |
 | P3-T3 | Say only “I like Porsche” | Agent asks which Porsche instead of selecting one | planned |

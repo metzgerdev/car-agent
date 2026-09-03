@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from .crewai_agent import CrewAISalesAgent
 
 app = FastAPI(title="Classic Sports Car Sales Agent", version="0.1.0")
-agent = CrewAISalesAgent()
+agent = CrewAISalesAgent(use_live_model=True)
 
 
 class ChatRequest(BaseModel):

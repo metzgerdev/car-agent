@@ -23,6 +23,20 @@ def test_crewai_crew_is_constructed_without_an_api_key() -> None:
     assert crew.tasks[0].output_pydantic is not None
 
 
+def test_openrouter_llm_configuration_uses_only_the_openrouter_key(monkeypatch) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "should-not-be-used")
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    crew = agent.build_crew()
+    llm = crew.agents[0].llm
+
+    assert llm.model == "deepseek/deepseek-chat"
+    assert llm.provider == "openrouter"
+    assert llm.base_url == "https://openrouter.ai/api/v1"
+    assert llm.api_key == "test-openrouter-key"
+
+
 def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
     agent = CrewAISalesAgent()
 

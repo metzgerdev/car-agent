@@ -2,7 +2,7 @@
 
 This is a portfolio demo of a used classic-sports-car sales agent. It is deliberately built around explicit state, typed tools, retrieval, and an inspectable tool trace so its behavior can be evaluated independently of a language model. CrewAI provides the live `Agent`/`Task`/`Crew` orchestration boundary, while the default mode remains deterministic and offline.
 
-The current slice supports preference discovery, inventory search, vehicle facts, comparisons, and a validated mock test-drive request. CrewAI 1.15.x is supported on the Python 3.12.13 baseline. A live CrewAI turn is opt-in; the default path runs without an API key so the acceptance tests stay repeatable.
+The current slice supports preference discovery, inventory search, vehicle facts, comparisons, and a validated mock test-drive request. CrewAI 1.15.x is supported on the Python 3.12.13 baseline. The HTTP app loads the local `.env` and uses its `OPENROUTER_API_KEY` for live CrewAI turns; the acceptance verifier remains explicitly offline.
 
 ## Run locally
 
@@ -25,18 +25,15 @@ curl -X POST http://127.0.0.1:8000/chat \
 
 The response includes the assistant message, current qualification state, and the tools used for that turn.
 
-## Run with CrewAI
+## Run with CrewAI and OpenRouter
 
-The HTTP app uses `CrewAISalesAgent`. To execute live CrewAI turns, provide a model-provider key and opt in:
+The HTTP app uses `CrewAISalesAgent` with OpenRouter. The copied `.env` already supplies `OPENROUTER_API_KEY`; the model defaults to `openrouter/deepseek/deepseek-chat` and can be changed with `CAR_AGENT_CREWAI_MODEL`.
 
 ```bash
-export OPENAI_API_KEY="your-key"
-export CAR_AGENT_USE_CREWAI=1
-export CAR_AGENT_CREWAI_MODEL="openai/gpt-4o-mini"
 uvicorn car_agent.app:app --reload
 ```
 
-Without `CAR_AGENT_USE_CREWAI=1`, the same app uses the deterministic policy and does not make model calls. Both paths return the same domain response shape: message, conversation state, and tool trace.
+For deterministic local checks, use `car-agent-verify --strict`; it never makes model calls. Both paths return the same domain response shape: message, conversation state, and tool trace.
 
 ## Verify Phase 1 interactively
 

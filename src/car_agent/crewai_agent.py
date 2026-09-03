@@ -11,13 +11,18 @@ import json
 import os
 from typing import Any
 
-from crewai import Agent, Crew, Process, Task
+from crewai import Agent, Crew, LLM, Process, Task
 from crewai.tools import BaseTool
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field, PrivateAttr
 
 from .agent import DemoSalesAgent
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall
+from .repositories import PROJECT_ROOT
 from .tools import SalesTools
+
+
+load_dotenv(PROJECT_ROOT / ".env")
 
 
 class SearchInventoryInput(BaseModel):
@@ -151,9 +156,7 @@ class CrewAISalesAgent:
             if use_live_model is None
             else use_live_model
         )
-        self.llm = llm or os.getenv("CAR_AGENT_CREWAI_MODEL") or os.getenv("OPENAI_MODEL_NAME")
-        if self.use_live_model and self.llm is None:
-            self.llm = "openai/gpt-4o-mini"
+        self.llm = llm or os.getenv("CAR_AGENT_CREWAI_MODEL") or "openrouter/deepseek/deepseek-chat"
         self.last_crew: Crew | None = None
 
     def respond(self, conversation_id: str, user_message: str) -> AgentResponse:
@@ -180,7 +183,7 @@ class CrewAISalesAgent:
                 "You ask only useful questions, respect hard budgets, distinguish sourced facts "
                 "from judgment, and never invent inventory or ownership claims."
             ),
-            llm=self.llm,
+            llm=self._live_llm(),
             tools=crew_tools,
             allow_delegation=False,
             max_iter=8,
@@ -210,6 +213,23 @@ class CrewAISalesAgent:
             tracing=False,
         )
         return self.last_crew
+
+    def _live_llm(self) -> LLM | None:
+        if not self.use_live_model:
+            return None
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "Live CrewAI mode requires OPENROUTER_API_KEY in the environment or .env file."
+            )
+        model = self.llm
+        if not model.startswith("openrouter/"):
+            model = f"openrouter/{model}"
+        return LLM(
+            model=model,
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+        )
 
     def _respond_live(self, conversation_id: str, user_message: str) -> AgentResponse:
         previous_state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
