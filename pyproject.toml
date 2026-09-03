@@ -16,6 +16,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
 
+[project.scripts]
+car-agent-verify = "car_agent.verify_cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

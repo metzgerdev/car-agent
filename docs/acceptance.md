@@ -28,6 +28,7 @@ The test suite must run without network access or a live model. Integration test
 | P1-T3 | Inspect a recommended model | Facts match the selected vehicle and include a source | implemented |
 | P1-T4 | Provide valid scheduling details | Exactly one test-drive request is created | implemented |
 | P1-T5 | Search with a budget cap | Every result price is at or below the cap | implemented |
+| P1-T6 | Complete the guided CLI flow with `--strict` | All Phase 1 checks report PASS and the process exits 0 | implemented |
 
 ## Phase 2 — Data and knowledge
 

@@ -25,6 +25,16 @@ curl -X POST http://127.0.0.1:8000/chat \
 
 The response includes the assistant message, current qualification state, and the tools used for that turn.
 
+## Verify Phase 1 interactively
+
+After installing the project, run:
+
+```bash
+car-agent-verify --guided
+```
+
+Enter the suggested shopper messages and use `/check` at any point. The verifier reports the Phase 1 cases as they pass. Other useful commands are `/state`, `/trace`, `/reset`, and `/quit`. To make an incomplete run fail in automation, add `--strict`.
+
 Run the tests with:
 
 ```bash
