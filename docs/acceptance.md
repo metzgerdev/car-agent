@@ -34,7 +34,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-03 | Phase 2 local ingestion | Normalization, provenance rejection, idempotent SQLite ingest, and compile checks pass | `282ff33` | Pydantic source adapters |
 | 2026-09-03 | Python 3.12 and notebook verification | Python 3.12.13 environment, 19 tests, and headless Phase 2 notebook pass | `abc390b` | Official NHTSA/EPA adapters |
 | 2026-09-03 | Phase 2 multi-source adapters | 29 tests pass for Pydantic Craigslist rows, streaming CSV validation, NHTSA vPIC/recall fixtures, EPA facts, and provenance-preserving enrichment | `2a3d692` | Phase 3 scenario evaluation |
-| 2026-09-03 | Phase 2 Craigslist sample ingestion | Four source-shaped rows stream through Pydantic normalization, explicit horsepower enrichment, canonical SQLite storage, repository loading, and idempotency checks; 45 tests pass | pending | none |
+| 2026-09-03 | Phase 2 Craigslist sample ingestion | Four source-shaped rows stream through Pydantic normalization, explicit horsepower enrichment, canonical SQLite storage, repository loading, and idempotency checks; 45 tests pass | `a48846a` | none |
 | 2026-09-03 | Phase 3 sales behavior | 35 tests pass; `car-agent-evaluate --strict` reports 20/20 scenarios and zero budget violations | `3770b2c` | Phase 4 API and conversion tests |
 | 2026-09-03 | Phase 4 conversion and polish | 41 tests pass; API, scheduling, redaction, modality, and `car-agent-demo` clean-checkout smoke tests pass | `11bfd1b` | none |
 | 2026-09-03 | Phase 4 browser demo UI | Browser shell, guided prompts, live API health state, shopper profile, and redacted tool-trace panels are served by FastAPI; 42 tests pass | `15146ef` | none |
