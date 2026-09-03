@@ -5,10 +5,10 @@ from __future__ import annotations
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from .agent import DemoSalesAgent
+from .crewai_agent import CrewAISalesAgent
 
 app = FastAPI(title="Classic Sports Car Sales Agent", version="0.1.0")
-agent = DemoSalesAgent()
+agent = CrewAISalesAgent()
 
 
 class ChatRequest(BaseModel):

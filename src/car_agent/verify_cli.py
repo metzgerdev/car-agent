@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from .agent import DemoSalesAgent
+from .crewai_agent import CrewAISalesAgent
 from .models import AgentResponse, ToolCall
 
 
@@ -21,8 +21,8 @@ class VerificationCheck:
 class Phase1Verifier:
     """Runs real agent turns and accumulates Phase 1 acceptance evidence."""
 
-    def __init__(self, agent: DemoSalesAgent | None = None, conversation_id: str = "phase1-cli") -> None:
-        self.agent = agent or DemoSalesAgent()
+    def __init__(self, agent: CrewAISalesAgent | None = None, conversation_id: str = "phase1-cli") -> None:
+        self.agent = agent or CrewAISalesAgent()
         self.conversation_id = conversation_id
         self.last_response: AgentResponse | None = None
         self.turns: list[tuple[str, AgentResponse]] = []
@@ -50,7 +50,7 @@ class Phase1Verifier:
         return response
 
     def reset(self) -> None:
-        self.agent = DemoSalesAgent()
+        self.agent = CrewAISalesAgent()
         self.last_response = None
         self.turns = []
         self.checks = self._new_checks()
