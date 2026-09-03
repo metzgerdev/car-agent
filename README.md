@@ -89,6 +89,30 @@ To normalize an inventory fixture and write it to an idempotent SQLite store:
 car-agent-ingest --input data/inventory.json --output data/inventory.sqlite
 ```
 
+To try the first small Craigslist ingestion sample, provide explicit
+horsepower enrichment for each source row and write canonical records to
+SQLite:
+
+```bash
+car-agent-ingest-craigslist \
+  --input data/craigslist_sample.csv \
+  --horsepower-map data/craigslist_sample_horsepower.json \
+  --output data/craigslist_sample.sqlite \
+  --retrieved-at 2026-09-03T00:00:00Z
+```
+
+The sample contains four source-shaped rows; it is intentionally separate
+from the six-record illustrative JSON fixture. To point the agent at the
+resulting sample database for a demo, set the repository path before starting
+the app:
+
+```bash
+CAR_AGENT_INVENTORY_PATH=data/craigslist_sample.sqlite uvicorn car_agent.app:app --reload
+```
+
+The SQLite output is ignored by Git and can be regenerated. The full source
+export is not checked into this repository.
+
 To verify Phase 2 interactively, install the notebook extra and open [notebooks/verify_phase2.ipynb](notebooks/verify_phase2.ipynb):
 
 ```bash

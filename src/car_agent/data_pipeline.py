@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -133,82 +134,96 @@ class SQLiteInventoryStore:
         )
         self.connection.commit()
 
-    def ingest(self, vehicles: list[Vehicle]) -> int:
-        for vehicle in vehicles:
-            if not vehicle.provenance:
-                raise InventoryValidationError([f"vehicle '{vehicle.id}' has no provenance"])
-            provenance = vehicle.provenance
-            self.connection.execute(
-                """
-                INSERT INTO inventory (
-                    id, make, model, year, price, mileage, body_style, transmission,
-                    drivetrain, horsepower, description, tags_json, source_url,
-                    source_type, retrieved_at, source_record_id, license
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    make=excluded.make, model=excluded.model, year=excluded.year,
-                    price=excluded.price, mileage=excluded.mileage,
-                    body_style=excluded.body_style, transmission=excluded.transmission,
-                    drivetrain=excluded.drivetrain, horsepower=excluded.horsepower,
-                    description=excluded.description, tags_json=excluded.tags_json,
-                    source_url=excluded.source_url, source_type=excluded.source_type,
-                    retrieved_at=excluded.retrieved_at,
-                    source_record_id=excluded.source_record_id, license=excluded.license
-                """,
-                (
-                    vehicle.id,
-                    vehicle.make,
-                    vehicle.model,
-                    vehicle.year,
-                    vehicle.price,
-                    vehicle.mileage,
-                    vehicle.body_style,
-                    vehicle.transmission,
-                    vehicle.drivetrain,
-                    vehicle.horsepower,
-                    vehicle.description,
-                    json.dumps(vehicle.tags),
-                    provenance.source_url,
-                    provenance.source_type,
-                    provenance.retrieved_at,
-                    provenance.source_record_id,
-                    provenance.license,
-                ),
-            )
-        self.connection.commit()
-        return len(vehicles)
+    def ingest(self, vehicles: Iterable[Vehicle]) -> int:
+        count = 0
+        try:
+            for vehicle in vehicles:
+                if not vehicle.provenance:
+                    raise InventoryValidationError([f"vehicle '{vehicle.id}' has no provenance"])
+                provenance = vehicle.provenance
+                self.connection.execute(
+                    """
+                    INSERT INTO inventory (
+                        id, make, model, year, price, mileage, body_style, transmission,
+                        drivetrain, horsepower, description, tags_json, source_url,
+                        source_type, retrieved_at, source_record_id, license
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        make=excluded.make, model=excluded.model, year=excluded.year,
+                        price=excluded.price, mileage=excluded.mileage,
+                        body_style=excluded.body_style, transmission=excluded.transmission,
+                        drivetrain=excluded.drivetrain, horsepower=excluded.horsepower,
+                        description=excluded.description, tags_json=excluded.tags_json,
+                        source_url=excluded.source_url, source_type=excluded.source_type,
+                        retrieved_at=excluded.retrieved_at,
+                        source_record_id=excluded.source_record_id, license=excluded.license
+                    """,
+                    (
+                        vehicle.id,
+                        vehicle.make,
+                        vehicle.model,
+                        vehicle.year,
+                        vehicle.price,
+                        vehicle.mileage,
+                        vehicle.body_style,
+                        vehicle.transmission,
+                        vehicle.drivetrain,
+                        vehicle.horsepower,
+                        vehicle.description,
+                        json.dumps(vehicle.tags),
+                        provenance.source_url,
+                        provenance.source_type,
+                        provenance.retrieved_at,
+                        provenance.source_record_id,
+                        provenance.license,
+                    ),
+                )
+                count += 1
+            self.connection.commit()
+        except Exception:
+            self.connection.rollback()
+            raise
+        return count
 
     def count(self) -> int:
         return int(self.connection.execute("SELECT COUNT(*) FROM inventory").fetchone()[0])
+
+    def all(self) -> list[Vehicle]:
+        rows = self.connection.execute("SELECT * FROM inventory ORDER BY id").fetchall()
+        return [_vehicle_from_row(row) for row in rows]
 
     def get(self, vehicle_id: str) -> Vehicle | None:
         row = self.connection.execute("SELECT * FROM inventory WHERE id = ?", (vehicle_id,)).fetchone()
         if row is None:
             return None
-        return Vehicle(
-            id=row["id"],
-            make=row["make"],
-            model=row["model"],
-            year=row["year"],
-            price=row["price"],
-            mileage=row["mileage"],
-            body_style=row["body_style"],
-            transmission=row["transmission"],
-            drivetrain=row["drivetrain"],
-            horsepower=row["horsepower"],
-            description=row["description"],
-            tags=tuple(json.loads(row["tags_json"])),
-            provenance=Provenance(
-                source_url=row["source_url"],
-                source_type=row["source_type"],
-                retrieved_at=row["retrieved_at"],
-                source_record_id=row["source_record_id"],
-                license=row["license"],
-            ),
-        )
+        return _vehicle_from_row(row)
 
     def close(self) -> None:
         self.connection.close()
+
+
+def _vehicle_from_row(row: sqlite3.Row) -> Vehicle:
+    return Vehicle(
+        id=row["id"],
+        make=row["make"],
+        model=row["model"],
+        year=row["year"],
+        price=row["price"],
+        mileage=row["mileage"],
+        body_style=row["body_style"],
+        transmission=row["transmission"],
+        drivetrain=row["drivetrain"],
+        horsepower=row["horsepower"],
+        description=row["description"],
+        tags=tuple(json.loads(row["tags_json"])),
+        provenance=Provenance(
+            source_url=row["source_url"],
+            source_type=row["source_type"],
+            retrieved_at=row["retrieved_at"],
+            source_record_id=row["source_record_id"],
+            license=row["license"],
+        ),
+    )
 
 
 def _require_text(record: dict[str, Any], field: str, errors: list[str]) -> None:

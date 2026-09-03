@@ -65,7 +65,18 @@ provenance, deterministic recorded fixtures, and inspectable retrieval.
 
 - Pydantic boundary models and streaming CSV row validation are implemented in
   `src/car_agent/source_models.py` and `src/car_agent/source_adapters.py`.
+- `data/craigslist_sample.csv` is a four-row, source-shaped sample for the
+  first end-to-end ingestion slice. `car-agent-ingest-craigslist` streams those
+  rows, requires explicit horsepower enrichment, and writes canonical records
+  with `craigslist_snapshot` provenance to SQLite.
+- `CAR_AGENT_INVENTORY_PATH` lets the runtime repository read that generated
+  SQLite inventory instead of the illustrative JSON fixture.
 - Recorded NHTSA vPIC, NHTSA recall, EPA, and Craigslist fixtures provide
   offline tests for the adapter contract.
 - Live provider calls remain opt-in; the default test suite never needs a
   network connection or API key.
+
+The checked-in CSV is only a small offline demonstration sample with
+source-shaped fields and placeholder listing URLs. The full Craigslist export
+is intentionally not checked into the repository and can be processed with the
+same command after download.
