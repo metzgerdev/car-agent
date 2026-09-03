@@ -2,6 +2,31 @@
 
 This document is the executable-minded checklist for the phases in [plan.md](../plan.md). Each test case has an ID so implementation, CI output, and the portfolio write-up can refer to the same contract.
 
+## Phase status
+
+| Phase | Status | Current evidence | Next gate |
+| --- | --- | --- | --- |
+| 0 — Contract and skeleton | complete | Python 3.14.7 compile and serialization checks pass | none |
+| 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
+| 2 — Data and knowledge | in progress | Local provenance pipeline and SQLite ingestion pass | Official NHTSA/EPA adapters |
+| 3 — Sales behavior | not started | P3-T1 and P3-T2 are partial foundations | Scenario evaluation set |
+| 4 — Conversion and polish | not started | P4-T2 has scheduler validation foundations | API, redaction, and voice boundary tests |
+
+### Update protocol
+
+At every phase checkpoint, update this file in the same commit as the implementation or test change:
+
+1. Change the phase status and each affected case from `planned`/`partial` to `implemented` only when its test passes.
+2. Record the verification command and result in the phase status table.
+3. Add a dated entry to the checkpoint log below, including the commit hash and the next gate.
+
+## Checkpoint log
+
+| Date | Phase/checkpoint | Evidence | Commit | Next gate |
+| --- | --- | --- | --- | --- |
+| 2026-09-03 | Phase 0/1 baseline | Python 3.14.7 smoke flow and guided verifier pass | `e5e5c79` | none |
+| 2026-09-03 | Phase 2 local ingestion | Normalization, provenance rejection, idempotent SQLite ingest, and compile checks pass | `282ff33` | Official NHTSA/EPA adapters |
+
 ## Test commands
 
 ```bash
@@ -39,6 +64,7 @@ The test suite must run without network access or a live model. Integration test
 | P2-T3 | Ingest the same fixture twice | Inventory remains duplicate-free | implemented |
 | P2-T4 | Ask for one model’s ownership notes | Only that model’s sourced facts are returned | implemented |
 | P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | implemented |
+| P2-T6 | Run an official-source adapter against a recorded fixture | Source fields normalize into the same schema with source URL and retrieval timestamp | planned |
 
 ## Phase 3 — Sales behavior
 
