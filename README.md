@@ -42,3 +42,9 @@ pytest
 ```
 
 The inventory and knowledge records in `data/` are illustrative demo records. They are intentionally kept separate from the domain and retrieval code so Phase 2 can replace them with sourced data and provenance.
+
+To normalize an inventory fixture and write it to an idempotent SQLite store:
+
+```bash
+car-agent-ingest --input data/inventory.json --output data/inventory.sqlite
+```

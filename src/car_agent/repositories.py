@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .data_pipeline import load_inventory_fixture
 from .models import ShopperPreferences, Vehicle, VehicleFact
 
 
@@ -15,25 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 class InventoryRepository:
     def __init__(self, path: str | Path | None = None) -> None:
         inventory_path = Path(path) if path else PROJECT_ROOT / "data" / "inventory.json"
-        records = json.loads(inventory_path.read_text())
-        self._vehicles = [self._vehicle_from_record(record) for record in records]
-
-    @staticmethod
-    def _vehicle_from_record(record: dict[str, Any]) -> Vehicle:
-        return Vehicle(
-            id=record["id"],
-            make=record["make"],
-            model=record["model"],
-            year=record["year"],
-            price=record["price"],
-            mileage=record["mileage"],
-            body_style=record["body_style"],
-            transmission=record["transmission"],
-            drivetrain=record["drivetrain"],
-            horsepower=record["horsepower"],
-            description=record["description"],
-            tags=tuple(record.get("tags", [])),
-        )
+        self._vehicles = load_inventory_fixture(inventory_path)
 
     def all(self) -> list[Vehicle]:
         return list(self._vehicles)

@@ -7,6 +7,18 @@ from typing import Any
 
 
 @dataclass(frozen=True)
+class Provenance:
+    source_url: str
+    source_type: str
+    retrieved_at: str
+    source_record_id: str | None = None
+    license: str | None = None
+
+    def to_dict(self) -> dict[str, str | None]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class Vehicle:
     id: str
     make: str
@@ -20,6 +32,7 @@ class Vehicle:
     horsepower: int
     description: str
     tags: tuple[str, ...] = ()
+    provenance: Provenance | None = None
 
     @property
     def name(self) -> str:
@@ -38,6 +51,8 @@ class VehicleFact:
     topic: str
     fact: str
     source: str
+    source_url: str | None = None
+    retrieved_at: str | None = None
 
     def to_dict(self) -> dict[str, str]:
         return asdict(self)

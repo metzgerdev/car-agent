@@ -18,6 +18,7 @@ dev = ["pytest>=8,<9"]
 
 [project.scripts]
 car-agent-verify = "car_agent.verify_cli:main"
+car-agent-ingest = "car_agent.ingest_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

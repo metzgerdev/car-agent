@@ -74,7 +74,7 @@ def test_schedule_request_collects_details_then_creates_request() -> None:
 def test_repository_can_load_a_custom_inventory(tmp_path) -> None:
     path = tmp_path / "inventory.json"
     path.write_text(
-        '[{"id":"test-car","make":"Test","model":"Car","year":2000,"price":1,"mileage":2,"body_style":"coupe","transmission":"manual","drivetrain":"RWD","horsepower":3,"description":"demo"}]'
+        '[{"id":"test-car","make":"Test","model":"Car","year":2000,"price":1,"mileage":2,"body_style":"coupe","transmission":"manual","drivetrain":"RWD","horsepower":3,"description":"demo","provenance":{"source_url":"local://test/test-car","source_type":"test_fixture","retrieved_at":"2026-09-03T00:00:00Z"}}]'
     )
 
     inventory = InventoryRepository(path)

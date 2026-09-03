@@ -11,6 +11,7 @@
     "drivetrain": "RWD",
     "horsepower": 200,
     "description": "A lightweight, analog sports coupe with a high-revving rotary engine and strong weekend-car character.",
+    "provenance": {"source_url": "local://demo-seed/inventory/mazda-rx7-1992", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "mazda-rx7-1992", "license": "internal-demo"},
     "tags": ["weekend", "analog", "lightweight", "spirited", "project-friendly"]
   },
   {
@@ -25,6 +26,7 @@
     "drivetrain": "RWD",
     "horsepower": 240,
     "description": "A two-seat roadster known for precise controls, a willing engine, and an engaging open-air experience.",
+    "provenance": {"source_url": "local://demo-seed/inventory/honda-s2000-2004", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "honda-s2000-2004", "license": "internal-demo"},
     "tags": ["weekend", "roadster", "analog", "spirited", "lightweight"]
   },
   {
@@ -39,6 +41,7 @@
     "drivetrain": "RWD",
     "horsepower": 343,
     "description": "A compact, manual rear-drive coupe balancing long-distance usability with serious performance.",
+    "provenance": {"source_url": "local://demo-seed/inventory/bmw-z4-m-2008", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "bmw-z4-m-2008", "license": "internal-demo"},
     "tags": ["weekend", "grand-tourer", "spirited", "manual", "practical"]
   },
   {
@@ -53,6 +56,7 @@
     "drivetrain": "RWD",
     "horsepower": 296,
     "description": "A classic rear-engine sports car with a strong enthusiast following and everyday usability.",
+    "provenance": {"source_url": "local://demo-seed/inventory/porsche-911-1999", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "porsche-911-1999", "license": "internal-demo"},
     "tags": ["weekend", "daily", "grand-tourer", "spirited", "collector"]
   },
   {
@@ -67,6 +71,7 @@
     "drivetrain": "AWD",
     "horsepower": 530,
     "description": "A high-performance all-wheel-drive coupe with supercar pace and a technology-heavy driving experience.",
+    "provenance": {"source_url": "local://demo-seed/inventory/nissan-gt-r-2012", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "nissan-gt-r-2012", "license": "internal-demo"},
     "tags": ["daily", "track", "high-performance", "fast", "technology"]
   },
   {
@@ -81,6 +86,7 @@
     "drivetrain": "RWD",
     "horsepower": 365,
     "description": "A modern mid-engine coupe with sharp handling, a comfortable cabin, and track-day capability.",
+    "provenance": {"source_url": "local://demo-seed/inventory/porsche-718-2018", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "porsche-718-2018", "license": "internal-demo"},
     "tags": ["daily", "track", "high-performance", "modern", "spirited"]
   }
 ]

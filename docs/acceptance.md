@@ -34,11 +34,11 @@ The test suite must run without network access or a live model. Integration test
 
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
-| P2-T1 | Ingest a valid source fixture | A normalized 1990–2020 record is produced | planned |
-| P2-T2 | Ingest without provenance | Record is rejected with a field-level error | planned |
-| P2-T3 | Ingest the same fixture twice | Inventory remains duplicate-free | planned |
-| P2-T4 | Ask for one model’s ownership notes | Only that model’s sourced facts are returned | planned |
-| P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | planned |
+| P2-T1 | Ingest a valid source fixture | A normalized 1990–2020 record is produced | implemented |
+| P2-T2 | Ingest without provenance | Record is rejected with a field-level error | implemented |
+| P2-T3 | Ingest the same fixture twice | Inventory remains duplicate-free | implemented |
+| P2-T4 | Ask for one model’s ownership notes | Only that model’s sourced facts are returned | implemented |
+| P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | implemented |
 
 ## Phase 3 — Sales behavior
 
