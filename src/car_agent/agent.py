@@ -1,0 +1,352 @@
+"""Deterministic sales policy used until a live model adapter is added.
+
+The policy is intentionally boring and inspectable. It demonstrates the state and
+tool boundaries that a model-driven policy can use later.
+"""
+
+from __future__ import annotations
+
+import re
+from typing import Any
+
+from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall, Vehicle
+from .tools import SalesTools
+
+
+class DemoSalesAgent:
+    def __init__(self, tools: SalesTools | None = None) -> None:
+        self.tools = tools or SalesTools()
+        self.sessions: dict[str, ConversationState] = {}
+
+    def respond(self, conversation_id: str, user_message: str) -> AgentResponse:
+        state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
+        message = user_message.strip()
+        trace: list[ToolCall] = []
+        if not message:
+            return AgentResponse("Tell me a little about the car you’re shopping for.", state, trace)
+
+        preference_changed = self._update_preferences(state.preferences, message)
+        mentioned_vehicles = self.tools.inventory.find_in_text(message)
+
+        if self._is_schedule_request(message) or state.stage == "scheduling":
+            return self._schedule(state, message, mentioned_vehicles, trace)
+
+        if self._is_compare_request(message):
+            return self._compare(state, mentioned_vehicles, trace)
+
+        if self._is_fact_question(message) and (mentioned_vehicles or state.last_vehicle_ids):
+            vehicle = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else self._last_vehicle(state)
+            if vehicle:
+                state.preferences.selected_vehicle_id = vehicle.id
+                facts = self._call(
+                    trace,
+                    "retrieve_vehicle_facts",
+                    {"vehicle_id": vehicle.id},
+                    lambda: self.tools.retrieve_vehicle_facts(vehicle.id),
+                )
+                state.stage = "recommending"
+                return AgentResponse(self._facts_message(vehicle, facts), state, trace)
+
+        if self._needs_qualification(state.preferences):
+            state.stage = "qualifying"
+            return AgentResponse(self._qualification_question(state.preferences), state, trace)
+
+        if preference_changed or not state.last_vehicle_ids:
+            return self._recommend(state, trace)
+
+        if len(mentioned_vehicles) == 1:
+            state.preferences.selected_vehicle_id = mentioned_vehicles[0].id
+            vehicle_result = self._call(
+                trace,
+                "get_vehicle",
+                {"vehicle_id": mentioned_vehicles[0].id},
+                lambda: self.tools.get_vehicle(mentioned_vehicles[0].id),
+            )
+            return AgentResponse(self._vehicle_message(vehicle_result), state, trace)
+
+        return AgentResponse(
+            "Those are the strongest matches so far. Which one would you like to explore, or would you like me to arrange a test drive?",
+            state,
+            trace,
+        )
+
+    def _recommend(self, state: ConversationState, trace: list[ToolCall]) -> AgentResponse:
+        preferences = state.preferences
+        filters = {
+            key: value
+            for key, value in {
+                "budget_max": preferences.budget_max,
+                "intended_use": preferences.intended_use,
+                "body_style": preferences.body_style,
+                "driving_style": preferences.driving_style,
+            }.items()
+            if value is not None
+        }
+        search = self._call(
+            trace,
+            "search_inventory",
+            {"filters": filters},
+            lambda: self.tools.search_inventory(filters),
+        )
+        vehicles = search["vehicles"]
+        if not vehicles:
+            state.last_vehicle_ids = []
+            return AgentResponse(
+                "I don’t have a vehicle in the current inventory that fits that budget. Would you like to raise the budget or relax the body-style preference?",
+                state,
+                trace,
+            )
+
+        state.last_vehicle_ids = [vehicle["id"] for vehicle in vehicles]
+        state.stage = "recommending"
+        details = []
+        for vehicle in vehicles[:2]:
+            details.append(
+                self._call(
+                    trace,
+                    "get_vehicle",
+                    {"vehicle_id": vehicle["id"]},
+                    lambda vehicle_id=vehicle["id"]: self.tools.get_vehicle(vehicle_id),
+                )
+            )
+        top_vehicle = vehicles[0]
+        facts = self._call(
+            trace,
+            "retrieve_vehicle_facts",
+            {"vehicle_id": top_vehicle["id"]},
+            lambda: self.tools.retrieve_vehicle_facts(top_vehicle["id"]),
+        )
+        return AgentResponse(self._recommendation_message(vehicles, facts), state, trace)
+
+    def _schedule(
+        self,
+        state: ConversationState,
+        message: str,
+        mentioned_vehicles: list[Vehicle],
+        trace: list[ToolCall],
+    ) -> AgentResponse:
+        vehicle = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else self._last_vehicle(state)
+        if not vehicle:
+            return AgentResponse(
+                "Which specific car would you like to drive? Please include its year and model.",
+                state,
+                trace,
+            )
+
+        state.preferences.selected_vehicle_id = vehicle.id
+        self._update_contact(state.preferences, message)
+        missing = []
+        if not state.preferences.name:
+            missing.append("your name")
+        if not SalesTools.valid_email(state.preferences.email):
+            missing.append("your email")
+        if not state.preferences.preferred_time:
+            missing.append("a preferred day and time")
+        if missing:
+            state.stage = "scheduling"
+            return AgentResponse(
+                f"I can help with the {vehicle.name}. To request it, I still need {self._join(missing)}.",
+                state,
+                trace,
+            )
+
+        result = self._call(
+            trace,
+            "schedule_test_drive",
+            {
+                "vehicle_id": vehicle.id,
+                "name": state.preferences.name,
+                "email": state.preferences.email,
+                "preferred_time": state.preferences.preferred_time,
+            },
+            lambda: self.tools.schedule_test_drive(
+                vehicle_id=vehicle.id,
+                name=state.preferences.name or "",
+                email=state.preferences.email or "",
+                preferred_time=state.preferences.preferred_time or "",
+            ),
+        )
+        if not result.get("ok"):
+            return AgentResponse(result["error"], state, trace)
+        state.stage = "scheduled"
+        request = result["request"]
+        return AgentResponse(
+            f"Your test-drive request is in: {vehicle.name} on {request['preferred_time']}. I’ll use {request['email']} to follow up. Request {request['request_id']}.",
+            state,
+            trace,
+        )
+
+    def _compare(
+        self,
+        state: ConversationState,
+        mentioned_vehicles: list[Vehicle],
+        trace: list[ToolCall],
+    ) -> AgentResponse:
+        vehicles = mentioned_vehicles[:2]
+        if len(vehicles) < 2:
+            vehicles = [self.tools.inventory.get(vehicle_id) for vehicle_id in state.last_vehicle_ids[:2]]
+            vehicles = [vehicle for vehicle in vehicles if vehicle]
+        if len(vehicles) < 2:
+            return AgentResponse(
+                "Tell me the two models you want to compare, or let me show you a couple of matches first.",
+                state,
+                trace,
+            )
+        result = self._call(
+            trace,
+            "compare_vehicles",
+            {"vehicle_ids": [vehicle.id for vehicle in vehicles]},
+            lambda: self.tools.compare_vehicles([vehicle.id for vehicle in vehicles]),
+        )
+        state.stage = "recommending"
+        state.last_vehicle_ids = [vehicle.id for vehicle in vehicles]
+        first, second = result["vehicles"]
+        return AgentResponse(
+            f"Here’s the short version: the {first['name']} is ${first['price']:,} and {first['description'].lower()} The {second['name']} is ${second['price']:,} and {second['description'].lower()} Based on your stated preferences, I’d start with the {first['name']}. Want to inspect one or schedule a drive?",
+            state,
+            trace,
+        )
+
+    @staticmethod
+    def _call(
+        trace: list[ToolCall],
+        name: str,
+        arguments: dict[str, Any],
+        function: Any,
+    ) -> dict[str, Any]:
+        result = function()
+        trace.append(ToolCall(name=name, arguments=arguments, result=result))
+        return result
+
+    @staticmethod
+    def _needs_qualification(preferences: ShopperPreferences) -> bool:
+        return preferences.budget_max is None or preferences.intended_use is None or preferences.driving_style is None
+
+    @staticmethod
+    def _qualification_question(preferences: ShopperPreferences) -> str:
+        if preferences.budget_max is None:
+            return "What’s your maximum budget, and are you picturing a coupe or a convertible?"
+        missing = []
+        if preferences.intended_use is None:
+            missing.append("how you’ll use it (daily, weekend, or track)")
+        if preferences.driving_style is None:
+            missing.append("your driving style (relaxed, spirited, or analog/raw)")
+        if len(missing) == 2:
+            return f"Great—up to ${preferences.budget_max:,}. Could you tell me {missing[0]} and {missing[1]}?"
+        return f"Great—up to ${preferences.budget_max:,}. Could you tell me {missing[0]}?"
+
+    @staticmethod
+    def _recommendation_message(vehicles: list[dict[str, Any]], facts: dict[str, Any]) -> str:
+        lines = ["I found a few promising matches:"]
+        for vehicle in vehicles[:3]:
+            lines.append(f"- {vehicle['name']} — ${vehicle['price']:,}, {vehicle['mileage']:,} miles; {vehicle['description']}")
+        if facts.get("facts"):
+            fact = facts["facts"][0]
+            lines.append(f"One ownership note on the top match: {fact['fact']} ({fact['source']}).")
+        lines.append("Which one should we dig into, or would you like to request a test drive?")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _facts_message(vehicle: Vehicle, facts: dict[str, Any]) -> str:
+        if not facts.get("facts"):
+            return f"I don’t have a sourced note for the {vehicle.name} yet. I can still arrange an inspection or test drive."
+        fact_text = " ".join(f"{fact['topic'].title()}: {fact['fact']}" for fact in facts["facts"])
+        return f"For the {vehicle.name}: {fact_text} The next sensible step is a specialist inspection and a drive."
+
+    @staticmethod
+    def _vehicle_message(result: dict[str, Any]) -> str:
+        if not result.get("found"):
+            return "I couldn’t find that vehicle in the current inventory."
+        vehicle = result["vehicle"]
+        return f"The {vehicle['name']} is listed at ${vehicle['price']:,} with {vehicle['mileage']:,} miles. {vehicle['description']} Would you like the ownership notes or a test drive?"
+
+    @staticmethod
+    def _facts_question(message: str) -> bool:
+        return bool(re.search(r"\b(ownership|maintenance|inspect|inspection|service|spec|reliable|reliability|common)\b", message.lower()))
+
+    @classmethod
+    def _is_fact_question(cls, message: str) -> bool:
+        return cls._facts_question(message)
+
+    @staticmethod
+    def _is_compare_request(message: str) -> bool:
+        return "compar" in message.lower() or "versus" in message.lower() or re.search(r"\bvs\.?\b", message.lower()) is not None
+
+    @staticmethod
+    def _is_schedule_request(message: str) -> bool:
+        lowered = message.lower()
+        return "test drive" in lowered or "test-drive" in lowered or "schedule" in lowered or "book" in lowered
+
+    def _last_vehicle(self, state: ConversationState) -> Vehicle | None:
+        if state.preferences.selected_vehicle_id:
+            return self.tools.inventory.get(state.preferences.selected_vehicle_id)
+        if state.last_vehicle_ids:
+            return self.tools.inventory.get(state.last_vehicle_ids[0])
+        return None
+
+    @classmethod
+    def _update_preferences(cls, preferences: ShopperPreferences, message: str) -> bool:
+        changed = False
+        budget = cls._parse_budget(message)
+        if budget is not None and budget != preferences.budget_max:
+            preferences.budget_max = budget
+            changed = True
+
+        lowered = message.lower()
+        for phrases, attribute, value in [
+            (["convertible", "roadster", "open air", "open-air"], "body_style", "convertible"),
+            (["coupe"], "body_style", "coupe"),
+            (["daily", "commute"], "intended_use", "daily"),
+            (["weekend", "Sunday drive"], "intended_use", "weekend"),
+            (["track", "autocross"], "intended_use", "track"),
+            (["grand tour", "long distance", "long-distance"], "intended_use", "grand-tourer"),
+            (["spirited", "twisty", "fun driving"], "driving_style", "spirited"),
+            (["analog", "raw", "engaging"], "driving_style", "analog"),
+            (["relaxed", "comfortable", "cruising"], "driving_style", "relaxed"),
+        ]:
+            if any(phrase.lower() in lowered for phrase in phrases) and getattr(preferences, attribute) != value:
+                setattr(preferences, attribute, value)
+                changed = True
+        return changed
+
+    @staticmethod
+    def _parse_budget(message: str) -> int | None:
+        patterns = [
+            r"(?:under|below|up to|max(?:imum)?(?: budget)?|budget(?: of)?|spend(?:ing)?(?: up to)?)\s*\$?\s*([\d,.]+)\s*([km])?",
+            r"\$\s*([\d,.]+)\s*([km])?\s*(?:budget|max(?:imum)?)?",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, message.lower())
+            if match:
+                amount = float(match.group(1).replace(",", ""))
+                suffix = match.group(2)
+                if suffix == "k":
+                    amount *= 1_000
+                elif suffix == "m":
+                    amount *= 1_000_000
+                return int(amount)
+        return None
+
+    @staticmethod
+    def _update_contact(preferences: ShopperPreferences, message: str) -> None:
+        email = re.search(r"[^\s@]+@[^\s@]+\.[^\s@]+", message)
+        if email:
+            preferences.email = email.group(0).rstrip(".,")
+        name = re.search(r"(?:my name is|i am|i'm|im)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)", message, re.IGNORECASE)
+        if name and name.group(1).lower().split()[0] not in {"looking", "interested", "hoping", "trying"}:
+            preferences.name = name.group(1).strip(" .,!?")
+        time = re.search(
+            r"\b(today|tomorrow|(?:this\s+)?(?:sat(?:urday)?|sun(?:day)?|mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?))\b(?:\s+(?:at|around)\s+([0-9]{1,2}(?::[0-9]{2})?\s*(?:am|pm)?))?",
+            message,
+            re.IGNORECASE,
+        )
+        if time:
+            preferences.preferred_time = " ".join(part for part in time.groups() if part).strip()
+
+    @staticmethod
+    def _join(items: list[str]) -> str:
+        if len(items) == 1:
+            return items[0]
+        if len(items) == 2:
+            return f"{items[0]} and {items[1]}"
+        return ", ".join(items[:-1]) + f", and {items[-1]}"

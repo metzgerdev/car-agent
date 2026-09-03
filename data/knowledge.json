@@ -1,0 +1,62 @@
+[
+  {
+    "vehicle_id": "mazda-rx7-1992",
+    "topic": "ownership",
+    "fact": "A rotary-powered RX-7 deserves a compression check and a careful review of cooling, ignition, and maintenance records before purchase.",
+    "source": "demo knowledge seed"
+  },
+  {
+    "vehicle_id": "mazda-rx7-1992",
+    "topic": "driving",
+    "fact": "Its low weight and rear-wheel drive make it a compelling fit for an analog, engaging weekend drive.",
+    "source": "demo knowledge seed"
+  },
+  {
+    "vehicle_id": "honda-s2000-2004",
+    "topic": "ownership",
+    "fact": "For an S2000, inspect the soft top, differential, clutch, and evidence of accident repair, and verify that maintenance records are consistent.",
+    "source": "demo knowledge seed"
+  },
+  {
+    "vehicle_id": "honda-s2000-2004",
+    "topic": "driving",
+    "fact": "The S2000 is a focused two-seat roadster that rewards enthusiastic, high-rev driving and clear steering inputs.",
+    "source": "demo knowledge seed"
+  },
+  {
+    "vehicle_id": "bmw-z4-m-2008",
+    "topic": "ownership",
+    "fact": "A pre-purchase inspection should pay particular attention to cooling-system service, suspension wear, and the condition of the manual drivetrain.",
+    "source": "demo knowledge seed"
+  },
+  {
+    "vehicle_id": "bmw-z4-m-2008",
+    "topic": "driving",
+    "fact": "The Z4 M Coupe is a useful compromise for a shopper who wants a manual weekend car with more grand-touring practicality than a small roadster.",
+    "source": "demo knowledge seed"
+  },
+  {
+    "vehicle_id": "porsche-911-1999",
+    "topic": "ownership",
+    "fact": "A 911 of this age should be evaluated with a specialist inspection and complete service history, including evidence of deferred maintenance.",
+    "source": "demo knowledge seed"
+  },
+  {
+    "vehicle_id": "porsche-911-1999",
+    "topic": "driving",
+    "fact": "The 911 combines an enthusiast-oriented chassis with enough refinement for regular road use, making it a strong grand-touring candidate.",
+    "source": "demo knowledge seed"
+  },
+  {
+    "vehicle_id": "nissan-gt-r-2012",
+    "topic": "ownership",
+    "fact": "A GT-R purchase should include specialist review of the dual-clutch transmission, electronics, tires, and service history.",
+    "source": "demo knowledge seed"
+  },
+  {
+    "vehicle_id": "porsche-718-2018",
+    "topic": "ownership",
+    "fact": "A 718 Cayman should be checked for warranty or service history, track use, tire condition, and evidence of consistent maintenance.",
+    "source": "demo knowledge seed"
+  }
+]
