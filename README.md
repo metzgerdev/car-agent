@@ -31,6 +31,11 @@ sales flow and panels that expose the current shopper state and redacted tool
 trace. The “Voice transcript” option demonstrates the shared text/voice input
 boundary; it does not perform speech-to-text.
 
+When recommendations are available, the browser also shows curated Car and
+Driver and MotorTrend review links. Select one to open a short paraphrased
+summary and a link to the publication; these are editorial context, not
+condition reports for a specific listing.
+
 ## Run the clean offline demo
 
 Run the complete qualification, recommendation, fact lookup, and test-drive

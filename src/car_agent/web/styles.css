@@ -87,6 +87,20 @@ select { padding: 6px 8px; color: var(--ink); background: #fff; border: 1px soli
 .profile-list div { min-width: 0; }
 .profile-list dt { margin-bottom: 2px; color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .profile-list dd { margin: 0; overflow: hidden; color: var(--navy); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.reviews-list { display: grid; gap: 8px; }
+.review-group { display: grid; gap: 6px; }
+.review-group + .review-group { padding-top: 10px; border-top: 1px solid var(--line); }
+.review-vehicle { margin: 0; color: var(--navy); font-size: 0.78rem; font-weight: 800; }
+.review-button { display: block; width: 100%; padding: 9px 10px; color: var(--ink); text-align: left; background: #f7fafc; border: 1px solid var(--line); border-radius: 8px; }
+.review-button:hover { background: var(--blue-soft); }
+.review-outlet { display: block; margin-bottom: 2px; color: var(--blue); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.review-title { display: block; font-size: 0.78rem; font-weight: 700; }
+.review-dialog { width: min(540px, calc(100% - 32px)); padding: 24px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 22px 70px rgba(23, 50, 77, 0.24); }
+.review-dialog::backdrop { background: rgba(12, 26, 39, 0.48); }
+.dialog-heading { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+.dialog-close { width: 30px; height: 30px; color: var(--muted); background: #f0f4f7; border: 0; border-radius: 50%; font-size: 1.25rem; line-height: 1; }
+.dialog-vehicle { margin: 18px 0 8px; color: var(--blue); font-size: 0.82rem; font-weight: 800; }
+.dialog-summary { margin-bottom: 20px; color: var(--ink); }
 .trace-list { max-height: 260px; overflow: auto; }
 .trace-item { margin-bottom: 8px; border: 1px solid var(--line); border-radius: 8px; }
 .trace-item summary { padding: 8px 10px; color: var(--navy); cursor: pointer; font-size: 0.8rem; font-weight: 750; }

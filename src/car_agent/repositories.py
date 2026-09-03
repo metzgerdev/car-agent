@@ -9,6 +9,7 @@ from typing import Any
 
 from .data_pipeline import SQLiteInventoryStore, load_inventory_fixture
 from .models import ShopperPreferences, Vehicle, VehicleFact
+from .review_models import MagazineReview
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -96,6 +97,18 @@ class KnowledgeRepository:
             if topic_facts:
                 return topic_facts
         return facts
+
+
+class ReviewRepository:
+    """Curated editorial links matched to inventory make/model pairs."""
+
+    def __init__(self, path: str | Path | None = None) -> None:
+        review_path = Path(path) if path else PROJECT_ROOT / "data" / "reviews.json"
+        records = json.loads(review_path.read_text())
+        self._reviews = [MagazineReview.model_validate(record) for record in records]
+
+    def retrieve(self, vehicle: Vehicle) -> list[MagazineReview]:
+        return [review for review in self._reviews if review.applies_to(vehicle)]
 
 
 class TestDriveScheduler:

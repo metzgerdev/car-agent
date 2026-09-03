@@ -15,6 +15,7 @@ explicit.
 | [NHTSA recalls](https://www.nhtsa.gov/nhtsa-datasets-and-apis) | Safety recall and campaign context | `NHTSARecallResponse` / `NHTSARecallRecord` | Provenance-backed `VehicleFact(topic="safety_recall")` |
 | [EPA FuelEconomy.gov](https://www.fueleconomy.gov/feg/ws/) | Fuel type, MPG, estimated fuel cost, emissions, drivetrain, and related configuration data | `EPAFuelEconomyVehicle` | Provenance-backed efficiency, ownership, emissions, and specification facts |
 | Local knowledge fixture | Curated ownership and driving notes for the sales conversation | Existing `VehicleFact` records | Model-specific retrieved facts |
+| [Car and Driver](https://www.caranddriver.com/) / [MotorTrend](https://www.motortrend.com/) | Editorial context for a matched model: a link plus a short paraphrased summary | `MagazineReview` | UI review modal; editorial context remains separate from canonical vehicle facts |
 
 ## Pipeline
 
@@ -61,6 +62,10 @@ Freshness and listing availability are outside the acceptance gate. The
 engineering acceptance criteria are typed validation, source separation,
 provenance, deterministic recorded fixtures, and inspectable retrieval.
 
+Magazine reviews are curated external links matched by make/model. Their
+summaries are brief paraphrases for navigation and context, not copied article
+text or claims about the condition of a specific listing.
+
 ## Implementation status
 
 - Pydantic boundary models and streaming CSV row validation are implemented in
@@ -73,6 +78,8 @@ provenance, deterministic recorded fixtures, and inspectable retrieval.
   SQLite inventory instead of the illustrative JSON fixture.
 - Recorded NHTSA vPIC, NHTSA recall, EPA, and Craigslist fixtures provide
   offline tests for the adapter contract.
+- Curated Car and Driver and MotorTrend links are validated with Pydantic and
+  served by the review endpoint for the browser demo.
 - Live provider calls remain opt-in; the default test suite never needs a
   network connection or API key.
 

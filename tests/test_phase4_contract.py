@@ -51,10 +51,32 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert "data-prompt" in page.text
     assert "Shopper profile" in page.text
     assert "Grounding evidence" in page.text
+    assert "Magazine reviews" in page.text
+    assert "review-dialog" in page.text
     assert stylesheet.status_code == 200
     assert "conversation-card" in stylesheet.text
     assert script.status_code == 200
     assert 'fetch("/chat"' in script.text
+    assert "/vehicles/${encodeURIComponent(vehicleId)}/reviews" in script.text
+
+
+def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:
+    client, _ = _offline_client()
+
+    response = client.get("/vehicles/honda-s2000-2004/reviews")
+    missing = client.get("/vehicles/unknown-vehicle/reviews")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["vehicle_name"] == "2004 Honda S2000"
+    assert len(payload["reviews"]) == 2
+    assert {review["outlet"] for review in payload["reviews"]} == {
+        "Car and Driver",
+        "MotorTrend",
+    }
+    assert all(review["url"].startswith("https://") for review in payload["reviews"])
+    assert all(review["summary"] for review in payload["reviews"])
+    assert missing.status_code == 404
 
 
 def test_p4_t2_invalid_schedule_never_creates_a_request() -> None:

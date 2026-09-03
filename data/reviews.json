@@ -1,0 +1,92 @@
+[
+  {
+    "id": "car-and-driver-honda-s2000-2004",
+    "make": "Honda",
+    "model": "S2000",
+    "outlet": "Car and Driver",
+    "title": "Tested: 2004 Honda S2000",
+    "url": "https://www.caranddriver.com/reviews/a15133774/honda-s2000-short-take-road-test/",
+    "summary": "Car and Driver’s archive test describes the revised S2000 as more flexible in everyday driving while preserving its high-revving character, with chassis changes aimed at more progressive behavior."
+  },
+  {
+    "id": "motortrend-honda-s2000-first-drive",
+    "make": "Honda",
+    "model": "S2000",
+    "outlet": "MotorTrend",
+    "title": "2000 Honda S2000 — First Drive & Road Test",
+    "url": "https://www.motortrend.com/reviews/honda-s2000-3",
+    "summary": "MotorTrend’s first-drive coverage presents the S2000 as a focused rear-drive roadster built around a high-revving engine and an enthusiast-oriented driving experience."
+  },
+  {
+    "id": "car-and-driver-mazda-rx7-1992",
+    "make": "Mazda",
+    "model": "RX-7",
+    "outlet": "Car and Driver",
+    "title": "1992 Speeding Beauties: Four Quick Sports Cars Compared",
+    "url": "https://www.caranddriver.com/reviews/a71340980/1992-chevrolet-corvette-lotus-elan-mazda-rx-7-nissan-300zx-turbo-archive-comparison-test/",
+    "summary": "Car and Driver’s archive comparison places the RX-7 in a group of quick sports cars, making the article useful context for its lightweight, rotary-powered character."
+  },
+  {
+    "id": "motortrend-bmw-z4-m-coupe-first-drive",
+    "make": "BMW",
+    "model": "Z4 M Coupe",
+    "outlet": "MotorTrend",
+    "title": "2007 BMW Z4 M Coupe First Drive",
+    "url": "https://www.motortrend.com/reviews/2007-bmw-z4-m-coupe-first-drive",
+    "summary": "MotorTrend’s first-drive review is a period perspective on the Z4 M Coupe’s rear-drive layout, inline-six performance, and blend of compact sports-car focus with coupe practicality."
+  },
+  {
+    "id": "car-and-driver-porsche-911-1999",
+    "make": "Porsche",
+    "model": "911 Carrera",
+    "outlet": "Car and Driver",
+    "title": "1999 Porsche 911 Carrera — Long-Term Road Test",
+    "url": "https://www.caranddriver.com/reviews/a15138517/1999-porsche-911-carrera-long-term-road-test/",
+    "summary": "Car and Driver’s 40,000-mile report emphasizes the 911’s effortless performance and durability under enthusiastic use, while also showing that major maintenance can be expensive."
+  },
+  {
+    "id": "motortrend-porsche-911-1999",
+    "make": "Porsche",
+    "model": "911 Carrera",
+    "outlet": "MotorTrend",
+    "title": "’99 Porsche 911 Carrera — First Drive",
+    "url": "https://www.motortrend.com/reviews/1999-porsche-carrera-911",
+    "summary": "MotorTrend’s period first drive presents the new 996-generation Carrera as roomier, quieter, and more predictable while retaining strong performance and a manual six-speed option."
+  },
+  {
+    "id": "car-and-driver-porsche-718-2018",
+    "make": "Porsche",
+    "model": "718 Cayman GTS",
+    "outlet": "Car and Driver",
+    "title": "Tested: 2018 Porsche 718 Boxster and Cayman GTS",
+    "url": "https://www.caranddriver.com/reviews/a23725427/2018-porsche-718-boxster-cayman-gts-numbers/",
+    "summary": "Car and Driver highlights the GTS’s 365-hp turbo flat-four and finds its test-track gains over the S models modest, with the appeal coming from the sportier overall specification."
+  },
+  {
+    "id": "motortrend-porsche-718-2018",
+    "make": "Porsche",
+    "model": "718 Cayman GTS",
+    "outlet": "MotorTrend",
+    "title": "2018 Porsche 718 Cayman and Boxster GTS First Drive Review",
+    "url": "https://www.motortrend.com/reviews/2018-porsche-718-cayman-boxster-gts-first-drive-review",
+    "summary": "MotorTrend’s first-drive review frames the 2018 GTS models as sharp mid-engine sports cars, with the manual transmission an important part of their enthusiast appeal."
+  },
+  {
+    "id": "car-and-driver-nissan-gtr-2012",
+    "make": "Nissan",
+    "model": "GT-R",
+    "outlet": "Car and Driver",
+    "title": "Tested: 2012 Nissan GT-R",
+    "url": "https://www.caranddriver.com/reviews/a15127039/2012-nissan-gt-r-test-review/",
+    "summary": "Car and Driver’s test focuses on the 2012 GT-R’s 530-hp power upgrade and sub-three-second acceleration, while noting the car’s continued evolution toward greater speed and smoothness."
+  },
+  {
+    "id": "motortrend-nissan-gtr-2012",
+    "make": "Nissan",
+    "model": "GT-R",
+    "outlet": "MotorTrend",
+    "title": "2012 Nissan GT-R Expert Review",
+    "url": "https://www.motortrend.com/cars/nissan/gt-r/2012",
+    "summary": "MotorTrend describes the 2012 GT-R as supercar-fast and technically sophisticated, while flagging its stiff, noisy ride, disappointing interior, and maintenance costs."
+  }
+]

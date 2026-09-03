@@ -4,7 +4,7 @@ import pytest
 
 from car_agent.craigslist_ingest import ingest_craigslist_csv
 from car_agent.crewai_agent import CrewAISalesAgent
-from car_agent.repositories import InventoryRepository
+from car_agent.repositories import InventoryRepository, ReviewRepository
 from car_agent.tools import SalesTools
 
 
@@ -37,6 +37,12 @@ def test_craigslist_sample_ingests_into_sqlite_and_feeds_search(tmp_path) -> Non
     assert len(repository.all()) == 4
     assert all(vehicle.id.startswith("craigslist-") for vehicle in repository.all())
     assert all(vehicle.provenance.source_type == "craigslist_snapshot" for vehicle in repository.all())
+    honda = repository.get("craigslist-1234567890")
+    assert honda is not None
+    assert {review.outlet for review in ReviewRepository().retrieve(honda)} == {
+        "Car and Driver",
+        "MotorTrend",
+    }
     assert result["count"] == 3
     assert {vehicle["id"] for vehicle in result["vehicles"]} == {
         "craigslist-1234567890",
