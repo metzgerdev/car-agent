@@ -2,13 +2,19 @@
 
 This document is the executable-minded checklist for the phases in [plan.md](../plan.md). Each test case has an ID so implementation, CI output, and the portfolio write-up can refer to the same contract.
 
+The project is a demo of AI engineering rather than a production marketplace.
+The Craigslist inventory source is therefore treated as a static snapshot;
+listing freshness and availability are intentionally outside the acceptance
+gate. Phase 2 measures typed multi-source ingestion, provenance, normalization,
+retrieval grounding, and deterministic verification.
+
 ## Phase status
 
 | Phase | Status | Current evidence | Next gate |
 | --- | --- | --- | --- |
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
-| 2 — Data and knowledge | in progress | Local provenance pipeline, SQLite ingestion, and notebook verification pass | Official NHTSA/EPA adapters |
+| 2 — Data and knowledge | complete | Pydantic source models, Craigslist streaming normalization, recorded NHTSA/EPA adapters, SQLite ingestion, and notebook verification pass | Phase 3 scenario evaluation |
 | 3 — Sales behavior | in progress | CrewAI/OpenRouter orchestration and local key loading are configured; P3-T1 and P3-T2 remain partial foundations | Scenario evaluation set |
 | 4 — Conversion and polish | not started | P4-T2 has scheduler validation foundations | API, redaction, and voice boundary tests |
 
@@ -25,8 +31,9 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | Date | Phase/checkpoint | Evidence | Commit | Next gate |
 | --- | --- | --- | --- | --- |
 | 2026-09-03 | Phase 0/1 baseline | Python 3.14.7 smoke flow and guided verifier pass | `e5e5c79` | superseded by Python 3.12.13 baseline |
-| 2026-09-03 | Phase 2 local ingestion | Normalization, provenance rejection, idempotent SQLite ingest, and compile checks pass | `282ff33` | Official NHTSA/EPA adapters |
+| 2026-09-03 | Phase 2 local ingestion | Normalization, provenance rejection, idempotent SQLite ingest, and compile checks pass | `282ff33` | Pydantic source adapters |
 | 2026-09-03 | Python 3.12 and notebook verification | Python 3.12.13 environment, 19 tests, and headless Phase 2 notebook pass | `abc390b` | Official NHTSA/EPA adapters |
+| 2026-09-03 | Phase 2 multi-source adapters | 28 tests pass for Pydantic Craigslist rows, streaming CSV validation, NHTSA vPIC/recall fixtures, EPA facts, and provenance-preserving enrichment | pending | Phase 3 scenario evaluation |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
 | 2026-09-03 | OpenRouter runtime configuration | OpenRouter key loading, LiteLLM dependency, explicit OpenRouter base URL/model, and 23 tests pass without exposing the key | `fa3f3a3` | Scenario evaluation set |
 
@@ -73,7 +80,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P2-T3 | Ingest the same fixture twice | Inventory remains duplicate-free | implemented |
 | P2-T4 | Ask for one model’s ownership notes | Only that model’s sourced facts are returned | implemented |
 | P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | implemented |
-| P2-T6 | Run an official-source adapter against a recorded fixture | Source fields normalize into the same schema with source URL and retrieval timestamp | planned |
+| P2-T6 | Run official-source adapters against recorded fixtures | NHTSA vPIC, NHTSA recall, and EPA payloads validate with Pydantic and normalize into provenance-backed `VehicleFact` records with source URL and retrieval timestamp | implemented |
 
 ## Phase 3 — Sales behavior
 

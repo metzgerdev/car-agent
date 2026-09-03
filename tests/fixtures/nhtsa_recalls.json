@@ -1,0 +1,16 @@
+{
+  "Count": 1,
+  "Message": "Results returned successfully",
+  "results": [
+    {
+      "Manufacturer": "Honda (American Honda Motor Co.)",
+      "NHTSACampaignNumber": "04V176000",
+      "Component": "AIR BAGS:FRONTAL",
+      "Summary": "The passenger air bag inflator may rupture.",
+      "Consequence": "An inflator rupture may injure occupants.",
+      "Remedy": "Dealers will replace the inflator free of charge.",
+      "ReportReceivedDate": "2004-04-01",
+      "RecallLink": "https://www.nhtsa.gov/recalls?nhtsaId=04V176000"
+    }
+  ]
+}

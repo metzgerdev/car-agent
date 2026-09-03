@@ -51,7 +51,7 @@ Run the tests with:
 pytest
 ```
 
-The inventory and knowledge records in `data/` are illustrative demo records. They are intentionally kept separate from the domain and retrieval code so Phase 2 can replace them with sourced data and provenance.
+The inventory and knowledge records in `data/` are illustrative demo records. The multi-source plan in [`data/sources.md`](data/sources.md) treats the Craigslist snapshot as demo inventory and NHTSA/EPA payloads as provenance-backed enrichment. Pydantic boundary models and recorded fixtures keep the integration inspectable without requiring live provider calls.
 
 To normalize an inventory fixture and write it to an idempotent SQLite store:
 

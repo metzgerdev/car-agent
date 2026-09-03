@@ -1,0 +1,12 @@
+{
+  "Count": 5,
+  "Message": "Results returned successfully",
+  "SearchCriteria": "VIN:JHMAP11404T000001",
+  "Results": [
+    {"Variable": "Make", "Value": "HONDA", "ValueId": "474", "VariableId": 26},
+    {"Variable": "Model", "Value": "S2000", "ValueId": "", "VariableId": 28},
+    {"Variable": "Model Year", "Value": "2004", "ValueId": "", "VariableId": 29},
+    {"Variable": "Body Class", "Value": "Convertible/Cabriolet", "ValueId": "", "VariableId": 5},
+    {"Variable": "Plant Country", "Value": "Japan", "ValueId": "", "VariableId": 75}
+  ]
+}
