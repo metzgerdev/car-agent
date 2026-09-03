@@ -16,7 +16,7 @@ retrieval grounding, and deterministic verification.
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
 | 2 — Data and knowledge | complete | Pydantic source models, Craigslist streaming normalization, three-row CSV-to-SQLite ingestion, recorded NHTSA/EPA adapters, and notebook verification pass | none |
 | 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass | Phase 4 API and conversion tests |
-| 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, text/voice command normalization, clean offline demo, browser UI, and curated magazine-review modal pass | none |
+| 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, text/voice command normalization, clean offline demo, browser UI, curated magazine-review modal, and suggested-vehicle review context pass | none |
 
 ### Update protocol
 
@@ -39,6 +39,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-03 | Phase 4 conversion and polish | 41 tests pass; API, scheduling, redaction, modality, and `car-agent-demo` clean-checkout smoke tests pass | `11bfd1b` | none |
 | 2026-09-03 | Phase 4 browser demo UI | Browser shell, guided prompts, live API health state, shopper profile, and redacted tool-trace panels are served by FastAPI; 42 tests pass | `15146ef` | none |
 | 2026-09-03 | Phase 4 editorial review context | Typed Car and Driver/MotorTrend review links and paraphrased summaries are matched to inventory and surfaced through the UI modal; 46 tests pass | `8efbc20` | none |
+| 2026-09-03 | Phase 4 suggested-vehicle review context | Review groups are attached from both conversation state and structured search/get-vehicle tool results, so alternatives suggested by the agent also surface review cards; 46 tests pass | `4170afb` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
 | 2026-09-03 | OpenRouter runtime configuration | OpenRouter key loading, LiteLLM dependency, explicit OpenRouter base URL/model, and 23 tests pass without exposing the key | `fa3f3a3` | Scenario evaluation set |
 
@@ -123,7 +124,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T5 | Send equivalent text and voice intents | Both use the same normalized domain command | implemented |
 | P4-T6 | Follow clean-checkout instructions | Setup, tests, and demo transcript complete successfully | implemented |
 | P4-T7 | Open the browser demo | `GET /` serves the UI, its static assets load, and the page exposes guided prompts plus state/trace panels | implemented |
-| P4-T8 | Open magazine context for a matched vehicle | The review endpoint returns typed links and short summaries from Car and Driver/MotorTrend, and the UI exposes them in a modal without treating editorial context as canonical inventory facts | implemented |
+| P4-T8 | Open magazine context for a matched or suggested vehicle | The review endpoint and `/chat` response return typed links and short summaries from Car and Driver/MotorTrend, and the UI exposes them in a modal without treating editorial context as canonical inventory facts | implemented |
 
 ## Completion rule
 
