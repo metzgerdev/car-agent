@@ -16,7 +16,7 @@ retrieval grounding, and deterministic verification.
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
 | 2 — Data and knowledge | complete | Pydantic source models, Craigslist streaming normalization, three-row CSV-to-SQLite ingestion, recorded NHTSA/EPA adapters, and notebook verification pass | none |
 | 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass | Phase 4 API and conversion tests |
-| 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, text/voice command normalization, clean offline demo, assistant-ui styled dark browser UI, curated magazine-review modal, and suggested-vehicle review context pass | none |
+| 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, text/voice command normalization, clean offline demo, assistant-ui styled dark browser UI, streamed tool-trace progress, curated magazine-review modal, and suggested-vehicle review context pass | none |
 
 ### Update protocol
 
@@ -44,6 +44,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-03 | Phase 4 explicit vehicle follow-up regression | An explicitly named vehicle pins live conversation state before and after model output, so a review follow-up for the RX-7 cannot retrieve stale BMW context; 55 tests pass | `1536525` | none |
 | 2026-09-03 | Phase 4 assistant-ui frontend | React frontend uses assistant-ui `LocalRuntime` with a custom adapter for `/chat`, preserves state/trace/review panels, and produces a FastAPI-served production bundle; frontend typecheck/build and 55 Python tests pass | `f02ecd2` | none |
 | 2026-09-03 | Phase 4 assistant-ui styled dark UI | The conversation uses a dedicated assistant-ui styled Thread/Composer composition with ChatGPT-inspired dark tokens, while review, profile, prompt, and trace panels remain available; frontend typecheck/build and 55 Python tests pass | `c22f114` | none |
+| 2026-09-04 | Phase 4 streamed trace progress | `/chat` negotiates an SSE response that emits redacted tool-start and tool-complete events before the final response; the assistant-ui evidence panel renders live progress; 56 Python tests and frontend typecheck/build pass | `a130db8` | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -133,6 +134,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T7 | Open the browser demo | `GET /` serves the assistant-ui React UI, its generated static assets load, the styled Thread uses the dark theme, and the page exposes guided prompts plus state/trace panels | implemented |
 | P4-T8 | Open magazine context for a matched or suggested vehicle | The review endpoint and `/chat` response return typed links and short summaries from Car and Driver/MotorTrend, and the UI exposes them in a modal without treating editorial context as canonical inventory facts | implemented |
 | P4-T9 | Ask to summarize magazine reviews of the car | The agent retrieves the explicitly named, selected, or last vehicle's curated reviews; live CrewAI receives those bounded records and synthesizes publication-level themes/differences with Markdown citations, while offline mode serves the same grounded summaries; without vehicle context it asks for a specific model | implemented |
+| P4-T10 | Watch a streamed chat turn | `POST /chat` with `Accept: text/event-stream` emits ordered redacted tool progress events, a final typed response event, and `done`; the browser renders active tool status before the answer arrives, while default JSON clients remain compatible | implemented |
 
 ## Completion rule
 

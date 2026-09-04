@@ -57,6 +57,11 @@ npm --prefix frontend run build
 The React source lives in `frontend/src`; FastAPI serves the production bundle
 from `src/car_agent/web`.
 
+The browser requests `/chat` with `Accept: text/event-stream`. The server keeps
+the existing JSON response for normal clients, but streams redacted tool-start
+and tool-complete events for the UI so the grounding panel can show messages
+such as “Searching inventory…” while CrewAI is working.
+
 When recommendations are available, the browser also shows curated Car and
 Driver and MotorTrend review links. Select one to open a short paraphrased
 summary and a link to the publication; these are editorial context, not
