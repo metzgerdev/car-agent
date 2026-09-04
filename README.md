@@ -42,6 +42,19 @@ sales flow and panels that expose the current shopper state and redacted tool
 trace. The “Voice transcript” option demonstrates the shared text/voice input
 boundary; it does not perform speech-to-text.
 
+The browser frontend is built with [assistant-ui](https://github.com/assistant-ui/assistant-ui)
+and uses its `LocalRuntime` adapter to call the existing FastAPI `/chat`
+endpoint. The checked-in browser bundle is ready to serve. To rebuild it after
+changing the React source, use Node 22 or newer:
+
+```bash
+npm --prefix frontend install
+npm --prefix frontend run build
+```
+
+The React source lives in `frontend/src`; FastAPI serves the production bundle
+from `src/car_agent/web`.
+
 When recommendations are available, the browser also shows curated Car and
 Driver and MotorTrend review links. Select one to open a short paraphrased
 summary and a link to the publication; these are editorial context, not

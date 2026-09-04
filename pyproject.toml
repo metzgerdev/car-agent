@@ -36,7 +36,7 @@ car-agent-profile = "car_agent.profile_cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-car_agent = ["web/*.html", "web/*.css", "web/*.js"]
+car_agent = ["web/*.html", "web/*.css", "web/*.js", "web/assets/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

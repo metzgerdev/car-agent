@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import sys
 
@@ -44,21 +45,16 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     client, _ = _offline_client()
 
     page = client.get("/")
-    stylesheet = client.get("/static/styles.css")
-    script = client.get("/static/app.js")
+    asset_paths = re.findall(r'(?:src|href)="(/static/assets/[^"]+)"', page.text)
+    assets = [client.get(path) for path in asset_paths]
 
     assert page.status_code == 200
     assert "Classic Car Advisor" in page.text
-    assert "data-prompt" in page.text
-    assert "Shopper profile" in page.text
-    assert "Grounding evidence" in page.text
-    assert "Magazine reviews" in page.text
-    assert "review-dialog" in page.text
-    assert stylesheet.status_code == 200
-    assert "conversation-card" in stylesheet.text
-    assert script.status_code == 200
-    assert 'fetch("/chat"' in script.text
-    assert "payload.reviews" in script.text
+    assert '<div id="root"></div>' in page.text
+    assert asset_paths
+    assert all(asset.status_code == 200 for asset in assets)
+    assert any("text/css" in asset.headers.get("content-type", "") for asset in assets)
+    assert any("javascript" in asset.headers.get("content-type", "") for asset in assets)
 
 
 def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:

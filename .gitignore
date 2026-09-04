@@ -1,6 +1,7 @@
 plan.md
 ./docs/acceptance.md
 .venv/
+build/
 .env
 __pycache__/
 *.py[cod]
@@ -9,3 +10,4 @@ __pycache__/
 *.sqlite
 *.db
 .ipynb_checkpoints/
+frontend/node_modules/
