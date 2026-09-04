@@ -41,6 +41,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-03 | Phase 4 editorial review context | Typed Car and Driver/MotorTrend review links and paraphrased summaries are matched to inventory and surfaced through the UI modal; 46 tests pass | `8efbc20` | none |
 | 2026-09-03 | Phase 4 suggested-vehicle review context | Review groups are attached from both conversation state and structured search/get-vehicle tool results, so alternatives suggested by the agent also surface review cards; 46 tests pass | `4170afb` | none |
 | 2026-09-03 | Phase 4 agent review summaries | `retrieve_magazine_reviews` is available to CrewAI and deterministic paths; live mode passes its bounded review records to a review-synthesis turn that returns publication-level summaries with citations, while offline mode serves the same grounded records; 54 tests pass | `9031268` | none |
+| 2026-09-03 | Phase 4 explicit vehicle follow-up regression | An explicitly named vehicle pins live conversation state before and after model output, so a review follow-up for the RX-7 cannot retrieve stale BMW context; 55 tests pass | `1536525` | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -129,7 +130,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T6 | Follow clean-checkout instructions | Setup, tests, and demo transcript complete successfully | implemented |
 | P4-T7 | Open the browser demo | `GET /` serves the UI, its static assets load, and the page exposes guided prompts plus state/trace panels | implemented |
 | P4-T8 | Open magazine context for a matched or suggested vehicle | The review endpoint and `/chat` response return typed links and short summaries from Car and Driver/MotorTrend, and the UI exposes them in a modal without treating editorial context as canonical inventory facts | implemented |
-| P4-T9 | Ask to summarize magazine reviews of the car | The agent retrieves the selected or last vehicle's curated reviews; live CrewAI receives those bounded records and synthesizes publication-level themes/differences with Markdown citations, while offline mode serves the same grounded summaries; without vehicle context it asks for a specific model | implemented |
+| P4-T9 | Ask to summarize magazine reviews of the car | The agent retrieves the explicitly named, selected, or last vehicle's curated reviews; live CrewAI receives those bounded records and synthesizes publication-level themes/differences with Markdown citations, while offline mode serves the same grounded summaries; without vehicle context it asks for a specific model | implemented |
 
 ## Completion rule
 
