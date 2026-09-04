@@ -51,10 +51,21 @@ type ChatPayload = {
   reviews: ReviewGroup[];
 };
 
+type TraceStreamEvent = {
+  trace_id: string;
+  status: "running" | "complete";
+  name: string;
+  arguments: Record<string, unknown>;
+  call?: ToolCall;
+};
+
+type ActiveTrace = Omit<TraceStreamEvent, "status" | "call"> & { status: "running" };
+
 type Dashboard = {
   state: ConversationState;
   trace: ToolCall[];
   reviews: ReviewGroup[];
+  activeTrace: ActiveTrace[];
 };
 
 const PROMPTS = [
@@ -70,6 +81,7 @@ const EMPTY_DASHBOARD: Dashboard = {
   state: { stage: "qualifying", preferences: {}, last_vehicle_ids: [] },
   trace: [],
   reviews: [],
+  activeTrace: [],
 };
 
 function newConversationId() {
@@ -93,24 +105,100 @@ function createChatAdapter(
   conversationId: string,
   modality: "text" | "voice",
   onResponse: (payload: ChatPayload) => void,
+  onTrace: (event: TraceStreamEvent) => void,
 ): ChatModelAdapter {
   return {
     async run({ messages, abortSignal }) {
       const message = latestUserText(messages);
       const response = await fetch("/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          Accept: "text/event-stream",
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ conversation_id: conversationId, message, modality }),
         signal: abortSignal,
       });
       if (!response.ok) {
         throw new Error(`Advisor API error: ${response.status} ${response.statusText}`);
       }
-      const payload = (await response.json()) as ChatPayload;
-      onResponse(payload);
-      return { content: [{ type: "text", text: payload.message }] };
+      if (!response.body) {
+        throw new Error("Advisor API did not return a streaming response.");
+      }
+
+      let payload: ChatPayload | null = null;
+      await consumeSse(response, (eventName, data) => {
+        if (eventName === "trace") {
+          onTrace(data as TraceStreamEvent);
+        } else if (eventName === "response") {
+          payload = data as ChatPayload;
+          onResponse(payload);
+        } else if (eventName === "error") {
+          throw new Error(String((data as { message?: string }).message ?? "Advisor request failed."));
+        }
+      });
+      if (payload === null) {
+        throw new Error("Advisor stream ended without a response.");
+      }
+      const finalPayload = payload as ChatPayload;
+      return { content: [{ type: "text", text: finalPayload.message }] };
     },
   };
+}
+
+async function consumeSse(
+  response: Response,
+  onEvent: (eventName: string, data: unknown) => void,
+) {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finished = false;
+
+  const dispatch = (block: string) => {
+    let eventName = "message";
+    const dataLines: string[] = [];
+    for (const line of block.split(/\r?\n/)) {
+      if (line.startsWith("event:")) eventName = line.slice(6).trim();
+      if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
+    }
+    if (!dataLines.length) return;
+    onEvent(eventName, JSON.parse(dataLines.join("\n")));
+  };
+
+  while (!finished) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    const blocks = buffer.split(/\r?\n\r?\n/);
+    buffer = blocks.pop() ?? "";
+    for (const block of blocks) dispatch(block);
+    finished = done;
+  }
+  if (buffer.trim()) dispatch(buffer);
+}
+
+function vehicleLabel(value: unknown): string {
+  if (typeof value !== "string" || !value) return "the vehicle";
+  const match = value.match(/^(.*)-(\d{4})$/);
+  const identity = match ? `${match[2]} ${match[1]}` : value;
+  return identity.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function traceProgressLabel(event: ActiveTrace): string {
+  const args = event.arguments;
+  const filters = args.filters as Record<string, unknown> | undefined;
+  const query = typeof filters?.query === "string" ? ` for “${filters.query}”` : "";
+  const vehicle = vehicleLabel(args.vehicle_id);
+  switch (event.name) {
+    case "search_inventory": return `Searching inventory${query}…`;
+    case "lookup_vehicle_exact": return `Checking exact availability for ${args.year ?? "the requested"} ${args.make ?? "vehicle"} ${args.model ?? ""}…`;
+    case "get_vehicle": return `Loading listing details for ${vehicle}…`;
+    case "retrieve_vehicle_facts": return `Retrieving sourced facts for ${vehicle}…`;
+    case "retrieve_magazine_reviews": return `Retrieving magazine reviews for ${vehicle}…`;
+    case "compare_vehicles": return "Comparing the grounded vehicle options…";
+    case "schedule_test_drive": return `Validating the test-drive request for ${vehicle}…`;
+    default: return `Running ${event.name}…`;
+  }
 }
 
 function QuickPrompts() {
@@ -171,8 +259,18 @@ function EvidencePanel({ dashboard }: { dashboard: Dashboard }) {
             <p className="eyebrow">Tool trace</p>
             <h2>Grounding evidence</h2>
           </div>
-          <span className="step-count">{dashboard.trace.length} calls</span>
+          <span className="step-count">{dashboard.trace.length + dashboard.activeTrace.length} calls</span>
         </div>
+        {dashboard.activeTrace.length ? (
+          <div className="trace-progress" aria-live="polite">
+            {dashboard.activeTrace.map((event) => (
+              <div key={event.trace_id} className="trace-live">
+                <span className="trace-spinner" aria-hidden="true" />
+                <span>{traceProgressLabel(event)}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {dashboard.trace.length ? (
           <div className="trace-list">
             {dashboard.trace.map((call, index) => (
@@ -182,9 +280,9 @@ function EvidencePanel({ dashboard }: { dashboard: Dashboard }) {
               </details>
             ))}
           </div>
-        ) : (
+        ) : !dashboard.activeTrace.length ? (
           <p className="empty-state">Tool calls will appear here after the advisor searches inventory or retrieves facts.</p>
-        )}
+        ) : null}
       </section>
     </>
   );
@@ -295,18 +393,20 @@ function RuntimeShell({
   dashboard,
   onReset,
   connectionStatus,
+  onTrace,
 }: {
   conversationId: string;
   modality: "text" | "voice";
   setModality: (value: "text" | "voice") => void;
   onResponse: (payload: ChatPayload) => void;
+  onTrace: (event: TraceStreamEvent) => void;
   dashboard: Dashboard;
   onReset: () => void;
   connectionStatus: "checking" | "connected" | "offline";
 }) {
   const adapter = useMemo(
-    () => createChatAdapter(conversationId, modality, onResponse),
-    [conversationId, modality, onResponse],
+    () => createChatAdapter(conversationId, modality, onResponse, onTrace),
+    [conversationId, modality, onResponse, onTrace],
   );
   const runtime = useLocalRuntime(adapter);
   return (
@@ -342,9 +442,24 @@ function App() {
     setDashboard(EMPTY_DASHBOARD);
   };
   const handleResponse = useCallback(
-    (payload: ChatPayload) => setDashboard({ state: payload.state, trace: payload.trace, reviews: payload.reviews }),
+    (payload: ChatPayload) => setDashboard({ state: payload.state, trace: payload.trace, reviews: payload.reviews, activeTrace: [] }),
     [],
   );
+  const handleTrace = useCallback((event: TraceStreamEvent) => {
+    setDashboard((current) => {
+      if (event.status === "running") {
+        return {
+          ...current,
+          activeTrace: [...current.activeTrace, { ...event, status: "running" }],
+        };
+      }
+      return {
+        ...current,
+        activeTrace: current.activeTrace.filter((active) => active.trace_id !== event.trace_id),
+        trace: event.call ? [...current.trace, event.call] : current.trace,
+      };
+    });
+  }, []);
 
   return (
     <RuntimeShell
@@ -353,6 +468,7 @@ function App() {
       modality={modality}
       setModality={setModality}
       onResponse={handleResponse}
+      onTrace={handleTrace}
       dashboard={dashboard}
       onReset={reset}
       connectionStatus={connectionStatus}

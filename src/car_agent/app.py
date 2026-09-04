@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import Any, Literal
+from queue import Queue
+from threading import Thread
+from typing import Any, Iterator, Literal
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from .crewai_agent import CrewAISalesAgent
 from .modality import normalize_command
+from .models import ToolCall
 from .repositories import ReviewRepository
 from .review_models import MagazineReview
 
@@ -75,8 +79,18 @@ def create_app(
 
 
     @api.post("/chat", response_model=ChatResponse)
-    def chat(request: ChatRequest) -> ChatResponse:
+    def chat(request: ChatRequest, http_request: Request) -> Any:
         command = normalize_command(request.conversation_id, request.message, request.modality)
+        if "text/event-stream" in http_request.headers.get("accept", ""):
+            return StreamingResponse(
+                _stream_chat(service, reviews, command.conversation_id, command.message),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                },
+            )
         response = service.respond(command.conversation_id, command.message)
         payload = response.to_dict()
         payload["reviews"] = _reviews_for_response(service, response, reviews)
@@ -95,6 +109,77 @@ def create_app(
         )
 
     return api
+
+
+def _stream_chat(
+    service: CrewAISalesAgent,
+    repository: ReviewRepository,
+    conversation_id: str,
+    message: str,
+) -> Iterator[str]:
+    """Run one synchronous agent turn while yielding trace events as tools run."""
+
+    events: Queue[tuple[str, dict[str, Any]] | None] = Queue()
+    pending_trace_ids: dict[str, list[str]] = {}
+    trace_counter = 0
+
+    def observe(
+        status: Literal["start", "complete"],
+        name: str,
+        arguments: dict[str, Any],
+        call: ToolCall | None,
+    ) -> None:
+        nonlocal trace_counter
+        if status == "start":
+            trace_counter += 1
+            trace_id = f"trace-{trace_counter}"
+            pending_trace_ids.setdefault(name, []).append(trace_id)
+        else:
+            trace_ids = pending_trace_ids.get(name, [])
+            trace_id = trace_ids.pop(0) if trace_ids else f"trace-{trace_counter}"
+        payload: dict[str, Any] = {
+            "trace_id": trace_id,
+            "status": "running" if status == "start" else "complete",
+            "name": name,
+            "arguments": _redacted_arguments(name, arguments),
+        }
+        if call is not None:
+            payload["call"] = call.to_dict(redact_sensitive=True)
+        events.put(("trace", payload))
+
+    def work() -> None:
+        try:
+            response = service.respond(
+                conversation_id,
+                message,
+                trace_observer=observe,
+            )
+            payload = response.to_dict()
+            payload["reviews"] = _reviews_for_response(service, response, repository)
+            events.put(("response", ChatResponse.model_validate(payload).model_dump(mode="json")))
+        except Exception as exc:  # pragma: no cover - surfaced through the client event
+            events.put(("error", {"message": str(exc)}))
+        finally:
+            events.put(None)
+
+    Thread(target=work, name="car-agent-chat", daemon=True).start()
+    while True:
+        item = events.get()
+        if item is None:
+            break
+        event_name, payload = item
+        yield _sse(event_name, payload)
+    yield _sse("done", {})
+
+
+def _sse(event_name: str, payload: dict[str, Any]) -> str:
+    return f"event: {event_name}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _redacted_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Apply the same contact redaction policy to an in-flight trace event."""
+
+    return ToolCall(name=name, arguments=arguments, result={}).to_dict(redact_sensitive=True)["arguments"]
 
 
 app = create_app()

@@ -7,12 +7,17 @@ tool boundaries that a model-driven policy can use later.
 from __future__ import annotations
 
 import re
-from typing import Any
+from contextvars import ContextVar
+from typing import Any, Callable, Literal
 
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall, Vehicle
 from .profiling import TimingRecorder
 from .tools import SalesTools
+
+
+TraceObserver = Callable[[Literal["start", "complete"], str, dict[str, Any], ToolCall | None], None]
+_trace_observer: ContextVar[TraceObserver | None] = ContextVar("trace_observer", default=None)
 
 
 class DemoSalesAgent:
@@ -21,9 +26,19 @@ class DemoSalesAgent:
         self.profiler = profiler or TimingRecorder(enabled=False)
         self.sessions: dict[str, ConversationState] = {}
 
-    def respond(self, conversation_id: str, user_message: str) -> AgentResponse:
-        with self.profiler.span("agent.turn"):
-            return self._respond(conversation_id, user_message)
+    def respond(
+        self,
+        conversation_id: str,
+        user_message: str,
+        *,
+        trace_observer: TraceObserver | None = None,
+    ) -> AgentResponse:
+        observer_token = _trace_observer.set(trace_observer)
+        try:
+            with self.profiler.span("agent.turn"):
+                return self._respond(conversation_id, user_message)
+        finally:
+            _trace_observer.reset(observer_token)
 
     def _respond(self, conversation_id: str, user_message: str) -> AgentResponse:
         state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
@@ -432,9 +447,15 @@ class DemoSalesAgent:
         arguments: dict[str, Any],
         function: Any,
     ) -> dict[str, Any]:
+        observer = _trace_observer.get()
+        if observer:
+            observer("start", name, arguments, None)
         with self.profiler.span(f"tool.{name}"):
             result = function()
-        trace.append(ToolCall(name=name, arguments=arguments, result=result))
+        call = ToolCall(name=name, arguments=arguments, result=result)
+        trace.append(call)
+        if observer:
+            observer("complete", name, arguments, call)
         return result
 
     @staticmethod

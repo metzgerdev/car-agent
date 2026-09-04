@@ -16,7 +16,7 @@ from crewai.tools import BaseTool
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, PrivateAttr
 
-from .agent import DemoSalesAgent
+from .agent import DemoSalesAgent, TraceObserver
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall
 from .profiling import TimingRecorder
@@ -70,17 +70,20 @@ class _CrewSalesTool(BaseTool):
     _backend: SalesTools = PrivateAttr()
     _profiler: TimingRecorder = PrivateAttr()
     _trace: list[ToolCall] = PrivateAttr()
+    _trace_observer: TraceObserver | None = PrivateAttr(default=None)
 
     def __init__(
         self,
         backend: SalesTools,
         trace: list[ToolCall],
         profiler: TimingRecorder | None = None,
+        trace_observer: TraceObserver | None = None,
     ) -> None:
         super().__init__()
         self._backend = backend
         self._profiler = profiler or TimingRecorder(enabled=False)
         self._trace = trace
+        self._trace_observer = trace_observer
 
     def _run_backend(
         self,
@@ -88,12 +91,17 @@ class _CrewSalesTool(BaseTool):
         arguments: dict[str, Any],
         function: Any,
     ) -> str:
+        if self._trace_observer:
+            self._trace_observer("start", name, arguments, None)
         with self._profiler.span(f"tool.{name}"):
             result = function()
         return self._record(name, arguments, result)
 
     def _record(self, name: str, arguments: dict[str, Any], result: dict[str, Any]) -> str:
-        self._trace.append(ToolCall(name=name, arguments=arguments, result=result))
+        call = ToolCall(name=name, arguments=arguments, result=result)
+        self._trace.append(call)
+        if self._trace_observer:
+            self._trace_observer("complete", name, arguments, call)
         return json.dumps(result)
 
 
@@ -226,30 +234,50 @@ class CrewAISalesAgent:
         self.llm = llm or os.getenv("CAR_AGENT_CREWAI_MODEL") or "openrouter/deepseek/deepseek-chat"
         self.last_crew: Crew | None = None
 
-    def respond(self, conversation_id: str, user_message: str) -> AgentResponse:
+    def respond(
+        self,
+        conversation_id: str,
+        user_message: str,
+        *,
+        trace_observer: TraceObserver | None = None,
+    ) -> AgentResponse:
         if not self.use_live_model:
-            return self.deterministic_agent.respond(conversation_id, user_message)
+            return self.deterministic_agent.respond(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+            )
         # Exact availability is a deterministic inventory contract. Handle it
         # before CrewAI so a live model cannot end a turn with "one moment"
         # without returning the lookup result and a complete next step.
         if self.deterministic_agent._exact_vehicle_query(user_message.strip()):
-            return self.deterministic_agent.respond(conversation_id, user_message)
+            return self.deterministic_agent.respond(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+            )
         if self.deterministic_agent._is_review_request(user_message):
-            return self._respond_live_review(conversation_id, user_message)
-        return self._respond_live(conversation_id, user_message)
+            return self._respond_live_review(conversation_id, user_message, trace_observer)
+        return self._respond_live(conversation_id, user_message, trace_observer)
 
-    def build_crew(self, trace: list[ToolCall] | None = None, *, review_only: bool = False) -> Crew:
+    def build_crew(
+        self,
+        trace: list[ToolCall] | None = None,
+        *,
+        review_only: bool = False,
+        trace_observer: TraceObserver | None = None,
+    ) -> Crew:
         """Build the inspectable CrewAI objects without making an LLM call."""
 
         trace = trace if trace is not None else []
         crew_tools = [] if review_only else [
-            SearchInventoryTool(self.tools, trace, self.profiler),
-            LookupVehicleExactTool(self.tools, trace, self.profiler),
-            GetVehicleTool(self.tools, trace, self.profiler),
-            RetrieveVehicleFactsTool(self.tools, trace, self.profiler),
-            RetrieveMagazineReviewsTool(self.tools, trace, self.profiler),
-            CompareVehiclesTool(self.tools, trace, self.profiler),
-            ScheduleTestDriveTool(self.tools, trace, self.profiler),
+            SearchInventoryTool(self.tools, trace, self.profiler, trace_observer),
+            LookupVehicleExactTool(self.tools, trace, self.profiler, trace_observer),
+            GetVehicleTool(self.tools, trace, self.profiler, trace_observer),
+            RetrieveVehicleFactsTool(self.tools, trace, self.profiler, trace_observer),
+            RetrieveMagazineReviewsTool(self.tools, trace, self.profiler, trace_observer),
+            CompareVehiclesTool(self.tools, trace, self.profiler, trace_observer),
+            ScheduleTestDriveTool(self.tools, trace, self.profiler, trace_observer),
         ]
         review_instructions = (
             "You are in review-synthesis mode. The supplied review context is the complete source "
@@ -329,13 +357,22 @@ class CrewAISalesAgent:
             api_key=api_key,
         )
 
-    def _respond_live(self, conversation_id: str, user_message: str) -> AgentResponse:
+    def _respond_live(
+        self,
+        conversation_id: str,
+        user_message: str,
+        trace_observer: TraceObserver | None = None,
+    ) -> AgentResponse:
         with self.profiler.span("crewai.live_turn"):
             previous_state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
             self._pin_explicit_vehicle(previous_state, user_message)
             trace: list[ToolCall] = []
             with self.profiler.span("crewai.crew_build"):
-                crew = self.build_crew(trace)
+                crew = (
+                    self.build_crew(trace, trace_observer=trace_observer)
+                    if trace_observer
+                    else self.build_crew(trace)
+                )
             with self.profiler.span("crewai.crew_kickoff"):
                 result = crew.kickoff(
                     inputs={
@@ -362,10 +399,19 @@ class CrewAISalesAgent:
         state.preferences.selected_vehicle_id = vehicle.id
         state.last_vehicle_ids = [vehicle.id]
 
-    def _respond_live_review(self, conversation_id: str, user_message: str) -> AgentResponse:
+    def _respond_live_review(
+        self,
+        conversation_id: str,
+        user_message: str,
+        trace_observer: TraceObserver | None = None,
+    ) -> AgentResponse:
         """Retrieve local review records, then ask CrewAI to synthesize them."""
 
-        prepared = self.deterministic_agent.respond(conversation_id, user_message)
+        prepared = self.deterministic_agent.respond(
+            conversation_id,
+            user_message,
+            trace_observer=trace_observer,
+        )
         if not prepared.trace or prepared.trace[-1].name != "retrieve_magazine_reviews":
             return prepared
         review_result = prepared.trace[-1].result
@@ -376,7 +422,11 @@ class CrewAISalesAgent:
         trace = prepared.trace
         with self.profiler.span("crewai.live_review_turn"):
             with self.profiler.span("crewai.crew_build"):
-                crew = self.build_crew(trace, review_only=True)
+                crew = (
+                    self.build_crew(trace, review_only=True, trace_observer=trace_observer)
+                    if trace_observer
+                    else self.build_crew(trace, review_only=True)
+                )
             with self.profiler.span("crewai.crew_kickoff"):
                 result = crew.kickoff(
                     inputs={

@@ -60,6 +60,55 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("color-scheme:dark" in css.replace(" ", "") for css in css_assets)
 
 
+def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
+    client, _ = _offline_client()
+
+    with client.stream(
+        "POST",
+        "/chat",
+        headers={"Accept": "text/event-stream"},
+        json={
+            "conversation_id": "streaming-trace",
+            "message": "I want a weekend coupe under $40k with spirited driving.",
+        },
+    ) as response:
+        lines = list(response.iter_lines())
+
+    events: list[tuple[str, dict]] = []
+    event_name: str | None = None
+    data_lines: list[str] = []
+    for line in lines:
+        if line.startswith("event: "):
+            event_name = line.removeprefix("event: ")
+        elif line.startswith("data: "):
+            data_lines.append(line.removeprefix("data: "))
+        elif not line and event_name:
+            events.append((event_name, json.loads("\n".join(data_lines))))
+            event_name = None
+            data_lines = []
+
+    trace_events = [payload for name, payload in events if name == "trace"]
+    completed = [payload for payload in trace_events if payload["status"] == "complete"]
+    response_events = [payload for name, payload in events if name == "response"]
+
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers["content-type"]
+    assert trace_events
+    assert trace_events[0]["status"] == "running"
+    assert trace_events[0]["name"] == "search_inventory"
+    assert len(completed) == 4
+    assert all(payload["call"]["name"] for payload in completed)
+    assert [payload["call"]["name"] for payload in completed] == [
+        "search_inventory",
+        "get_vehicle",
+        "get_vehicle",
+        "retrieve_vehicle_facts",
+    ]
+    assert len(response_events) == 1
+    assert len(response_events[0]["trace"]) == 4
+    assert events[-1][0] == "done"
+
+
 def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:
     client, _ = _offline_client()
 
