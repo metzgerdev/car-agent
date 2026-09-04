@@ -332,6 +332,7 @@ class CrewAISalesAgent:
     def _respond_live(self, conversation_id: str, user_message: str) -> AgentResponse:
         with self.profiler.span("crewai.live_turn"):
             previous_state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
+            self._pin_explicit_vehicle(previous_state, user_message)
             trace: list[ToolCall] = []
             with self.profiler.span("crewai.crew_build"):
                 crew = self.build_crew(trace)
@@ -347,8 +348,19 @@ class CrewAISalesAgent:
             with self.profiler.span("crewai.output_normalization"):
                 output = _coerce_crew_output(result)
                 state = _state_from_dict(conversation_id, output.state, previous_state)
+                self._pin_explicit_vehicle(state, user_message)
             self.sessions[conversation_id] = state
             return AgentResponse(output.message.strip(), state, trace)
+
+    def _pin_explicit_vehicle(self, state: ConversationState, user_message: str) -> None:
+        """Keep an explicitly named vehicle authoritative across live turns."""
+
+        mentioned_vehicles = self.tools.inventory.find_in_text(user_message)
+        if len(mentioned_vehicles) != 1:
+            return
+        vehicle = mentioned_vehicles[0]
+        state.preferences.selected_vehicle_id = vehicle.id
+        state.last_vehicle_ids = [vehicle.id]
 
     def _respond_live_review(self, conversation_id: str, user_message: str) -> AgentResponse:
         """Retrieve local review records, then ask CrewAI to synthesize them."""

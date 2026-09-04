@@ -116,6 +116,61 @@ def test_live_facade_synthesizes_contextual_magazine_reviews_with_model(monkeypa
     assert response.message.count("https://") >= 2
 
 
+def test_live_explicit_vehicle_wins_over_stale_state_for_review_followup(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
+    agent.sessions["live-rx7"] = ConversationState(
+        "live-rx7",
+        stage="recommending",
+        last_vehicle_ids=["bmw-z4-m-2008"],
+        preferences=ShopperPreferences(selected_vehicle_id="bmw-z4-m-2008"),
+    )
+
+    class InitialCrew:
+        def kickoff(self, *, inputs):
+            assert '"selected_vehicle_id": "mazda-rx7-1992"' in inputs["state_json"]
+            return type(
+                "FakeCrewOutput",
+                (),
+                {
+                    "pydantic": CrewTurnOutput(
+                        message="The 1992 Mazda RX-7 is the rotary-powered lightweight option.",
+                        state={
+                            "stage": "recommending",
+                            "preferences": {"selected_vehicle_id": "bmw-z4-m-2008"},
+                            "last_vehicle_ids": ["bmw-z4-m-2008"],
+                        },
+                    )
+                },
+            )()
+
+    class ReviewCrew:
+        def kickoff(self, *, inputs):
+            assert "mazda-rx7-1992" in inputs["review_context"]
+            assert "bmw-z4-m-2008" not in inputs["review_context"]
+            return type(
+                "FakeCrewOutput",
+                (),
+                {
+                    "pydantic": CrewTurnOutput(
+                        message="The Car and Driver review places the RX-7 in a lightweight, rotary-powered group.",
+                        state={"stage": "recommending", "last_vehicle_ids": ["mazda-rx7-1992"]},
+                    )
+                },
+            )()
+
+    def build_crew(trace, review_only=False):
+        return ReviewCrew() if review_only else InitialCrew()
+
+    monkeypatch.setattr(agent, "build_crew", build_crew)
+
+    first = agent.respond("live-rx7", "Tell me more about the RX-7.")
+    second = agent.respond("live-rx7", "What do the magazine reviews say about it?")
+
+    assert first.state.preferences.selected_vehicle_id == "mazda-rx7-1992"
+    assert second.state.preferences.selected_vehicle_id == "mazda-rx7-1992"
+    assert [call.name for call in second.trace] == ["retrieve_magazine_reviews"]
+
+
 def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) -> None:
     recorder = TimingRecorder()
     agent = CrewAISalesAgent(use_live_model=True, llm="test-model", profiler=recorder)
