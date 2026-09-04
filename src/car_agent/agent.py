@@ -11,23 +11,31 @@ from typing import Any
 
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall, Vehicle
+from .profiling import TimingRecorder
 from .tools import SalesTools
 
 
 class DemoSalesAgent:
-    def __init__(self, tools: SalesTools | None = None) -> None:
+    def __init__(self, tools: SalesTools | None = None, profiler: TimingRecorder | None = None) -> None:
         self.tools = tools or SalesTools()
+        self.profiler = profiler or TimingRecorder(enabled=False)
         self.sessions: dict[str, ConversationState] = {}
 
     def respond(self, conversation_id: str, user_message: str) -> AgentResponse:
+        with self.profiler.span("agent.turn"):
+            return self._respond(conversation_id, user_message)
+
+    def _respond(self, conversation_id: str, user_message: str) -> AgentResponse:
         state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
         message = user_message.strip()
         trace: list[ToolCall] = []
         if not message:
             return AgentResponse("Tell me a little about the car you’re shopping for.", state, trace)
 
-        preference_changed = self._update_preferences(state.preferences, message)
-        mentioned_vehicles = self.tools.inventory.find_in_text(message)
+        with self.profiler.span("agent.preference_parsing"):
+            preference_changed = self._update_preferences(state.preferences, message)
+        with self.profiler.span("agent.inventory_mention_detection"):
+            mentioned_vehicles = self.tools.inventory.find_in_text(message)
 
         if self._is_schedule_request(message) or state.stage == "scheduling":
             return self._schedule(state, message, mentioned_vehicles, trace)
@@ -99,6 +107,15 @@ class DemoSalesAgent:
         query: ExactVehicleQuery,
         trace: list[ToolCall],
     ) -> AgentResponse:
+        with self.profiler.span("agent.exact_availability_flow"):
+            return self._lookup_exact_impl(state, query, trace)
+
+    def _lookup_exact_impl(
+        self,
+        state: ConversationState,
+        query: ExactVehicleQuery,
+        trace: list[ToolCall],
+    ) -> AgentResponse:
         arguments = query.model_dump()
         result = self._call(
             trace,
@@ -162,6 +179,10 @@ class DemoSalesAgent:
         return AgentResponse("\n".join(lines), state, trace)
 
     def _recommend(self, state: ConversationState, trace: list[ToolCall]) -> AgentResponse:
+        with self.profiler.span("agent.recommendation_flow"):
+            return self._recommend_impl(state, trace)
+
+    def _recommend_impl(self, state: ConversationState, trace: list[ToolCall]) -> AgentResponse:
         preferences = state.preferences
         filters = {
             key: value
@@ -210,6 +231,16 @@ class DemoSalesAgent:
         return AgentResponse(self._recommendation_message(vehicles, facts), state, trace)
 
     def _schedule(
+        self,
+        state: ConversationState,
+        message: str,
+        mentioned_vehicles: list[Vehicle],
+        trace: list[ToolCall],
+    ) -> AgentResponse:
+        with self.profiler.span("agent.scheduling_flow"):
+            return self._schedule_impl(state, message, mentioned_vehicles, trace)
+
+    def _schedule_impl(
         self,
         state: ConversationState,
         message: str,
@@ -273,6 +304,15 @@ class DemoSalesAgent:
         mentioned_vehicles: list[Vehicle],
         trace: list[ToolCall],
     ) -> AgentResponse:
+        with self.profiler.span("agent.comparison_flow"):
+            return self._compare_impl(state, mentioned_vehicles, trace)
+
+    def _compare_impl(
+        self,
+        state: ConversationState,
+        mentioned_vehicles: list[Vehicle],
+        trace: list[ToolCall],
+    ) -> AgentResponse:
         vehicles = mentioned_vehicles[:2]
         if len(vehicles) < 2:
             vehicles = [self.tools.inventory.get(vehicle_id) for vehicle_id in state.last_vehicle_ids[:2]]
@@ -299,6 +339,16 @@ class DemoSalesAgent:
         )
 
     def _handle_objection(
+        self,
+        state: ConversationState,
+        vehicle: Vehicle,
+        trace: list[ToolCall],
+        message: str,
+    ) -> AgentResponse:
+        with self.profiler.span("agent.objection_flow"):
+            return self._handle_objection_impl(state, vehicle, trace, message)
+
+    def _handle_objection_impl(
         self,
         state: ConversationState,
         vehicle: Vehicle,
@@ -334,14 +384,15 @@ class DemoSalesAgent:
             trace,
         )
 
-    @staticmethod
     def _call(
+        self,
         trace: list[ToolCall],
         name: str,
         arguments: dict[str, Any],
         function: Any,
     ) -> dict[str, Any]:
-        result = function()
+        with self.profiler.span(f"tool.{name}"):
+            result = function()
         trace.append(ToolCall(name=name, arguments=arguments, result=result))
         return result
 

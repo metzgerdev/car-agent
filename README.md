@@ -67,6 +67,20 @@ The strict evaluator checks state progression, tool use, ambiguity handling,
 uncertainty responses, objection handling, question count, and hard-budget
 compliance.
 
+## Profile offline latency
+
+Run the repeatable six-turn profile to see time spent in parsing, agent flows,
+and each domain tool:
+
+```bash
+car-agent-profile --iterations 25
+```
+
+The profile reports exclusive phase time, so nested phases are not double-counted.
+It intentionally measures the deterministic offline path. Live CrewAI latency is
+dominated by the external model request and should be measured separately when
+you explicitly want to spend an OpenRouter call.
+
 ## Run with CrewAI and OpenRouter
 
 The HTTP app uses `CrewAISalesAgent` with OpenRouter. The copied `.env` already supplies `OPENROUTER_API_KEY`; the model defaults to `openrouter/deepseek/deepseek-chat` and can be changed with `CAR_AGENT_CREWAI_MODEL`.
