@@ -75,7 +75,8 @@ def test_phase3_agent_summarizes_reviews_for_the_last_vehicle() -> None:
     assert [call.name for call in response.trace] == ["retrieve_magazine_reviews"]
     assert "Car and Driver" in response.message
     assert "MotorTrend" in response.message
-    assert "Read it: https://" in response.message
+    assert "Read it: [" in response.message
+    assert "https://" in response.message
 
 
 def test_phase3_ambiguity_does_not_guess_a_porsche_model() -> None:

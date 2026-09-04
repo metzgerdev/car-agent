@@ -15,8 +15,8 @@ class SalesTools:
         self,
         inventory: InventoryRepository | None = None,
         knowledge: KnowledgeRepository | None = None,
-        reviews: ReviewRepository | None = None,
         scheduler: TestDriveScheduler | None = None,
+        reviews: ReviewRepository | None = None,
     ) -> None:
         self.inventory = inventory or InventoryRepository()
         self.knowledge = knowledge or KnowledgeRepository()

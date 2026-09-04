@@ -418,7 +418,10 @@ class DemoSalesAgent:
 
         lines = [f"Here’s the magazine-review summary for the {vehicle.name}:"]
         for review in reviews:
-            lines.append(f"- {review['outlet']} — {review['title']}: {review['summary']} Read it: {review['url']}")
+            lines.append(
+                f"- {review['outlet']} — {review['title']}: {review['summary']} "
+                f"Read it: [{review['outlet']}]({review['url']})"
+            )
         lines.append("These are editorial impressions, not a condition report for this specific listing.")
         return AgentResponse("\n".join(lines), state, trace)
 

@@ -75,25 +75,45 @@ def test_live_facade_completes_bare_vehicle_lookup_without_model_call(monkeypatc
     assert "2001 bmw m3" in response.message.lower()
 
 
-def test_live_facade_returns_contextual_magazine_reviews_without_model_call(monkeypatch) -> None:
-    agent = CrewAISalesAgent(use_live_model=True)
+def test_live_facade_synthesizes_contextual_magazine_reviews_with_model(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
     agent.sessions["live-review"] = ConversationState(
         "live-review",
         stage="recommending",
         last_vehicle_ids=["honda-s2000-2004"],
     )
 
-    def fail_if_called(*args, **kwargs):
-        raise AssertionError("review summaries should use the curated local review dataset")
+    class FakeCrew:
+        def kickoff(self, *, inputs):
+            assert inputs["conversation_id"] == "live-review"
+            assert "Car and Driver" in inputs["review_context"]
+            assert "MotorTrend" in inputs["review_context"]
+            assert "https://" in inputs["review_context"]
+            return type(
+                "FakeCrewOutput",
+                (),
+                {
+                    "pydantic": CrewTurnOutput(
+                        message=(
+                            "The reviews agree that the Honda S2000 rewards an engaged driver. "
+                            "Car and Driver emphasizes its high-revving character, while "
+                            "MotorTrend highlights the communicative chassis. "
+                            "[Car and Driver](https://www.caranddriver.com/reviews/a15133774/honda-s2000-short-take-road-test/) "
+                            "[MotorTrend](https://www.motortrend.com/reviews/honda-s2000-3)"
+                        ),
+                        state={"stage": "recommending", "last_vehicle_ids": ["honda-s2000-2004"]},
+                    )
+                },
+            )()
 
-    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+    monkeypatch.setattr(agent, "build_crew", lambda trace, review_only=False: FakeCrew())
 
     response = agent.respond("live-review", "Summarize magazine reviews of the car.")
 
     assert [call.name for call in response.trace] == ["retrieve_magazine_reviews"]
     assert "Car and Driver" in response.message
     assert "MotorTrend" in response.message
-    assert "https://" in response.message
+    assert response.message.count("https://") >= 2
 
 
 def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) -> None:

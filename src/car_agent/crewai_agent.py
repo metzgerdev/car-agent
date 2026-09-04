@@ -234,18 +234,15 @@ class CrewAISalesAgent:
         # without returning the lookup result and a complete next step.
         if self.deterministic_agent._exact_vehicle_query(user_message.strip()):
             return self.deterministic_agent.respond(conversation_id, user_message)
-        # Editorial context is also a local curated dataset. Keep the response
-        # complete and sourced instead of allowing the model to claim it lacks
-        # access to reviews that the application already has.
         if self.deterministic_agent._is_review_request(user_message):
-            return self.deterministic_agent.respond(conversation_id, user_message)
+            return self._respond_live_review(conversation_id, user_message)
         return self._respond_live(conversation_id, user_message)
 
-    def build_crew(self, trace: list[ToolCall] | None = None) -> Crew:
+    def build_crew(self, trace: list[ToolCall] | None = None, *, review_only: bool = False) -> Crew:
         """Build the inspectable CrewAI objects without making an LLM call."""
 
         trace = trace if trace is not None else []
-        crew_tools = [
+        crew_tools = [] if review_only else [
             SearchInventoryTool(self.tools, trace, self.profiler),
             LookupVehicleExactTool(self.tools, trace, self.profiler),
             GetVehicleTool(self.tools, trace, self.profiler),
@@ -254,6 +251,16 @@ class CrewAISalesAgent:
             CompareVehiclesTool(self.tools, trace, self.profiler),
             ScheduleTestDriveTool(self.tools, trace, self.profiler),
         ]
+        review_instructions = (
+            "You are in review-synthesis mode. The supplied review context is the complete source "
+            "set for this turn. Synthesize its common themes and meaningful differences without "
+            "inventing facts. Mention each outlet and title, cite each source with a Markdown link "
+            "using the supplied URL exactly, and state that the editorial material is not a condition "
+            "report for the specific listing. Never say you lack access when review context is supplied."
+            if review_only
+            else "For a magazine-review request, call retrieve_magazine_reviews and include the short "
+            "sourced summaries and links; do not claim review access is unavailable when the tool returns reviews."
+        )
         salesperson = Agent(
             role="Classic Sports Car Sales Advisor",
             goal="Qualify a shopper, recommend only grounded inventory, and convert interest into a validated test-drive request.",
@@ -278,14 +285,13 @@ class CrewAISalesAgent:
                 "Handle one shopper turn for conversation {conversation_id}.\n"
                 "Shopper message:\n{user_message}\n\n"
                 "Current domain state as JSON:\n{state_json}\n\n"
+                "Curated magazine review context for this turn:\n{review_context}\n\n"
                 "Use the inventory and knowledge tools whenever a claim needs grounding. "
                 "For an explicit year/make/model availability question, call lookup_vehicle_exact "
                 "before claiming availability. Treat exact_match=false as authoritative absence from "
                 "the current snapshot; then use search_inventory only to find grounded alternatives. "
                 "Never turn a fuzzy search result into an exact availability claim. "
-                "For a magazine-review request, call retrieve_magazine_reviews and include the "
-                "short sourced summaries and links; do not claim review access is unavailable "
-                "when the tool returns reviews. "
+                f"{review_instructions} "
                 "Preserve prior state, enforce the budget as a hard constraint, and ask no more "
                 "than two useful questions in one turn. Never guess an ambiguous model or an "
                 "unsupported specification. Return a concise response plus the complete "
@@ -335,6 +341,7 @@ class CrewAISalesAgent:
                         "conversation_id": conversation_id,
                         "user_message": user_message.strip(),
                         "state_json": json.dumps(previous_state.to_dict()),
+                        "review_context": "",
                     }
                 )
             with self.profiler.span("crewai.output_normalization"):
@@ -342,6 +349,37 @@ class CrewAISalesAgent:
                 state = _state_from_dict(conversation_id, output.state, previous_state)
             self.sessions[conversation_id] = state
             return AgentResponse(output.message.strip(), state, trace)
+
+    def _respond_live_review(self, conversation_id: str, user_message: str) -> AgentResponse:
+        """Retrieve local review records, then ask CrewAI to synthesize them."""
+
+        prepared = self.deterministic_agent.respond(conversation_id, user_message)
+        if not prepared.trace or prepared.trace[-1].name != "retrieve_magazine_reviews":
+            return prepared
+        review_result = prepared.trace[-1].result
+        reviews = review_result.get("reviews", [])
+        if not reviews:
+            return prepared
+
+        trace = prepared.trace
+        with self.profiler.span("crewai.live_review_turn"):
+            with self.profiler.span("crewai.crew_build"):
+                crew = self.build_crew(trace, review_only=True)
+            with self.profiler.span("crewai.crew_kickoff"):
+                result = crew.kickoff(
+                    inputs={
+                        "conversation_id": conversation_id,
+                        "user_message": user_message.strip(),
+                        "state_json": json.dumps(prepared.state.to_dict()),
+                        "review_context": json.dumps(reviews, ensure_ascii=False),
+                    }
+                )
+            with self.profiler.span("crewai.output_normalization"):
+                output = _coerce_crew_output(result)
+                state = _state_from_dict(conversation_id, output.state, prepared.state)
+        self.sessions[conversation_id] = state
+        message = _ensure_review_citations(output.message.strip(), reviews)
+        return AgentResponse(message, state, trace)
 
 
 def _coerce_crew_output(result: Any) -> CrewTurnOutput:
@@ -353,6 +391,19 @@ def _coerce_crew_output(result: Any) -> CrewTurnOutput:
         return CrewTurnOutput.model_validate_json(raw)
     except ValueError as exc:
         raise ValueError("CrewAI returned a response that does not match CrewTurnOutput") from exc
+
+
+def _ensure_review_citations(message: str, reviews: list[dict[str, Any]]) -> str:
+    """Add source links if a model omits one of the supplied citations."""
+
+    missing_sources = [
+        f"- Source: [{review['outlet']}]({review['url']})"
+        for review in reviews
+        if review.get("url") and review["url"] not in message
+    ]
+    if not missing_sources:
+        return message
+    return f"{message}\n\nSources:\n" + "\n".join(missing_sources)
 
 
 def _state_from_dict(

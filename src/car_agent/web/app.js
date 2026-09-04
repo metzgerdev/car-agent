@@ -36,10 +36,30 @@ function appendMessage(role, text, extraClass = "") {
   label.className = "message-label";
   label.textContent = role === "shopper" ? "You" : "Advisor";
   const body = document.createElement("p");
-  body.textContent = text;
+  if (role === "shopper") body.textContent = text;
+  else appendAdvisorText(body, text);
   message.append(label, body);
   transcript.appendChild(message);
   transcript.scrollTop = transcript.scrollHeight;
+}
+
+function appendAdvisorText(container, text) {
+  // Render only the citation shape emitted by the domain contract. All other
+  // text remains a text node, so model output never becomes executable HTML.
+  const citation = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+  let cursor = 0;
+  let match;
+  while ((match = citation.exec(text)) !== null) {
+    if (match.index > cursor) container.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+    const link = document.createElement("a");
+    link.textContent = match[1];
+    link.href = match[2];
+    link.target = "_blank";
+    link.rel = "noreferrer noopener";
+    container.appendChild(link);
+    cursor = citation.lastIndex;
+  }
+  container.appendChild(document.createTextNode(text.slice(cursor)));
 }
 
 function resetTranscript() {

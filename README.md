@@ -48,9 +48,11 @@ summary and a link to the publication; these are editorial context, not
 condition reports for a specific listing.
 
 The advisor can also answer a contextual request such as `summarize magazine
-reviews of the car`. It retrieves the curated review records, includes each
-publication's short summary and source link in the response, and asks for a
-specific vehicle if no car has been selected yet.
+reviews of the car`. It retrieves the curated review records, passes those
+bounded sources to the live CrewAI turn for synthesis, and includes each
+publication's short summary and source link in the response. Offline mode
+serves the same grounded records directly. It asks for a specific vehicle if
+no car has been selected yet.
 
 ## Run the clean offline demo
 
