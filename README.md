@@ -44,8 +44,10 @@ boundary; it does not perform speech-to-text.
 
 The browser frontend is built with [assistant-ui](https://github.com/assistant-ui/assistant-ui)
 and uses its `LocalRuntime` adapter to call the existing FastAPI `/chat`
-endpoint. The checked-in browser bundle is ready to serve. To rebuild it after
-changing the React source, use Node 22 or newer:
+endpoint. Its conversation surface is a styled assistant-ui Thread/Composer
+composition with a ChatGPT-inspired dark theme; the surrounding panels expose
+the demo's grounding evidence. The checked-in browser bundle is ready to serve.
+To rebuild it after changing the React source, use Node 22 or newer:
 
 ```bash
 npm --prefix frontend install
