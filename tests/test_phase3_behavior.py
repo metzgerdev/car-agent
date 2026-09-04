@@ -58,6 +58,14 @@ def test_phase3_unavailable_exact_request_searches_only_after_lookup() -> None:
     assert "2008 BMW Z4 M Coupe" in response.message
 
 
+def test_phase3_bare_vehicle_identity_is_an_exact_availability_request() -> None:
+    response = DemoSalesAgent().respond("phase3-bare-exact", "2001 bmw m3")
+
+    assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "search_inventory"]
+    assert response.trace[0].result["status"] == "not_found"
+    assert "2001 bmw m3" in response.message.lower()
+
+
 def test_phase3_ambiguity_does_not_guess_a_porsche_model() -> None:
     response = DemoSalesAgent().respond("phase3-ambiguity", "I like Porsche.")
 

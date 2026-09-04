@@ -489,7 +489,7 @@ class DemoSalesAgent:
     @staticmethod
     def _is_availability_request(message: str) -> bool:
         lowered = message.lower()
-        return any(
+        if any(
             phrase in lowered
             for phrase in (
                 "do you have",
@@ -502,7 +502,16 @@ class DemoSalesAgent:
                 "find me",
                 "is there",
             )
-        )
+        ):
+            return True
+        # The UI starts with a broad question, so shoppers commonly reply with
+        # only an identity such as "2001 BMW M3". Treat that complete compact
+        # identity as an availability request instead of delegating it to a
+        # model that might return a progress sentence as its final answer.
+        return re.fullmatch(
+            r"\s*(?:19|20)\d{2}\s+[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z0-9][A-Za-z0-9-]*){1,5}\s*(?:[?.!]\s*)?$",
+            message,
+        ) is not None
 
     @staticmethod
     def _model_tokens_after_make(text: str, year: int) -> list[str]:

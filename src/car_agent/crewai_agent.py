@@ -212,6 +212,11 @@ class CrewAISalesAgent:
     def respond(self, conversation_id: str, user_message: str) -> AgentResponse:
         if not self.use_live_model:
             return self.deterministic_agent.respond(conversation_id, user_message)
+        # Exact availability is a deterministic inventory contract. Handle it
+        # before CrewAI so a live model cannot end a turn with "one moment"
+        # without returning the lookup result and a complete next step.
+        if self.deterministic_agent._exact_vehicle_query(user_message.strip()):
+            return self.deterministic_agent.respond(conversation_id, user_message)
         return self._respond_live(conversation_id, user_message)
 
     def build_crew(self, trace: list[ToolCall] | None = None) -> Crew:

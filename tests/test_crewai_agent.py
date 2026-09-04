@@ -59,6 +59,21 @@ def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
     ]
 
 
+def test_live_facade_completes_bare_vehicle_lookup_without_model_call(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("bare exact vehicle identity should use the deterministic lookup path")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-bare-exact", "2001 bmw m3")
+
+    assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "search_inventory"]
+    assert response.trace[0].result["exact_match"] is False
+    assert "2001 bmw m3" in response.message.lower()
+
+
 def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) -> None:
     recorder = TimingRecorder()
     agent = CrewAISalesAgent(use_live_model=True, llm="test-model", profiler=recorder)

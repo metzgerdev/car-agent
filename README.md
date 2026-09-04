@@ -32,6 +32,10 @@ negative result is not treated as proof that the vehicle never existed; it means
 only that the current inventory snapshot has no exact match. The agent may then
 call `search_inventory` to offer grounded alternatives.
 
+A compact identity response such as `2001 BMW M3` follows the same exact lookup
+path, so the live model cannot end the turn with a progress message before
+returning the availability result.
+
 For the browser demo, open [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 after starting the server. The page includes guided prompts for the six-turn
 sales flow and panels that expose the current shopper state and redacted tool
