@@ -2,6 +2,7 @@ from crewai import Crew
 
 from car_agent.crewai_agent import CrewAISalesAgent, CrewTurnOutput
 from car_agent.models import ConversationState, ShopperPreferences
+from car_agent.profiling import TimingRecorder
 
 
 def test_crewai_crew_is_constructed_without_an_api_key() -> None:
@@ -59,7 +60,8 @@ def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
 
 
 def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) -> None:
-    agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
+    recorder = TimingRecorder()
+    agent = CrewAISalesAgent(use_live_model=True, llm="test-model", profiler=recorder)
     agent.sessions["live-contract"] = ConversationState(
         "live-contract",
         preferences=ShopperPreferences(budget_max=40000),
@@ -90,3 +92,9 @@ def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) ->
     assert response.state.stage == "recommending"
     assert response.state.preferences.budget_max == 40000
     assert response.state.last_vehicle_ids == ["honda-s2000-2004"]
+    assert {summary.name for summary in recorder.summaries()} >= {
+        "crewai.live_turn",
+        "crewai.crew_build",
+        "crewai.crew_kickoff",
+        "crewai.output_normalization",
+    }

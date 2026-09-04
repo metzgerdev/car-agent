@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 from .agent import DemoSalesAgent
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall
+from .profiling import TimingRecorder
 from .repositories import PROJECT_ROOT
 from .tools import SalesTools
 
@@ -63,12 +64,29 @@ class CrewTurnOutput(BaseModel):
 
 class _CrewSalesTool(BaseTool):
     _backend: SalesTools = PrivateAttr()
+    _profiler: TimingRecorder = PrivateAttr()
     _trace: list[ToolCall] = PrivateAttr()
 
-    def __init__(self, backend: SalesTools, trace: list[ToolCall]) -> None:
+    def __init__(
+        self,
+        backend: SalesTools,
+        trace: list[ToolCall],
+        profiler: TimingRecorder | None = None,
+    ) -> None:
         super().__init__()
         self._backend = backend
+        self._profiler = profiler or TimingRecorder(enabled=False)
         self._trace = trace
+
+    def _run_backend(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        function: Any,
+    ) -> str:
+        with self._profiler.span(f"tool.{name}"):
+            result = function()
+        return self._record(name, arguments, result)
 
     def _record(self, name: str, arguments: dict[str, Any], result: dict[str, Any]) -> str:
         self._trace.append(ToolCall(name=name, arguments=arguments, result=result))
@@ -81,7 +99,11 @@ class SearchInventoryTool(_CrewSalesTool):
     args_schema: type[BaseModel] = SearchInventoryInput
 
     def _run(self, filters: dict[str, Any]) -> str:
-        return self._record("search_inventory", {"filters": filters}, self._backend.search_inventory(filters))
+        return self._run_backend(
+            "search_inventory",
+            {"filters": filters},
+            lambda: self._backend.search_inventory(filters),
+        )
 
 
 class LookupVehicleExactTool(_CrewSalesTool):
@@ -91,10 +113,10 @@ class LookupVehicleExactTool(_CrewSalesTool):
 
     def _run(self, year: int, make: str, model: str) -> str:
         arguments = {"year": year, "make": make, "model": model}
-        return self._record(
+        return self._run_backend(
             "lookup_vehicle_exact",
             arguments,
-            self._backend.lookup_vehicle_exact(arguments),
+            lambda: self._backend.lookup_vehicle_exact(arguments),
         )
 
 
@@ -104,7 +126,11 @@ class GetVehicleTool(_CrewSalesTool):
     args_schema: type[BaseModel] = GetVehicleInput
 
     def _run(self, vehicle_id: str) -> str:
-        return self._record("get_vehicle", {"vehicle_id": vehicle_id}, self._backend.get_vehicle(vehicle_id))
+        return self._run_backend(
+            "get_vehicle",
+            {"vehicle_id": vehicle_id},
+            lambda: self._backend.get_vehicle(vehicle_id),
+        )
 
 
 class RetrieveVehicleFactsTool(_CrewSalesTool):
@@ -114,10 +140,10 @@ class RetrieveVehicleFactsTool(_CrewSalesTool):
 
     def _run(self, vehicle_id: str, topic: str | None = None) -> str:
         arguments = {"vehicle_id": vehicle_id, "topic": topic}
-        return self._record(
+        return self._run_backend(
             "retrieve_vehicle_facts",
             arguments,
-            self._backend.retrieve_vehicle_facts(vehicle_id, topic),
+            lambda: self._backend.retrieve_vehicle_facts(vehicle_id, topic),
         )
 
 
@@ -127,10 +153,10 @@ class CompareVehiclesTool(_CrewSalesTool):
     args_schema: type[BaseModel] = CompareVehiclesInput
 
     def _run(self, vehicle_ids: list[str]) -> str:
-        return self._record(
+        return self._run_backend(
             "compare_vehicles",
             {"vehicle_ids": vehicle_ids},
-            self._backend.compare_vehicles(vehicle_ids),
+            lambda: self._backend.compare_vehicles(vehicle_ids),
         )
 
 
@@ -146,13 +172,16 @@ class ScheduleTestDriveTool(_CrewSalesTool):
             "email": email,
             "preferred_time": preferred_time,
         }
-        result = self._backend.schedule_test_drive(
-            vehicle_id=vehicle_id,
-            name=name,
-            email=email,
-            preferred_time=preferred_time,
+        return self._run_backend(
+            "schedule_test_drive",
+            arguments,
+            lambda: self._backend.schedule_test_drive(
+                vehicle_id=vehicle_id,
+                name=name,
+                email=email,
+                preferred_time=preferred_time,
+            ),
         )
-        return self._record("schedule_test_drive", arguments, result)
 
 
 class CrewAISalesAgent:
@@ -166,8 +195,10 @@ class CrewAISalesAgent:
         *,
         use_live_model: bool | None = None,
         llm: str | None = None,
+        profiler: TimingRecorder | None = None,
     ) -> None:
-        self.deterministic_agent = DemoSalesAgent(tools)
+        self.profiler = profiler or TimingRecorder(enabled=False)
+        self.deterministic_agent = DemoSalesAgent(tools, profiler=self.profiler)
         self.tools = self.deterministic_agent.tools
         self.sessions = self.deterministic_agent.sessions
         self.use_live_model = (
@@ -188,12 +219,12 @@ class CrewAISalesAgent:
 
         trace = trace if trace is not None else []
         crew_tools = [
-            SearchInventoryTool(self.tools, trace),
-            LookupVehicleExactTool(self.tools, trace),
-            GetVehicleTool(self.tools, trace),
-            RetrieveVehicleFactsTool(self.tools, trace),
-            CompareVehiclesTool(self.tools, trace),
-            ScheduleTestDriveTool(self.tools, trace),
+            SearchInventoryTool(self.tools, trace, self.profiler),
+            LookupVehicleExactTool(self.tools, trace, self.profiler),
+            GetVehicleTool(self.tools, trace, self.profiler),
+            RetrieveVehicleFactsTool(self.tools, trace, self.profiler),
+            CompareVehiclesTool(self.tools, trace, self.profiler),
+            ScheduleTestDriveTool(self.tools, trace, self.profiler),
         ]
         salesperson = Agent(
             role="Classic Sports Car Sales Advisor",
@@ -262,20 +293,24 @@ class CrewAISalesAgent:
         )
 
     def _respond_live(self, conversation_id: str, user_message: str) -> AgentResponse:
-        previous_state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
-        trace: list[ToolCall] = []
-        crew = self.build_crew(trace)
-        result = crew.kickoff(
-            inputs={
-                "conversation_id": conversation_id,
-                "user_message": user_message.strip(),
-                "state_json": json.dumps(previous_state.to_dict()),
-            }
-        )
-        output = _coerce_crew_output(result)
-        state = _state_from_dict(conversation_id, output.state, previous_state)
-        self.sessions[conversation_id] = state
-        return AgentResponse(output.message.strip(), state, trace)
+        with self.profiler.span("crewai.live_turn"):
+            previous_state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
+            trace: list[ToolCall] = []
+            with self.profiler.span("crewai.crew_build"):
+                crew = self.build_crew(trace)
+            with self.profiler.span("crewai.crew_kickoff"):
+                result = crew.kickoff(
+                    inputs={
+                        "conversation_id": conversation_id,
+                        "user_message": user_message.strip(),
+                        "state_json": json.dumps(previous_state.to_dict()),
+                    }
+                )
+            with self.profiler.span("crewai.output_normalization"):
+                output = _coerce_crew_output(result)
+                state = _state_from_dict(conversation_id, output.state, previous_state)
+            self.sessions[conversation_id] = state
+            return AgentResponse(output.message.strip(), state, trace)
 
 
 def _coerce_crew_output(result: Any) -> CrewTurnOutput:

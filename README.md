@@ -81,6 +81,17 @@ It intentionally measures the deterministic offline path. Live CrewAI latency is
 dominated by the external model request and should be measured separately when
 you explicitly want to spend an OpenRouter call.
 
+To measure that live path, use a deliberately small opt-in workload:
+
+```bash
+car-agent-profile --live --iterations 1
+```
+
+This makes four OpenRouter-backed CrewAI turns. The report separates CrewAI
+turn setup, `crew.kickoff` (model request plus orchestration), tool execution,
+and output normalization. Provider usage and latency can vary by model, load,
+and network conditions.
+
 ## Run with CrewAI and OpenRouter
 
 The HTTP app uses `CrewAISalesAgent` with OpenRouter. The copied `.env` already supplies `OPENROUTER_API_KEY`; the model defaults to `openrouter/deepseek/deepseek-chat` and can be changed with `CAR_AGENT_CREWAI_MODEL`.
