@@ -228,7 +228,7 @@ a { color: #65b8a2; }
   transition: transform 120ms ease, background 120ms ease, opacity 120ms ease;
 }
 .aui-styled-send:hover { background: #fff; transform: translateY(-1px); }
-.aui-styled-send:disabled { cursor: wait; opacity: 0.45; transform: none; }
+.aui-styled-send:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
 .aui-styled-composer-footer { display: flex; min-height: 20px; justify-content: space-between; gap: 14px; align-items: center; padding: 0 3px; color: var(--chat-subtle); font-size: 0.7rem; }
 .aui-styled-modality { display: flex; align-items: center; gap: 6px; }
 .aui-styled-modality select { padding: 2px 3px; color: var(--chat-muted); background: transparent; border: 0; outline: 0; font-size: 0.7rem; }

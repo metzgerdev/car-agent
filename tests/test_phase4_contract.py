@@ -59,6 +59,8 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     javascript_assets = [asset.text for asset in assets if "javascript" in asset.headers.get("content-type", "")]
     assert any("--chat-bg" in css for css in css_assets)
     assert any("color-scheme:dark" in css.replace(" ", "") for css in css_assets)
+    assert any("cursor:not-allowed" in css.replace(" ", "") for css in css_assets)
+    assert all(".aui-styled-send:disabled{cursor:wait" not in css.replace(" ", "") for css in css_assets)
     assert any("Tool Trace" in javascript for javascript in javascript_assets)
     assert all("Guide the shopper" not in javascript for javascript in javascript_assets)
     assert all("Shopper profile" not in javascript for javascript in javascript_assets)
