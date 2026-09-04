@@ -7,6 +7,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Thread } from "./components/assistant-ui/elements/thread";
+import { mergeTraceHistory } from "./trace-history.js";
 import "./styles.css";
 
 type Preferences = {
@@ -65,6 +66,7 @@ type Dashboard = {
   trace: ToolCall[];
   reviews: ReviewGroup[];
   activeTrace: ActiveTrace[];
+  turnTraceCount: number;
 };
 
 const EMPTY_DASHBOARD: Dashboard = {
@@ -72,6 +74,7 @@ const EMPTY_DASHBOARD: Dashboard = {
   trace: [],
   reviews: [],
   activeTrace: [],
+  turnTraceCount: 0,
 };
 
 function newConversationId() {
@@ -94,6 +97,7 @@ function latestUserText(messages: readonly ThreadMessage[]) {
 function createChatAdapter(
   conversationId: string,
   modality: "text" | "voice",
+  onStreamStarted: () => void,
   onResponse: (payload: ChatPayload) => void,
   onTrace: (event: TraceStreamEvent) => void,
   onStreamFinished: () => void,
@@ -101,6 +105,7 @@ function createChatAdapter(
   return {
     async *run({ messages, abortSignal }) {
       try {
+        onStreamStarted();
         const message = latestUserText(messages);
         const response = await fetch("/chat", {
           method: "POST",
@@ -296,6 +301,7 @@ function RuntimeShell({
   conversationId,
   modality,
   setModality,
+  onStreamStarted,
   onResponse,
   dashboard,
   onReset,
@@ -306,6 +312,7 @@ function RuntimeShell({
   conversationId: string;
   modality: "text" | "voice";
   setModality: (value: "text" | "voice") => void;
+  onStreamStarted: () => void;
   onResponse: (payload: ChatPayload) => void;
   onTrace: (event: TraceStreamEvent) => void;
   onStreamFinished: () => void;
@@ -314,8 +321,8 @@ function RuntimeShell({
   connectionStatus: "checking" | "connected" | "offline";
 }) {
   const adapter = useMemo(
-    () => createChatAdapter(conversationId, modality, onResponse, onTrace, onStreamFinished),
-    [conversationId, modality, onResponse, onTrace, onStreamFinished],
+    () => createChatAdapter(conversationId, modality, onStreamStarted, onResponse, onTrace, onStreamFinished),
+    [conversationId, modality, onStreamStarted, onResponse, onTrace, onStreamFinished],
   );
   const runtime = useLocalRuntime(adapter);
   return (
@@ -350,8 +357,19 @@ function App() {
     setConversationId(newConversationId());
     setDashboard(EMPTY_DASHBOARD);
   };
+  const handleStreamStarted = useCallback(() => {
+    setDashboard((current) => ({ ...current, activeTrace: [], turnTraceCount: 0 }));
+  }, []);
   const handleResponse = useCallback(
-    (payload: ChatPayload) => setDashboard({ state: payload.state, trace: payload.trace, reviews: payload.reviews, activeTrace: [] }),
+    (payload: ChatPayload) => setDashboard((current) => {
+      return {
+        state: payload.state,
+        trace: mergeTraceHistory(current.trace, current.turnTraceCount, payload.trace),
+        reviews: payload.reviews,
+        activeTrace: [],
+        turnTraceCount: 0,
+      };
+    }),
     [],
   );
   const handleTrace = useCallback((event: TraceStreamEvent) => {
@@ -372,6 +390,7 @@ function App() {
           return true;
         }),
         trace: event.call ? [...current.trace, event.call] : current.trace,
+        turnTraceCount: event.call ? current.turnTraceCount + 1 : current.turnTraceCount,
       };
     });
   }, []);
@@ -385,6 +404,7 @@ function App() {
       conversationId={conversationId}
       modality={modality}
       setModality={setModality}
+      onStreamStarted={handleStreamStarted}
       onResponse={handleResponse}
       onTrace={handleTrace}
       onStreamFinished={handleStreamFinished}

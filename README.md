@@ -62,6 +62,11 @@ the existing JSON response for normal clients, but streams redacted tool-start
 and tool-complete events for the UI so the grounding panel can show messages
 such as “Searching inventory…” while CrewAI is working.
 
+The Tool Trace panel retains completed calls across the entire conversation,
+including repeated calls with the same tool name. The final response acts as a
+per-turn reconciliation point, backfilling any completion that was not observed
+live without replacing earlier-turn history.
+
 For live CrewAI turns, the same SSE stream also carries `response_delta` events
 from CrewAI's native `Crew(stream=True)` output. The assistant-ui adapter applies
 those deltas incrementally to the answer bubble, then replaces them with the

@@ -2,6 +2,7 @@ import json
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -172,6 +173,25 @@ def test_p4_t11_chat_streams_llm_response_deltas_before_final_response(monkeypat
     ]
     assert events[response_index][1]["message"] == "".join(deltas)
     assert events[-1][0] == "done"
+
+
+def test_p4_t12_trace_history_reducer_preserves_repeated_calls_across_turns() -> None:
+    source = Path(__file__).parents[1] / "frontend" / "src" / "main.tsx"
+    javascript = ""
+    client, _ = _offline_client()
+    page = client.get("/")
+    asset_paths = re.findall(r'(?:src|href)="(/static/assets/[^"]+)"', page.text)
+    for asset_path in asset_paths:
+        asset = client.get(asset_path)
+        if "javascript" in asset.headers.get("content-type", ""):
+            javascript += asset.text
+
+    source_text = source.read_text()
+    assert "onStreamStarted" in source_text
+    assert "turnTraceCount" in source_text
+    assert 'from "./trace-history.js"' in source_text
+    assert "mergeTraceHistory(current.trace, current.turnTraceCount, payload.trace)" in source_text
+    assert "turnTraceCount" in javascript
 
 
 def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:
