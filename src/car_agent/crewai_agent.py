@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any
+import re
+from typing import Any, Callable
 
 from crewai import Agent, Crew, LLM, Process, Task
 from crewai.tools import BaseTool
+from crewai.types.streaming import CrewStreamingOutput, StreamChunkType
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, PrivateAttr
 
@@ -25,6 +27,9 @@ from .tools import SalesTools
 
 
 load_dotenv(PROJECT_ROOT / ".env")
+
+
+ResponseObserver = Callable[[str], None]
 
 
 class SearchInventoryInput(BaseModel):
@@ -240,6 +245,7 @@ class CrewAISalesAgent:
         user_message: str,
         *,
         trace_observer: TraceObserver | None = None,
+        response_observer: ResponseObserver | None = None,
     ) -> AgentResponse:
         if not self.use_live_model:
             return self.deterministic_agent.respond(
@@ -257,8 +263,18 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
             )
         if self.deterministic_agent._is_review_request(user_message):
-            return self._respond_live_review(conversation_id, user_message, trace_observer)
-        return self._respond_live(conversation_id, user_message, trace_observer)
+            return self._respond_live_review(
+                conversation_id,
+                user_message,
+                trace_observer,
+                response_observer,
+            )
+        return self._respond_live(
+            conversation_id,
+            user_message,
+            trace_observer,
+            response_observer,
+        )
 
     def build_crew(
         self,
@@ -266,6 +282,7 @@ class CrewAISalesAgent:
         *,
         review_only: bool = False,
         trace_observer: TraceObserver | None = None,
+        stream: bool = False,
     ) -> Crew:
         """Build the inspectable CrewAI objects without making an LLM call."""
 
@@ -337,6 +354,7 @@ class CrewAISalesAgent:
             verbose=False,
             share_crew=False,
             tracing=False,
+            stream=stream,
         )
         return self.last_crew
 
@@ -362,25 +380,29 @@ class CrewAISalesAgent:
         conversation_id: str,
         user_message: str,
         trace_observer: TraceObserver | None = None,
+        response_observer: ResponseObserver | None = None,
     ) -> AgentResponse:
         with self.profiler.span("crewai.live_turn"):
             previous_state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
             self._pin_explicit_vehicle(previous_state, user_message)
             trace: list[ToolCall] = []
             with self.profiler.span("crewai.crew_build"):
-                crew = (
-                    self.build_crew(trace, trace_observer=trace_observer)
-                    if trace_observer
-                    else self.build_crew(trace)
-                )
+                build_kwargs: dict[str, Any] = {}
+                if trace_observer:
+                    build_kwargs["trace_observer"] = trace_observer
+                if response_observer:
+                    build_kwargs["stream"] = True
+                crew = self.build_crew(trace, **build_kwargs)
             with self.profiler.span("crewai.crew_kickoff"):
-                result = crew.kickoff(
-                    inputs={
+                result = self._kickoff(
+                    crew,
+                    {
                         "conversation_id": conversation_id,
                         "user_message": user_message.strip(),
                         "state_json": json.dumps(previous_state.to_dict()),
                         "review_context": "",
-                    }
+                    },
+                    response_observer,
                 )
             with self.profiler.span("crewai.output_normalization"):
                 output = _coerce_crew_output(result)
@@ -404,6 +426,7 @@ class CrewAISalesAgent:
         conversation_id: str,
         user_message: str,
         trace_observer: TraceObserver | None = None,
+        response_observer: ResponseObserver | None = None,
     ) -> AgentResponse:
         """Retrieve local review records, then ask CrewAI to synthesize them."""
 
@@ -422,19 +445,22 @@ class CrewAISalesAgent:
         trace = prepared.trace
         with self.profiler.span("crewai.live_review_turn"):
             with self.profiler.span("crewai.crew_build"):
-                crew = (
-                    self.build_crew(trace, review_only=True, trace_observer=trace_observer)
-                    if trace_observer
-                    else self.build_crew(trace, review_only=True)
-                )
+                build_kwargs: dict[str, Any] = {"review_only": True}
+                if trace_observer:
+                    build_kwargs["trace_observer"] = trace_observer
+                if response_observer:
+                    build_kwargs["stream"] = True
+                crew = self.build_crew(trace, **build_kwargs)
             with self.profiler.span("crewai.crew_kickoff"):
-                result = crew.kickoff(
-                    inputs={
+                result = self._kickoff(
+                    crew,
+                    {
                         "conversation_id": conversation_id,
                         "user_message": user_message.strip(),
                         "state_json": json.dumps(prepared.state.to_dict()),
                         "review_context": json.dumps(reviews, ensure_ascii=False),
-                    }
+                    },
+                    response_observer,
                 )
             with self.profiler.span("crewai.output_normalization"):
                 output = _coerce_crew_output(result)
@@ -442,6 +468,31 @@ class CrewAISalesAgent:
         self.sessions[conversation_id] = state
         message = _ensure_review_citations(output.message.strip(), reviews)
         return AgentResponse(message, state, trace)
+
+    def _kickoff(
+        self,
+        crew: Crew,
+        inputs: dict[str, Any],
+        response_observer: ResponseObserver | None = None,
+    ) -> Any:
+        """Kick off a crew and optionally expose shopper-facing output deltas."""
+
+        result = crew.kickoff(inputs=inputs)
+        if response_observer is None or not isinstance(result, CrewStreamingOutput):
+            return result
+
+        message_stream = _MessageStream(response_observer)
+        for chunk in result:
+            if chunk.chunk_type == StreamChunkType.TEXT:
+                message_stream.feed(chunk.content)
+
+        final_result = result.result
+        try:
+            message_stream.finish(_coerce_crew_output(final_result).message)
+        except ValueError:
+            # Preserve the normal output-normalization error at the caller.
+            pass
+        return final_result
 
 
 def _coerce_crew_output(result: Any) -> CrewTurnOutput:
@@ -453,6 +504,61 @@ def _coerce_crew_output(result: Any) -> CrewTurnOutput:
         return CrewTurnOutput.model_validate_json(raw)
     except ValueError as exc:
         raise ValueError("CrewAI returned a response that does not match CrewTurnOutput") from exc
+
+
+class _MessageStream:
+    """Extract the shopper-facing message from streamed structured JSON."""
+
+    _message_key = re.compile(r'"message"\s*:\s*"')
+
+    def __init__(self, observer: ResponseObserver) -> None:
+        self._observer = observer
+        self._buffer = ""
+        self._value_start: int | None = None
+        self._emitted = ""
+
+    def feed(self, chunk: str) -> None:
+        if not chunk:
+            return
+        self._buffer += chunk
+        if self._value_start is None:
+            match = self._message_key.search(self._buffer)
+            if not match:
+                return
+            self._value_start = match.end()
+
+        value_end = self._find_string_end(self._value_start)
+        raw_value = self._buffer[self._value_start:value_end]
+        try:
+            decoded_value = json.loads(f'"{raw_value}"')
+        except json.JSONDecodeError:
+            return
+
+        if decoded_value.startswith(self._emitted):
+            delta = decoded_value[len(self._emitted):]
+            if delta:
+                self._observer(delta)
+                self._emitted = decoded_value
+
+    def finish(self, message: str) -> None:
+        if not message:
+            return
+        if not self._emitted:
+            self._observer(message)
+        elif message.startswith(self._emitted) and message != self._emitted:
+            self._observer(message[len(self._emitted):])
+
+    def _find_string_end(self, start: int) -> int:
+        index = start
+        while index < len(self._buffer):
+            character = self._buffer[index]
+            if character == "\\":
+                index += 2
+                continue
+            if character == '"':
+                return index
+            index += 1
+        return len(self._buffer)
 
 
 def _ensure_review_citations(message: str, reviews: list[dict[str, Any]]) -> str:

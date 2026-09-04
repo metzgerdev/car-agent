@@ -115,6 +115,65 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert events[-1][0] == "done"
 
 
+def test_p4_t11_chat_streams_llm_response_deltas_before_final_response(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    def respond(
+        conversation_id: str,
+        user_message: str,
+        *,
+        trace_observer=None,
+        response_observer=None,
+    ) -> AgentResponse:
+        if response_observer:
+            response_observer("The 2004 Honda ")
+            response_observer("S2000 is ready for a closer look.")
+        return AgentResponse(
+            "The 2004 Honda S2000 is ready for a closer look.",
+            ConversationState(conversation_id, stage="recommending"),
+            [],
+        )
+
+    monkeypatch.setattr(agent, "respond", respond)
+    client = TestClient(create_app(agent))
+
+    with client.stream(
+        "POST",
+        "/chat",
+        headers={"Accept": "text/event-stream"},
+        json={
+            "conversation_id": "streaming-answer",
+            "message": "Tell me more about the S2000.",
+        },
+    ) as response:
+        lines = list(response.iter_lines())
+
+    events: list[tuple[str, dict]] = []
+    event_name: str | None = None
+    data_lines: list[str] = []
+    for line in lines:
+        if line.startswith("event: "):
+            event_name = line.removeprefix("event: ")
+        elif line.startswith("data: "):
+            data_lines.append(line.removeprefix("data: "))
+        elif not line and event_name:
+            events.append((event_name, json.loads("\n".join(data_lines))))
+            event_name = None
+            data_lines = []
+
+    deltas = [payload["delta"] for name, payload in events if name == "response_delta"]
+    response_index = next(index for index, (name, _) in enumerate(events) if name == "response")
+
+    assert response.status_code == 200
+    assert deltas == ["The 2004 Honda ", "S2000 is ready for a closer look."]
+    assert [name for name, _ in events[:response_index]] == [
+        "response_delta",
+        "response_delta",
+    ]
+    assert events[response_index][1]["message"] == "".join(deltas)
+    assert events[-1][0] == "done"
+
+
 def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:
     client, _ = _offline_client()
 

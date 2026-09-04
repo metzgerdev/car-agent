@@ -99,7 +99,7 @@ function createChatAdapter(
   onStreamFinished: () => void,
 ): ChatModelAdapter {
   return {
-    async run({ messages, abortSignal }) {
+    async *run({ messages, abortSignal }) {
       try {
         const message = latestUserText(messages);
         const response = await fetch("/chat", {
@@ -119,9 +119,16 @@ function createChatAdapter(
         }
 
         let payload: ChatPayload | null = null;
-        await consumeSse(response, (eventName, data) => {
+        let streamedMessage = "";
+        for await (const [eventName, data] of consumeSse(response)) {
           if (eventName === "trace") {
             onTrace(data as TraceStreamEvent);
+          } else if (eventName === "response_delta") {
+            const delta = (data as { delta?: unknown }).delta;
+            if (typeof delta === "string" && delta) {
+              streamedMessage += delta;
+              yield { content: [{ type: "text", text: streamedMessage }] };
+            }
           } else if (eventName === "response") {
             payload = data as ChatPayload;
             onResponse(payload);
@@ -130,12 +137,15 @@ function createChatAdapter(
           } else if (eventName === "done") {
             onStreamFinished();
           }
-        });
+        }
         if (payload === null) {
           throw new Error("Advisor stream ended without a response.");
         }
         const finalPayload = payload as ChatPayload;
-        return { content: [{ type: "text", text: finalPayload.message }] };
+        yield {
+          content: [{ type: "text", text: finalPayload.message }],
+          status: { type: "complete", reason: "stop" },
+        };
       } finally {
         onStreamFinished();
       }
@@ -143,35 +153,38 @@ function createChatAdapter(
   };
 }
 
-async function consumeSse(
-  response: Response,
-  onEvent: (eventName: string, data: unknown) => void,
-) {
+function parseSseBlock(block: string): [string, unknown] | null {
+  let eventName = "message";
+  const dataLines: string[] = [];
+  for (const line of block.split(/\r?\n/)) {
+    if (line.startsWith("event:")) eventName = line.slice(6).trim();
+    if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
+  }
+  if (!dataLines.length) return null;
+  return [eventName, JSON.parse(dataLines.join("\n"))];
+}
+
+async function* consumeSse(response: Response): AsyncGenerator<[string, unknown]> {
   const reader = response.body!.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
   let finished = false;
-
-  const dispatch = (block: string) => {
-    let eventName = "message";
-    const dataLines: string[] = [];
-    for (const line of block.split(/\r?\n/)) {
-      if (line.startsWith("event:")) eventName = line.slice(6).trim();
-      if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
-    }
-    if (!dataLines.length) return;
-    onEvent(eventName, JSON.parse(dataLines.join("\n")));
-  };
 
   while (!finished) {
     const { value, done } = await reader.read();
     buffer += decoder.decode(value, { stream: !done });
     const blocks = buffer.split(/\r?\n\r?\n/);
     buffer = blocks.pop() ?? "";
-    for (const block of blocks) dispatch(block);
+    for (const block of blocks) {
+      const event = parseSseBlock(block);
+      if (event) yield event;
+    }
     finished = done;
   }
-  if (buffer.trim()) dispatch(buffer);
+  if (buffer.trim()) {
+    const event = parseSseBlock(buffer);
+    if (event) yield event;
+  }
 }
 
 function vehicleLabel(value: unknown): string {

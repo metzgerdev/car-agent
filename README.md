@@ -62,6 +62,12 @@ the existing JSON response for normal clients, but streams redacted tool-start
 and tool-complete events for the UI so the grounding panel can show messages
 such as “Searching inventory…” while CrewAI is working.
 
+For live CrewAI turns, the same SSE stream also carries `response_delta` events
+from CrewAI's native `Crew(stream=True)` output. The assistant-ui adapter applies
+those deltas incrementally to the answer bubble, then replaces them with the
+final typed response when the turn completes. Clients that do not request SSE
+continue to receive the existing single JSON response.
+
 When recommendations are available, the advisor can include curated Car and
 Driver and MotorTrend review links in its response. These are editorial
 context, not condition reports for a specific listing.

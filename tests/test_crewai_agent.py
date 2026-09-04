@@ -1,4 +1,5 @@
 from crewai import Crew
+from crewai.types.streaming import CrewStreamingOutput, StreamChunk, StreamChunkType
 
 from car_agent.crewai_agent import CrewAISalesAgent, CrewTurnOutput
 from car_agent.models import ConversationState, ShopperPreferences
@@ -210,3 +211,61 @@ def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) ->
         "crewai.crew_kickoff",
         "crewai.output_normalization",
     }
+
+
+def test_live_crewai_stream_emits_only_the_shopper_message(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
+
+    final_output = type(
+        "FakeCrewOutput",
+        (),
+        {
+            "pydantic": CrewTurnOutput(
+                message="The 2004 Honda S2000 is a high-revving roadster.",
+                state={"stage": "recommending", "last_vehicle_ids": ["honda-s2000-2004"]},
+            )
+        },
+    )()
+
+    class FakeCrew:
+        def kickoff(self, *, inputs):
+            stream = CrewStreamingOutput(
+                sync_iterator=iter(
+                    [
+                        StreamChunk(
+                            content='{"message":"The 2004 Honda ',
+                            chunk_type=StreamChunkType.TEXT,
+                        ),
+                        StreamChunk(
+                            content="S2000 is a high-revving ",
+                            chunk_type=StreamChunkType.TEXT,
+                        ),
+                        StreamChunk(
+                            content='roadster.","state":{}}',
+                            chunk_type=StreamChunkType.TEXT,
+                        ),
+                        StreamChunk(
+                            content='{"vehicle_id":"honda-s2000-2004"}',
+                            chunk_type=StreamChunkType.TOOL_CALL,
+                        ),
+                    ]
+                )
+            )
+            stream._set_result(final_output)
+            return stream
+
+    def build_crew(trace, *, stream=False, trace_observer=None):
+        assert stream is True
+        return FakeCrew()
+
+    monkeypatch.setattr(agent, "build_crew", build_crew)
+    deltas: list[str] = []
+
+    response = agent.respond(
+        "live-stream",
+        "Tell me more about the S2000.",
+        response_observer=deltas.append,
+    )
+
+    assert "".join(deltas) == response.message
+    assert all("state" not in delta and "vehicle_id" not in delta for delta in deltas)

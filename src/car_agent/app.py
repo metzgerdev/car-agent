@@ -153,6 +153,9 @@ def _stream_chat(
                 conversation_id,
                 message,
                 trace_observer=observe,
+                response_observer=lambda delta: events.put(
+                    ("response_delta", {"delta": delta})
+                ),
             )
             payload = response.to_dict()
             payload["reviews"] = _reviews_for_response(service, response, repository)
