@@ -96,42 +96,47 @@ function createChatAdapter(
   modality: "text" | "voice",
   onResponse: (payload: ChatPayload) => void,
   onTrace: (event: TraceStreamEvent) => void,
+  onStreamFinished: () => void,
 ): ChatModelAdapter {
   return {
     async run({ messages, abortSignal }) {
-      const message = latestUserText(messages);
-      const response = await fetch("/chat", {
-        method: "POST",
-        headers: {
-          Accept: "text/event-stream",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ conversation_id: conversationId, message, modality }),
-        signal: abortSignal,
-      });
-      if (!response.ok) {
-        throw new Error(`Advisor API error: ${response.status} ${response.statusText}`);
-      }
-      if (!response.body) {
-        throw new Error("Advisor API did not return a streaming response.");
-      }
-
-      let payload: ChatPayload | null = null;
-      await consumeSse(response, (eventName, data) => {
-        if (eventName === "trace") {
-          onTrace(data as TraceStreamEvent);
-        } else if (eventName === "response") {
-          payload = data as ChatPayload;
-          onResponse(payload);
-        } else if (eventName === "error") {
-          throw new Error(String((data as { message?: string }).message ?? "Advisor request failed."));
+      try {
+        const message = latestUserText(messages);
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: {
+            Accept: "text/event-stream",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ conversation_id: conversationId, message, modality }),
+          signal: abortSignal,
+        });
+        if (!response.ok) {
+          throw new Error(`Advisor API error: ${response.status} ${response.statusText}`);
         }
-      });
-      if (payload === null) {
-        throw new Error("Advisor stream ended without a response.");
+        if (!response.body) {
+          throw new Error("Advisor API did not return a streaming response.");
+        }
+
+        let payload: ChatPayload | null = null;
+        await consumeSse(response, (eventName, data) => {
+          if (eventName === "trace") {
+            onTrace(data as TraceStreamEvent);
+          } else if (eventName === "response") {
+            payload = data as ChatPayload;
+            onResponse(payload);
+          } else if (eventName === "error") {
+            throw new Error(String((data as { message?: string }).message ?? "Advisor request failed."));
+          }
+        });
+        if (payload === null) {
+          throw new Error("Advisor stream ended without a response.");
+        }
+        const finalPayload = payload as ChatPayload;
+        return { content: [{ type: "text", text: finalPayload.message }] };
+      } finally {
+        onStreamFinished();
       }
-      const finalPayload = payload as ChatPayload;
-      return { content: [{ type: "text", text: finalPayload.message }] };
     },
   };
 }
@@ -281,19 +286,21 @@ function RuntimeShell({
   onReset,
   connectionStatus,
   onTrace,
+  onStreamFinished,
 }: {
   conversationId: string;
   modality: "text" | "voice";
   setModality: (value: "text" | "voice") => void;
   onResponse: (payload: ChatPayload) => void;
   onTrace: (event: TraceStreamEvent) => void;
+  onStreamFinished: () => void;
   dashboard: Dashboard;
   onReset: () => void;
   connectionStatus: "checking" | "connected" | "offline";
 }) {
   const adapter = useMemo(
-    () => createChatAdapter(conversationId, modality, onResponse, onTrace),
-    [conversationId, modality, onResponse, onTrace],
+    () => createChatAdapter(conversationId, modality, onResponse, onTrace, onStreamFinished),
+    [conversationId, modality, onResponse, onTrace, onStreamFinished],
   );
   const runtime = useLocalRuntime(adapter);
   return (
@@ -347,6 +354,9 @@ function App() {
       };
     });
   }, []);
+  const handleStreamFinished = useCallback(() => {
+    setDashboard((current) => current.activeTrace.length ? { ...current, activeTrace: [] } : current);
+  }, []);
 
   return (
     <RuntimeShell
@@ -356,6 +366,7 @@ function App() {
       setModality={setModality}
       onResponse={handleResponse}
       onTrace={handleTrace}
+      onStreamFinished={handleStreamFinished}
       dashboard={dashboard}
       onReset={reset}
       connectionStatus={connectionStatus}
