@@ -33,7 +33,7 @@ def test_openrouter_llm_configuration_uses_only_the_openrouter_key(monkeypatch) 
     crew = agent.build_crew()
     llm = crew.agents[0].llm
 
-    assert llm.model == "deepseek/deepseek-chat"
+    assert llm.model == "openai/gpt-5-mini"
     assert llm.provider == "openrouter"
     assert llm.base_url == "https://openrouter.ai/api/v1"
     assert llm.api_key == "test-openrouter-key"
