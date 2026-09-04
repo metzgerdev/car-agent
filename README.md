@@ -37,10 +37,10 @@ path, so the live model cannot end the turn with a progress message before
 returning the availability result.
 
 For the browser demo, open [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-after starting the server. The page includes guided prompts for the six-turn
-sales flow and panels that expose the current shopper state and redacted tool
-trace. The “Voice transcript” option demonstrates the shared text/voice input
-boundary; it does not perform speech-to-text.
+after starting the server. The page has the conversation and a right-side Tool
+Trace panel that exposes redacted agent activity. The “Voice transcript” option
+demonstrates the shared text/voice input boundary; it does not perform
+speech-to-text.
 
 The browser frontend is built with [assistant-ui](https://github.com/assistant-ui/assistant-ui)
 and uses its `LocalRuntime` adapter to call the existing FastAPI `/chat`
@@ -62,10 +62,9 @@ the existing JSON response for normal clients, but streams redacted tool-start
 and tool-complete events for the UI so the grounding panel can show messages
 such as “Searching inventory…” while CrewAI is working.
 
-When recommendations are available, the browser also shows curated Car and
-Driver and MotorTrend review links. Select one to open a short paraphrased
-summary and a link to the publication; these are editorial context, not
-condition reports for a specific listing.
+When recommendations are available, the advisor can include curated Car and
+Driver and MotorTrend review links in its response. These are editorial
+context, not condition reports for a specific listing.
 
 The advisor can also answer a contextual request such as `summarize magazine
 reviews of the car`. It retrieves the curated review records, passes those
