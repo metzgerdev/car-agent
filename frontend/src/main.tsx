@@ -1,19 +1,13 @@
 import {
-  AuiIf,
   AssistantRuntimeProvider,
-  ComposerPrimitive,
-  MessagePartPrimitive,
-  MessagePrimitive,
-  ThreadPrimitive,
   useAui,
   useLocalRuntime,
   type ChatModelAdapter,
   type ThreadMessage,
 } from "@assistant-ui/react";
-import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import remarkGfm from "remark-gfm";
+import { Thread } from "./components/assistant-ui/elements/thread";
 import "./styles.css";
 
 type Preferences = {
@@ -117,82 +111,6 @@ function createChatAdapter(
       return { content: [{ type: "text", text: payload.message }] };
     },
   };
-}
-
-function UserMessage() {
-  return (
-    <MessagePrimitive.Root className="aui-message aui-user-message">
-      <div className="aui-message-label">You</div>
-      <div className="aui-message-bubble">
-        <MessagePrimitive.Parts>
-          {({ part }) => (part.type === "text" ? <MessagePartPrimitive.Text /> : null)}
-        </MessagePrimitive.Parts>
-      </div>
-    </MessagePrimitive.Root>
-  );
-}
-
-function AssistantMessage() {
-  return (
-    <MessagePrimitive.Root className="aui-message aui-assistant-message">
-      <div className="aui-message-label">Advisor</div>
-      <div className="aui-message-bubble">
-        <MessagePrimitive.Parts>
-          {({ part }) => {
-            if (part.type === "text") {
-              return <MarkdownTextPrimitive className="aui-markdown" remarkPlugins={[remarkGfm]} />;
-            }
-            if (part.type === "tool-call") {
-              return part.toolUI ?? <span className="aui-tool-note">Checking grounded evidence…</span>;
-            }
-            return null;
-          }}
-        </MessagePrimitive.Parts>
-        <MessagePrimitive.Error />
-      </div>
-    </MessagePrimitive.Root>
-  );
-}
-
-function Thread({ modality, setModality }: { modality: "text" | "voice"; setModality: (value: "text" | "voice") => void }) {
-  return (
-    <ThreadPrimitive.Root className="aui-thread">
-      <ThreadPrimitive.Viewport className="aui-viewport">
-        <AuiIf condition={(state) => state.thread.isEmpty}>
-          <div className="aui-welcome">
-            <p className="eyebrow">Start the conversation</p>
-            <h2>What kind of classic or modern-classic sports car are you looking for?</h2>
-            <p className="welcome-note">Try a prompt or describe the car you want to drive.</p>
-          </div>
-        </AuiIf>
-        <ThreadPrimitive.Messages>
-          {({ message }) => (message.role === "user" ? <UserMessage /> : <AssistantMessage />)}
-        </ThreadPrimitive.Messages>
-        <ThreadPrimitive.ViewportFooter className="aui-viewport-footer">
-          <Composer modality={modality} setModality={setModality} />
-        </ThreadPrimitive.ViewportFooter>
-      </ThreadPrimitive.Viewport>
-    </ThreadPrimitive.Root>
-  );
-}
-
-function Composer({ modality, setModality }: { modality: "text" | "voice"; setModality: (value: "text" | "voice") => void }) {
-  return (
-    <ComposerPrimitive.Root className="aui-composer">
-      <ComposerPrimitive.Input rows={2} placeholder="Tell me what you want to drive…" />
-      <div className="aui-composer-footer">
-        <label className="aui-modality">
-          <span>Input</span>
-          <select value={modality} onChange={(event) => setModality(event.target.value as "text" | "voice")}>
-            <option value="text">Text</option>
-            <option value="voice">Voice transcript</option>
-          </select>
-          <span className="aui-hint">Voice uses the same domain command boundary.</span>
-        </label>
-        <ComposerPrimitive.Send className="aui-send">Send message</ComposerPrimitive.Send>
-      </div>
-    </ComposerPrimitive.Root>
-  );
 }
 
 function QuickPrompts() {

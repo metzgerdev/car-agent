@@ -55,6 +55,9 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert all(asset.status_code == 200 for asset in assets)
     assert any("text/css" in asset.headers.get("content-type", "") for asset in assets)
     assert any("javascript" in asset.headers.get("content-type", "") for asset in assets)
+    css_assets = [asset.text for asset in assets if "text/css" in asset.headers.get("content-type", "")]
+    assert any("--chat-bg" in css for css in css_assets)
+    assert any("color-scheme:dark" in css.replace(" ", "") for css in css_assets)
 
 
 def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:
