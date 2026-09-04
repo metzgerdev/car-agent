@@ -34,6 +34,30 @@ def test_phase3_budget_is_hard_and_body_style_is_a_soft_ranking_preference() -> 
     assert coupe["vehicles"][0]["id"] == "mazda-rx7-1992"
 
 
+def test_phase3_exact_lookup_returns_authoritative_match_status() -> None:
+    tools = SalesTools()
+
+    found = tools.lookup_vehicle_exact({"year": 2008, "make": "bmw", "model": "z4-m coupe"})
+    missing = tools.lookup_vehicle_exact({"year": 2011, "make": "BMW", "model": "M3"})
+
+    assert found["exact_match"] is True
+    assert found["status"] == "matched"
+    assert found["vehicle_id"] == "bmw-z4-m-2008"
+    assert missing["exact_match"] is False
+    assert missing["status"] == "not_found"
+    assert missing["vehicle"] is None
+
+
+def test_phase3_unavailable_exact_request_searches_only_after_lookup() -> None:
+    response = DemoSalesAgent().respond("phase3-exact-availability", "Do you have a 2011 BMW M3 in inventory?")
+
+    assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "search_inventory"]
+    assert response.trace[0].result["exact_match"] is False
+    assert response.trace[0].result["status"] == "not_found"
+    assert "2011 BMW M3" in response.message
+    assert "2008 BMW Z4 M Coupe" in response.message
+
+
 def test_phase3_ambiguity_does_not_guess_a_porsche_model() -> None:
     response = DemoSalesAgent().respond("phase3-ambiguity", "I like Porsche.")
 

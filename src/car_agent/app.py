@@ -148,3 +148,8 @@ def _add_tool_result_vehicle_ids(result: Any, add_vehicle_id: Any) -> None:
         for candidate in vehicles:
             if isinstance(candidate, dict):
                 add_vehicle_id(candidate.get("id"))
+    matches = result.get("matches")
+    if isinstance(matches, list):
+        for candidate in matches:
+            if isinstance(candidate, dict):
+                add_vehicle_id(candidate.get("id"))

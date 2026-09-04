@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from .lookup_models import ExactVehicleLookupResult, ExactVehicleQuery
 from .models import ShopperPreferences
 from .repositories import InventoryRepository, KnowledgeRepository, TestDriveScheduler
 
@@ -29,6 +30,43 @@ class SalesTools:
         )
         vehicles = self.inventory.search(preferences, filters.get("query"))
         return {"count": len(vehicles), "vehicles": [vehicle.to_dict() for vehicle in vehicles]}
+
+    def lookup_vehicle_exact(self, query: dict[str, Any]) -> dict[str, Any]:
+        """Check exact year/make/model availability without fuzzy matching."""
+
+        parsed_query = ExactVehicleQuery.model_validate(query)
+        normalized_make = _normalize_identity(parsed_query.make)
+        normalized_model = _normalize_identity(parsed_query.model)
+        matches = [
+            vehicle
+            for vehicle in self.inventory.all()
+            if vehicle.year == parsed_query.year
+            and _normalize_identity(vehicle.make) == normalized_make
+            and _normalize_identity(vehicle.model) == normalized_model
+        ]
+        match_dicts = [vehicle.to_dict() for vehicle in matches]
+        if len(matches) == 1:
+            result = ExactVehicleLookupResult(
+                exact_match=True,
+                status="matched",
+                query=parsed_query,
+                vehicle_id=matches[0].id,
+                vehicle=match_dicts[0],
+            )
+        elif len(matches) > 1:
+            result = ExactVehicleLookupResult(
+                exact_match=False,
+                status="ambiguous",
+                query=parsed_query,
+                matches=match_dicts,
+            )
+        else:
+            result = ExactVehicleLookupResult(
+                exact_match=False,
+                status="not_found",
+                query=parsed_query,
+            )
+        return result.model_dump(mode="python")
 
     def get_vehicle(self, vehicle_id: str) -> dict[str, Any]:
         vehicle = self.inventory.get(vehicle_id)
@@ -70,3 +108,7 @@ class SalesTools:
     @staticmethod
     def valid_email(email: str | None) -> bool:
         return bool(email and re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email))
+
+
+def _normalize_identity(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.casefold())

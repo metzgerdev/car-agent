@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall, Vehicle
 from .tools import SalesTools
 
@@ -33,6 +34,10 @@ class DemoSalesAgent:
 
         if self._is_compare_request(message):
             return self._compare(state, mentioned_vehicles, trace)
+
+        exact_query = self._exact_vehicle_query(message)
+        if exact_query:
+            return self._lookup_exact(state, exact_query, trace)
 
         ambiguous_make = self._ambiguous_make(message, mentioned_vehicles)
         if ambiguous_make:
@@ -87,6 +92,74 @@ class DemoSalesAgent:
             state,
             trace,
         )
+
+    def _lookup_exact(
+        self,
+        state: ConversationState,
+        query: ExactVehicleQuery,
+        trace: list[ToolCall],
+    ) -> AgentResponse:
+        arguments = query.model_dump()
+        result = self._call(
+            trace,
+            "lookup_vehicle_exact",
+            arguments,
+            lambda: self.tools.lookup_vehicle_exact(arguments),
+        )
+        requested = f"{query.year} {query.make} {query.model}"
+
+        if result.get("exact_match") and result.get("vehicle"):
+            vehicle = result["vehicle"]
+            state.preferences.selected_vehicle_id = vehicle["id"]
+            state.last_vehicle_ids = [vehicle["id"]]
+            state.stage = "recommending"
+            return AgentResponse(self._vehicle_message({"found": True, "vehicle": vehicle}), state, trace)
+
+        if result.get("status") == "ambiguous":
+            matches = result.get("matches", [])
+            state.last_vehicle_ids = [vehicle["id"] for vehicle in matches if vehicle.get("id")]
+            state.stage = "qualifying"
+            names = ", ".join(vehicle.get("name", vehicle.get("id", "unknown")) for vehicle in matches)
+            return AgentResponse(
+                f"I found multiple current listings matching {requested}: {names}. Which specific listing would you like to explore?",
+                state,
+                trace,
+            )
+
+        preferences = state.preferences
+        filters = {
+            key: value
+            for key, value in {
+                "budget_max": preferences.budget_max,
+                "intended_use": preferences.intended_use,
+                "body_style": preferences.body_style,
+                "driving_style": preferences.driving_style,
+                "query": f"{query.make} {query.model}",
+            }.items()
+            if value is not None
+        }
+        search = self._call(
+            trace,
+            "search_inventory",
+            {"filters": filters},
+            lambda: self.tools.search_inventory(filters),
+        )
+        alternatives = search.get("vehicles", [])
+        state.last_vehicle_ids = [vehicle["id"] for vehicle in alternatives]
+        state.stage = "recommending" if alternatives else "qualifying"
+
+        if not alternatives:
+            return AgentResponse(
+                f"I don’t have a {requested} in the current inventory, and I don’t have a grounded alternative within those constraints. Would you like to relax a preference?",
+                state,
+                trace,
+            )
+
+        lines = [f"I don’t have a {requested} in the current inventory.", "The closest current alternatives I found are:"]
+        for vehicle in alternatives[:3]:
+            lines.append(f"- {vehicle['name']} — ${vehicle['price']:,}, {vehicle['mileage']:,} miles; {vehicle['description']}")
+        lines.append("Would you like more details on one of these?")
+        return AgentResponse("\n".join(lines), state, trace)
 
     def _recommend(self, state: ConversationState, trace: list[ToolCall]) -> AgentResponse:
         preferences = state.preferences
@@ -326,6 +399,93 @@ class DemoSalesAgent:
     def _is_compare_request(message: str) -> bool:
         return "compar" in message.lower() or "versus" in message.lower() or re.search(r"\bvs\.?\b", message.lower()) is not None
 
+    def _exact_vehicle_query(self, message: str) -> ExactVehicleQuery | None:
+        if not self._is_availability_request(message):
+            return None
+
+        year_match = re.search(r"\b(?:19|20)\d{2}\b", message)
+        if not year_match:
+            return None
+        year = int(year_match.group(0))
+
+        # Prefer a complete known inventory name so multi-word models such as
+        # "Z4 M Coupe" remain exact instead of being truncated to "Z4".
+        inventory = self.tools.inventory.all()
+        normalized_message = _normalize_vehicle_identity(message)
+        for vehicle in inventory:
+            if _normalize_vehicle_identity(vehicle.name) in normalized_message:
+                return ExactVehicleQuery(year=vehicle.year, make=vehicle.make, model=vehicle.model)
+
+        makes = sorted({vehicle.make for vehicle in inventory}, key=len, reverse=True)
+        for make in makes:
+            match = re.search(rf"\b{re.escape(make)}\b", message, re.IGNORECASE)
+            if not match:
+                continue
+            model_tokens = self._model_tokens_after_make(message[match.end() :], year)
+            if model_tokens:
+                return ExactVehicleQuery(year=year, make=make, model=" ".join(model_tokens))
+
+        # Keep the fallback useful for a make that is not currently represented
+        # in the seed inventory (for example, a future BMW M3 fixture).
+        generic = re.search(
+            r"\b(?:19|20)\d{2}\s+([A-Za-z][A-Za-z0-9-]*)\s+([A-Za-z0-9][A-Za-z0-9-]*)",
+            message,
+        )
+        if generic:
+            return ExactVehicleQuery(year=year, make=generic.group(1), model=generic.group(2))
+        return None
+
+    @staticmethod
+    def _is_availability_request(message: str) -> bool:
+        lowered = message.lower()
+        return any(
+            phrase in lowered
+            for phrase in (
+                "do you have",
+                "have any",
+                "in inventory",
+                "in stock",
+                "available",
+                "carry",
+                "looking for",
+                "find me",
+                "is there",
+            )
+        )
+
+    @staticmethod
+    def _model_tokens_after_make(text: str, year: int) -> list[str]:
+        stop_words = {
+            "a",
+            "an",
+            "the",
+            "from",
+            "in",
+            "under",
+            "with",
+            "for",
+            "or",
+            "and",
+            "available",
+            "inventory",
+            "stock",
+            "please",
+            "similar",
+            "something",
+            "do",
+            "you",
+            "have",
+            "is",
+            "there",
+        }
+        tokens: list[str] = []
+        for token in re.findall(r"[A-Za-z0-9][A-Za-z0-9-]*", text):
+            lowered = token.casefold()
+            if lowered in stop_words or token == str(year):
+                break
+            tokens.append(token)
+        return tokens
+
     @staticmethod
     def _is_schedule_request(message: str) -> bool:
         lowered = message.lower()
@@ -452,3 +612,7 @@ class DemoSalesAgent:
         if len(items) == 2:
             return f"{items[0]} and {items[1]}"
         return ", ".join(items[:-1]) + f", and {items[-1]}"
+
+
+def _normalize_vehicle_identity(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.casefold())

@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, PrivateAttr
 
 from .agent import DemoSalesAgent
+from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall
 from .repositories import PROJECT_ROOT
 from .tools import SalesTools
@@ -27,6 +28,10 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 class SearchInventoryInput(BaseModel):
     filters: dict[str, Any] = Field(default_factory=dict, description="Hard and soft shopper filters")
+
+
+class ExactVehicleLookupInput(ExactVehicleQuery):
+    """Structured identity for an authoritative availability lookup."""
 
 
 class GetVehicleInput(BaseModel):
@@ -77,6 +82,20 @@ class SearchInventoryTool(_CrewSalesTool):
 
     def _run(self, filters: dict[str, Any]) -> str:
         return self._record("search_inventory", {"filters": filters}, self._backend.search_inventory(filters))
+
+
+class LookupVehicleExactTool(_CrewSalesTool):
+    name: str = "lookup_vehicle_exact"
+    description: str = "Check whether the current inventory contains an exact year, make, and model."
+    args_schema: type[BaseModel] = ExactVehicleLookupInput
+
+    def _run(self, year: int, make: str, model: str) -> str:
+        arguments = {"year": year, "make": make, "model": model}
+        return self._record(
+            "lookup_vehicle_exact",
+            arguments,
+            self._backend.lookup_vehicle_exact(arguments),
+        )
 
 
 class GetVehicleTool(_CrewSalesTool):
@@ -170,6 +189,7 @@ class CrewAISalesAgent:
         trace = trace if trace is not None else []
         crew_tools = [
             SearchInventoryTool(self.tools, trace),
+            LookupVehicleExactTool(self.tools, trace),
             GetVehicleTool(self.tools, trace),
             RetrieveVehicleFactsTool(self.tools, trace),
             CompareVehiclesTool(self.tools, trace),
@@ -200,6 +220,10 @@ class CrewAISalesAgent:
                 "Shopper message:\n{user_message}\n\n"
                 "Current domain state as JSON:\n{state_json}\n\n"
                 "Use the inventory and knowledge tools whenever a claim needs grounding. "
+                "For an explicit year/make/model availability question, call lookup_vehicle_exact "
+                "before claiming availability. Treat exact_match=false as authoritative absence from "
+                "the current snapshot; then use search_inventory only to find grounded alternatives. "
+                "Never turn a fuzzy search result into an exact availability claim. "
                 "Preserve prior state, enforce the budget as a hard constraint, and ask no more "
                 "than two useful questions in one turn. Never guess an ambiguous model or an "
                 "unsupported specification. Return a concise response plus the complete "

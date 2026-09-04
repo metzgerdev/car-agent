@@ -2,7 +2,7 @@
 
 This is a portfolio demo of a used classic-sports-car sales agent. It is deliberately built around explicit state, typed tools, retrieval, and an inspectable tool trace so its behavior can be evaluated independently of a language model. CrewAI provides the live `Agent`/`Task`/`Crew` orchestration boundary, while the default mode remains deterministic and offline.
 
-The current slice supports preference discovery, inventory search, vehicle facts, comparisons, and a validated mock test-drive request. CrewAI 1.15.x is supported on the Python 3.12.13 baseline. The HTTP app loads the local `.env` and uses its `OPENROUTER_API_KEY` for live CrewAI turns; the acceptance verifier remains explicitly offline.
+The current slice supports preference discovery, exact availability lookup, inventory search, vehicle facts, comparisons, and a validated mock test-drive request. CrewAI 1.15.x is supported on the Python 3.12.13 baseline. The HTTP app loads the local `.env` and uses its `OPENROUTER_API_KEY` for live CrewAI turns; the acceptance verifier remains explicitly offline.
 
 ## Run locally
 
@@ -24,6 +24,13 @@ curl -X POST http://127.0.0.1:8000/chat \
 ```
 
 The response includes the assistant message, current qualification state, and the tools used for that turn.
+
+For an explicit availability question, the `lookup_vehicle_exact` tool checks the
+year, make, and complete model against the current inventory. Its typed result
+includes `exact_match` plus a `matched`, `not_found`, or `ambiguous` status. A
+negative result is not treated as proof that the vehicle never existed; it means
+only that the current inventory snapshot has no exact match. The agent may then
+call `search_inventory` to offer grounded alternatives.
 
 For the browser demo, open [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 after starting the server. The page includes guided prompts for the six-turn

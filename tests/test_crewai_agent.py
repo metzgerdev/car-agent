@@ -15,6 +15,7 @@ def test_crewai_crew_is_constructed_without_an_api_key() -> None:
     assert crew.agents[0].role == "Classic Sports Car Sales Advisor"
     assert {tool.name for tool in crew.agents[0].tools} == {
         "search_inventory",
+        "lookup_vehicle_exact",
         "get_vehicle",
         "retrieve_vehicle_facts",
         "compare_vehicles",
