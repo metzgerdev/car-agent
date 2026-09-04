@@ -127,6 +127,8 @@ function createChatAdapter(
             onResponse(payload);
           } else if (eventName === "error") {
             throw new Error(String((data as { message?: string }).message ?? "Advisor request failed."));
+          } else if (eventName === "done") {
+            onStreamFinished();
           }
         });
         if (payload === null) {
@@ -349,7 +351,13 @@ function App() {
       }
       return {
         ...current,
-        activeTrace: current.activeTrace.filter((active) => active.trace_id !== event.trace_id),
+        activeTrace: current.activeTrace.filter((active, index) => {
+          if (active.trace_id === event.trace_id) return false;
+          if (active.name === event.name && !current.activeTrace.some((candidate) => candidate.trace_id === event.trace_id)) {
+            return index !== current.activeTrace.findIndex((candidate) => candidate.name === event.name);
+          }
+          return true;
+        }),
         trace: event.call ? [...current.trace, event.call] : current.trace,
       };
     });
