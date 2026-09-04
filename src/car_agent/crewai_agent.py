@@ -206,7 +206,7 @@ class CrewAISalesAgent:
             if use_live_model is None
             else use_live_model
         )
-        self.llm = llm or os.getenv("CAR_AGENT_CREWAI_MODEL") or "openrouter/openai/gpt-5-mini"
+        self.llm = llm or os.getenv("CAR_AGENT_CREWAI_MODEL") or "openrouter/deepseek/deepseek-chat"
         self.last_crew: Crew | None = None
 
     def respond(self, conversation_id: str, user_message: str) -> AgentResponse:

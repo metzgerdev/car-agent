@@ -94,7 +94,7 @@ and network conditions.
 
 ## Run with CrewAI and OpenRouter
 
-The HTTP app uses `CrewAISalesAgent` with OpenRouter. The copied `.env` already supplies `OPENROUTER_API_KEY`; the model defaults to `openrouter/openai/gpt-5-mini` and can be changed with `CAR_AGENT_CREWAI_MODEL`.
+The HTTP app uses `CrewAISalesAgent` with OpenRouter. The copied `.env` already supplies `OPENROUTER_API_KEY`; the model defaults to `openrouter/deepseek/deepseek-chat` and can be changed with `CAR_AGENT_CREWAI_MODEL`.
 
 ```bash
 uvicorn car_agent.app:app --reload
