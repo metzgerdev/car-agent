@@ -53,6 +53,16 @@ class DemoSalesAgent:
             return AgentResponse(ambiguous_make, state, trace)
 
         vehicle_context = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else self._last_vehicle(state)
+        if self._is_review_request(message):
+            if not vehicle_context:
+                state.stage = "qualifying"
+                return AgentResponse(
+                    "Which specific vehicle should I summarize reviews for? Please name the year and model.",
+                    state,
+                    trace,
+                )
+            return self._review_summary(state, vehicle_context, trace)
+
         if vehicle_context and self._is_unsupported_spec_question(message):
             state.preferences.selected_vehicle_id = vehicle_context.id
             state.stage = "recommending"
@@ -384,6 +394,34 @@ class DemoSalesAgent:
             trace,
         )
 
+    def _review_summary(
+        self,
+        state: ConversationState,
+        vehicle: Vehicle,
+        trace: list[ToolCall],
+    ) -> AgentResponse:
+        state.preferences.selected_vehicle_id = vehicle.id
+        state.stage = "recommending"
+        result = self._call(
+            trace,
+            "retrieve_magazine_reviews",
+            {"vehicle_id": vehicle.id},
+            lambda: self.tools.retrieve_magazine_reviews(vehicle.id),
+        )
+        reviews = result.get("reviews", [])
+        if not reviews:
+            return AgentResponse(
+                f"I don’t have curated magazine reviews for the {vehicle.name} in the current review dataset. I can still provide sourced ownership facts or arrange an inspection.",
+                state,
+                trace,
+            )
+
+        lines = [f"Here’s the magazine-review summary for the {vehicle.name}:"]
+        for review in reviews:
+            lines.append(f"- {review['outlet']} — {review['title']}: {review['summary']} Read it: {review['url']}")
+        lines.append("These are editorial impressions, not a condition report for this specific listing.")
+        return AgentResponse("\n".join(lines), state, trace)
+
     def _call(
         self,
         trace: list[ToolCall],
@@ -445,6 +483,22 @@ class DemoSalesAgent:
     @classmethod
     def _is_fact_question(cls, message: str) -> bool:
         return cls._facts_question(message)
+
+    @staticmethod
+    def _is_review_request(message: str) -> bool:
+        lowered = message.lower()
+        return any(
+            phrase in lowered
+            for phrase in (
+                "magazine review",
+                "magazine reviews",
+                "car and driver",
+                "motortrend",
+                "motor trend",
+                "road test",
+                "editorial review",
+            )
+        )
 
     @staticmethod
     def _is_compare_request(message: str) -> bool:

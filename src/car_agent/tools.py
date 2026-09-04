@@ -7,7 +7,7 @@ from typing import Any
 
 from .lookup_models import ExactVehicleLookupResult, ExactVehicleQuery
 from .models import ShopperPreferences
-from .repositories import InventoryRepository, KnowledgeRepository, TestDriveScheduler
+from .repositories import InventoryRepository, KnowledgeRepository, ReviewRepository, TestDriveScheduler
 
 
 class SalesTools:
@@ -15,10 +15,12 @@ class SalesTools:
         self,
         inventory: InventoryRepository | None = None,
         knowledge: KnowledgeRepository | None = None,
+        reviews: ReviewRepository | None = None,
         scheduler: TestDriveScheduler | None = None,
     ) -> None:
         self.inventory = inventory or InventoryRepository()
         self.knowledge = knowledge or KnowledgeRepository()
+        self.reviews = reviews or ReviewRepository()
         self.scheduler = scheduler or TestDriveScheduler(self.inventory)
 
     def search_inventory(self, filters: dict[str, Any]) -> dict[str, Any]:
@@ -80,6 +82,20 @@ class SalesTools:
             "vehicle_id": vehicle_id,
             "facts": [fact.to_dict() for fact in facts],
             "source_count": len({fact.source for fact in facts}),
+        }
+
+    def retrieve_magazine_reviews(self, vehicle_id: str) -> dict[str, Any]:
+        """Return curated editorial summaries and links for one inventory vehicle."""
+
+        vehicle = self.inventory.get(vehicle_id)
+        if not vehicle:
+            return {"found": False, "vehicle_id": vehicle_id, "reviews": [], "error": "Vehicle not found."}
+        reviews = self.reviews.retrieve(vehicle)
+        return {
+            "found": True,
+            "vehicle_id": vehicle.id,
+            "vehicle_name": vehicle.name,
+            "reviews": [review.model_dump(mode="json") for review in reviews],
         }
 
     def compare_vehicles(self, vehicle_ids: list[str]) -> dict[str, Any]:

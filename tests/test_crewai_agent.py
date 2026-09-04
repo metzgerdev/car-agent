@@ -19,6 +19,7 @@ def test_crewai_crew_is_constructed_without_an_api_key() -> None:
         "lookup_vehicle_exact",
         "get_vehicle",
         "retrieve_vehicle_facts",
+        "retrieve_magazine_reviews",
         "compare_vehicles",
         "schedule_test_drive",
     }
@@ -72,6 +73,27 @@ def test_live_facade_completes_bare_vehicle_lookup_without_model_call(monkeypatc
     assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "search_inventory"]
     assert response.trace[0].result["exact_match"] is False
     assert "2001 bmw m3" in response.message.lower()
+
+
+def test_live_facade_returns_contextual_magazine_reviews_without_model_call(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+    agent.sessions["live-review"] = ConversationState(
+        "live-review",
+        stage="recommending",
+        last_vehicle_ids=["honda-s2000-2004"],
+    )
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("review summaries should use the curated local review dataset")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-review", "Summarize magazine reviews of the car.")
+
+    assert [call.name for call in response.trace] == ["retrieve_magazine_reviews"]
+    assert "Car and Driver" in response.message
+    assert "MotorTrend" in response.message
+    assert "https://" in response.message
 
 
 def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) -> None:

@@ -66,6 +66,18 @@ def test_phase3_bare_vehicle_identity_is_an_exact_availability_request() -> None
     assert "2001 bmw m3" in response.message.lower()
 
 
+def test_phase3_agent_summarizes_reviews_for_the_last_vehicle() -> None:
+    agent = DemoSalesAgent()
+    agent.respond("phase3-reviews", "I want a weekend roadster under $40k with spirited driving.")
+
+    response = agent.respond("phase3-reviews", "Summarize magazine reviews of the car.")
+
+    assert [call.name for call in response.trace] == ["retrieve_magazine_reviews"]
+    assert "Car and Driver" in response.message
+    assert "MotorTrend" in response.message
+    assert "Read it: https://" in response.message
+
+
 def test_phase3_ambiguity_does_not_guess_a_porsche_model() -> None:
     response = DemoSalesAgent().respond("phase3-ambiguity", "I like Porsche.")
 

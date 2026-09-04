@@ -47,6 +47,11 @@ Driver and MotorTrend review links. Select one to open a short paraphrased
 summary and a link to the publication; these are editorial context, not
 condition reports for a specific listing.
 
+The advisor can also answer a contextual request such as `summarize magazine
+reviews of the car`. It retrieves the curated review records, includes each
+publication's short summary and source link in the response, and asks for a
+specific vehicle if no car has been selected yet.
+
 ## Run the clean offline demo
 
 Run the complete qualification, recommendation, fact lookup, and test-drive

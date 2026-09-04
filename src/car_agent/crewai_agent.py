@@ -44,6 +44,10 @@ class RetrieveVehicleFactsInput(BaseModel):
     topic: str | None = Field(default=None, description="Optional fact topic such as maintenance")
 
 
+class RetrieveMagazineReviewsInput(BaseModel):
+    vehicle_id: str = Field(description="Exact inventory vehicle ID")
+
+
 class CompareVehiclesInput(BaseModel):
     vehicle_ids: list[str] = Field(description="Exactly two inventory vehicle IDs", min_length=2, max_length=2)
 
@@ -147,6 +151,19 @@ class RetrieveVehicleFactsTool(_CrewSalesTool):
         )
 
 
+class RetrieveMagazineReviewsTool(_CrewSalesTool):
+    name: str = "retrieve_magazine_reviews"
+    description: str = "Retrieve curated Car and Driver or MotorTrend summaries and links for one exact inventory vehicle."
+    args_schema: type[BaseModel] = RetrieveMagazineReviewsInput
+
+    def _run(self, vehicle_id: str) -> str:
+        return self._run_backend(
+            "retrieve_magazine_reviews",
+            {"vehicle_id": vehicle_id},
+            lambda: self._backend.retrieve_magazine_reviews(vehicle_id),
+        )
+
+
 class CompareVehiclesTool(_CrewSalesTool):
     name: str = "compare_vehicles"
     description: str = "Compare exactly two inventory vehicles by their exact IDs."
@@ -217,6 +234,11 @@ class CrewAISalesAgent:
         # without returning the lookup result and a complete next step.
         if self.deterministic_agent._exact_vehicle_query(user_message.strip()):
             return self.deterministic_agent.respond(conversation_id, user_message)
+        # Editorial context is also a local curated dataset. Keep the response
+        # complete and sourced instead of allowing the model to claim it lacks
+        # access to reviews that the application already has.
+        if self.deterministic_agent._is_review_request(user_message):
+            return self.deterministic_agent.respond(conversation_id, user_message)
         return self._respond_live(conversation_id, user_message)
 
     def build_crew(self, trace: list[ToolCall] | None = None) -> Crew:
@@ -228,6 +250,7 @@ class CrewAISalesAgent:
             LookupVehicleExactTool(self.tools, trace, self.profiler),
             GetVehicleTool(self.tools, trace, self.profiler),
             RetrieveVehicleFactsTool(self.tools, trace, self.profiler),
+            RetrieveMagazineReviewsTool(self.tools, trace, self.profiler),
             CompareVehiclesTool(self.tools, trace, self.profiler),
             ScheduleTestDriveTool(self.tools, trace, self.profiler),
         ]
@@ -260,6 +283,9 @@ class CrewAISalesAgent:
                 "before claiming availability. Treat exact_match=false as authoritative absence from "
                 "the current snapshot; then use search_inventory only to find grounded alternatives. "
                 "Never turn a fuzzy search result into an exact availability claim. "
+                "For a magazine-review request, call retrieve_magazine_reviews and include the "
+                "short sourced summaries and links; do not claim review access is unavailable "
+                "when the tool returns reviews. "
                 "Preserve prior state, enforce the budget as a hard constraint, and ask no more "
                 "than two useful questions in one turn. Never guess an ambiguous model or an "
                 "unsupported specification. Return a concise response plus the complete "
