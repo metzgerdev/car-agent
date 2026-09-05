@@ -284,6 +284,16 @@ class CrewAISalesAgent:
                 trace_observer,
                 response_observer,
             )
+        if (
+            previous_state
+            and previous_state.last_vehicle_ids
+            and self.deterministic_agent._is_contextual_followup(user_message)
+        ):
+            return self.deterministic_agent.respond(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+            )
         return self._respond_live(
             conversation_id,
             user_message,

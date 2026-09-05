@@ -106,6 +106,9 @@ class DemoSalesAgent:
                 state.stage = "recommending"
                 return AgentResponse(self._facts_message(vehicle, facts), state, trace)
 
+        if vehicle_context and self._is_vehicle_detail_request(message):
+            return self._vehicle_details(state, vehicle_context, trace)
+
         if self._needs_qualification(state.preferences):
             state.stage = "qualifying"
             return AgentResponse(self._qualification_question(state.preferences), state, trace)
@@ -128,6 +131,26 @@ class DemoSalesAgent:
             state,
             trace,
         )
+
+    def _vehicle_details(
+        self,
+        state: ConversationState,
+        vehicle: Vehicle,
+        trace: list[ToolCall],
+    ) -> AgentResponse:
+        """Resolve a vehicle reference such as "it" and return its listing."""
+
+        state.preferences.selected_vehicle_id = vehicle.id
+        if vehicle.id not in state.last_vehicle_ids:
+            state.last_vehicle_ids = [vehicle.id]
+        state.stage = "recommending"
+        result = self._call(
+            trace,
+            "get_vehicle",
+            {"vehicle_id": vehicle.id},
+            lambda: self.tools.get_vehicle(vehicle.id),
+        )
+        return AgentResponse(self._vehicle_message(result), state, trace)
 
     def _similar_options(
         self,
@@ -616,6 +639,40 @@ class DemoSalesAgent:
                 "other car",
                 "alternative",
                 "what else",
+            )
+        )
+
+    @staticmethod
+    def _is_vehicle_detail_request(message: str) -> bool:
+        lowered = message.lower()
+        if any(
+            phrase in lowered
+            for phrase in (
+                "tell me more",
+                "more details",
+                "more info",
+                "more information",
+                "learn more",
+                "tell me about",
+                "what about",
+                "how about",
+                "what is it like",
+                "what's it like",
+            )
+        ):
+            return True
+        return re.search(r"\b(it|that one|that car|the car|the vehicle)\b", lowered) is not None
+
+    @classmethod
+    def _is_contextual_followup(cls, message: str) -> bool:
+        return any(
+            predicate(message)
+            for predicate in (
+                cls._is_alternative_request,
+                cls._is_compare_request,
+                cls._is_schedule_request,
+                cls._is_fact_question,
+                cls._is_vehicle_detail_request,
             )
         )
 

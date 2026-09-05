@@ -80,6 +80,24 @@ def test_phase3_similar_followup_uses_grounded_alternatives_from_unavailable_loo
     assert "clarify" not in followup.message.lower()
 
 
+def test_phase3_vehicle_reference_followup_resolves_it_to_latest_match() -> None:
+    agent = DemoSalesAgent()
+    recommendation = agent.respond(
+        "phase3-context",
+        "I want a weekend convertible under $40k with spirited driving.",
+    )
+
+    followup = agent.respond("phase3-context", "Tell me more about it.")
+
+    selected_id = recommendation.state.last_vehicle_ids[0]
+    selected_vehicle = agent.tools.inventory.get(selected_id)
+    assert [call.name for call in followup.trace] == ["get_vehicle"]
+    assert selected_vehicle is not None
+    assert followup.state.preferences.selected_vehicle_id == selected_id
+    assert selected_vehicle.name in followup.message
+    assert "Would you like the ownership notes" in followup.message
+
+
 def test_phase3_agent_summarizes_reviews_for_the_last_vehicle() -> None:
     agent = DemoSalesAgent()
     agent.respond("phase3-reviews", "I want a weekend roadster under $40k with spirited driving.")

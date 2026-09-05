@@ -92,6 +92,25 @@ def test_live_facade_routes_clear_similar_followup_to_grounded_alternatives(monk
     assert "2004 Honda S2000" in response.message
 
 
+def test_live_facade_routes_vehicle_reference_followup_to_grounded_listing(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+    initial = agent.deterministic_agent.respond(
+        "live-context-detail",
+        "I want a weekend convertible under $40k with spirited driving.",
+    )
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("a clear vehicle reference should use the grounded listing")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-context-detail", "Tell me more about it.")
+
+    assert response.state.preferences.selected_vehicle_id == initial.state.last_vehicle_ids[0]
+    assert [call.name for call in response.trace] == ["get_vehicle"]
+    assert "Would you like the ownership notes" in response.message
+
+
 def test_live_facade_synthesizes_contextual_magazine_reviews_with_model(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
     agent.sessions["live-review"] = ConversationState(
