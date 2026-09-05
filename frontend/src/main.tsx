@@ -67,6 +67,7 @@ type Dashboard = {
   reviews: ReviewGroup[];
   activeTrace: ActiveTrace[];
   turnTraceCount: number;
+  isProcessing: boolean;
 };
 
 const EMPTY_DASHBOARD: Dashboard = {
@@ -75,6 +76,7 @@ const EMPTY_DASHBOARD: Dashboard = {
   reviews: [],
   activeTrace: [],
   turnTraceCount: 0,
+  isProcessing: false,
 };
 
 function newConversationId() {
@@ -98,6 +100,7 @@ function createChatAdapter(
   conversationId: string,
   modality: "text" | "voice",
   onStreamStarted: () => void,
+  onResponseDelta: () => void,
   onResponse: (payload: ChatPayload) => void,
   onTrace: (event: TraceStreamEvent) => void,
   onStreamFinished: () => void,
@@ -131,6 +134,7 @@ function createChatAdapter(
           } else if (eventName === "response_delta") {
             const delta = (data as { delta?: unknown }).delta;
             if (typeof delta === "string" && delta) {
+              onResponseDelta();
               streamedMessage += delta;
               yield { content: [{ type: "text", text: streamedMessage }] };
             }
@@ -287,7 +291,7 @@ function AdvisorWorkspace({
       </section>
       <div className="workspace">
         <section className="conversation-card panel" aria-label="Conversation">
-          <Thread modality={modality} setModality={setModality} />
+          <Thread modality={modality} setModality={setModality} isProcessing={dashboard.isProcessing} />
         </section>
         <aside className="sidebar" aria-label="Agent evidence">
           <ToolTracePanel dashboard={dashboard} />
@@ -302,6 +306,7 @@ function RuntimeShell({
   modality,
   setModality,
   onStreamStarted,
+  onResponseDelta,
   onResponse,
   dashboard,
   onReset,
@@ -313,6 +318,7 @@ function RuntimeShell({
   modality: "text" | "voice";
   setModality: (value: "text" | "voice") => void;
   onStreamStarted: () => void;
+  onResponseDelta: () => void;
   onResponse: (payload: ChatPayload) => void;
   onTrace: (event: TraceStreamEvent) => void;
   onStreamFinished: () => void;
@@ -321,8 +327,8 @@ function RuntimeShell({
   connectionStatus: "checking" | "connected" | "offline";
 }) {
   const adapter = useMemo(
-    () => createChatAdapter(conversationId, modality, onStreamStarted, onResponse, onTrace, onStreamFinished),
-    [conversationId, modality, onStreamStarted, onResponse, onTrace, onStreamFinished],
+    () => createChatAdapter(conversationId, modality, onStreamStarted, onResponseDelta, onResponse, onTrace, onStreamFinished),
+    [conversationId, modality, onStreamStarted, onResponseDelta, onResponse, onTrace, onStreamFinished],
   );
   const runtime = useLocalRuntime(adapter);
   return (
@@ -358,7 +364,10 @@ function App() {
     setDashboard(EMPTY_DASHBOARD);
   };
   const handleStreamStarted = useCallback(() => {
-    setDashboard((current) => ({ ...current, activeTrace: [], turnTraceCount: 0 }));
+    setDashboard((current) => ({ ...current, activeTrace: [], turnTraceCount: 0, isProcessing: true }));
+  }, []);
+  const handleResponseDelta = useCallback(() => {
+    setDashboard((current) => current.isProcessing ? { ...current, isProcessing: false } : current);
   }, []);
   const handleResponse = useCallback(
     (payload: ChatPayload) => setDashboard((current) => {
@@ -368,6 +377,7 @@ function App() {
         reviews: payload.reviews,
         activeTrace: [],
         turnTraceCount: 0,
+        isProcessing: false,
       };
     }),
     [],
@@ -395,7 +405,10 @@ function App() {
     });
   }, []);
   const handleStreamFinished = useCallback(() => {
-    setDashboard((current) => current.activeTrace.length ? { ...current, activeTrace: [] } : current);
+    setDashboard((current) => {
+      if (!current.activeTrace.length && !current.isProcessing) return current;
+      return { ...current, activeTrace: [], isProcessing: false };
+    });
   }, []);
 
   return (
@@ -405,6 +418,7 @@ function App() {
       modality={modality}
       setModality={setModality}
       onStreamStarted={handleStreamStarted}
+      onResponseDelta={handleResponseDelta}
       onResponse={handleResponse}
       onTrace={handleTrace}
       onStreamFinished={handleStreamFinished}

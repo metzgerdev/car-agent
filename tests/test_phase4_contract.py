@@ -194,6 +194,20 @@ def test_p4_t12_trace_history_reducer_preserves_repeated_calls_across_turns() ->
     assert "turnTraceCount" in javascript
 
 
+def test_p4_t13_browser_shows_thinking_placeholder_during_processing() -> None:
+    source = Path(__file__).parents[1] / "frontend" / "src"
+    main_text = (source / "main.tsx").read_text()
+    thread_text = (source / "components" / "assistant-ui" / "elements" / "thread.tsx").read_text()
+    css_text = (source / "styles.css").read_text()
+
+    assert "isProcessing: boolean" in main_text
+    assert "onResponseDelta" in main_text
+    assert "isProcessing={dashboard.isProcessing}" in main_text
+    assert "isProcessing ? <ThinkingPlaceholder /> : null" in thread_text
+    assert 'aria-label="Thinking..."' in thread_text
+    assert ".aui-thinking-dots" in css_text
+
+
 def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:
     client, _ = _offline_client()
 

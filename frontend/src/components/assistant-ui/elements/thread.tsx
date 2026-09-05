@@ -13,6 +13,7 @@ type Modality = "text" | "voice";
 type ThreadProps = {
   modality: Modality;
   setModality: (value: Modality) => void;
+  isProcessing: boolean;
 };
 
 /**
@@ -21,7 +22,7 @@ type ThreadProps = {
  * Vite app keeps that same boundary, with local CSS tokens instead of a
  * shadcn/Tailwind build step so the FastAPI bundle stays self-contained.
  */
-export function Thread({ modality, setModality }: ThreadProps) {
+export function Thread({ modality, setModality, isProcessing }: ThreadProps) {
   return (
     <ThreadPrimitive.Root className="aui-styled-thread">
       <ThreadPrimitive.Viewport className="aui-styled-viewport">
@@ -38,6 +39,7 @@ export function Thread({ modality, setModality }: ThreadProps) {
           <ThreadPrimitive.Messages>
             {({ message }) => (message.role === "user" ? <UserMessage /> : <AssistantMessage />)}
           </ThreadPrimitive.Messages>
+          {isProcessing ? <ThinkingPlaceholder /> : null}
 
           <ThreadPrimitive.ViewportFooter className="aui-styled-footer">
             <Composer modality={modality} setModality={setModality} />
@@ -45,6 +47,25 @@ export function Thread({ modality, setModality }: ThreadProps) {
         </div>
       </ThreadPrimitive.Viewport>
     </ThreadPrimitive.Root>
+  );
+}
+
+function ThinkingPlaceholder() {
+  return (
+    <div className="aui-styled-message aui-styled-assistant-message aui-thinking-message" role="status" aria-label="Thinking...">
+      <div className="aui-styled-avatar aui-assistant-avatar" aria-hidden="true">CC</div>
+      <div className="aui-styled-message-body">
+        <div className="aui-styled-message-label">Advisor</div>
+        <div className="aui-thinking-indicator">
+          <span>Thinking</span>
+          <span className="aui-thinking-dots" aria-hidden="true">
+            <span>.</span>
+            <span>.</span>
+            <span>.</span>
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -89,7 +110,7 @@ function AssistantMessage() {
   );
 }
 
-function Composer({ modality, setModality }: ThreadProps) {
+function Composer({ modality, setModality }: Pick<ThreadProps, "modality" | "setModality">) {
   return (
     <ComposerPrimitive.Root className="aui-styled-composer">
       <div className="aui-composer-input-wrap">
