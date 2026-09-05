@@ -73,6 +73,12 @@ those deltas incrementally to the answer bubble, then replaces them with the
 final typed response when the turn completes. Clients that do not request SSE
 continue to receive the existing single JSON response.
 
+Follow-up turns use the structured conversation state: `selected_vehicle_id`
+resolves references such as “it” or “that car,” while `last_vehicle_ids`
+resolves “those two” and “similar cars.” Clear contextual requests for details,
+facts, comparisons, alternatives, or scheduling are routed to the grounded
+domain tools before the live model is used for open-ended language.
+
 When recommendations are available, the advisor can include curated Car and
 Driver and MotorTrend review links in its response. These are editorial
 context, not condition reports for a specific listing.
