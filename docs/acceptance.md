@@ -15,7 +15,7 @@ retrieval grounding, and deterministic verification.
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
 | 2 — Data and knowledge | complete | Pydantic source models, Craigslist streaming normalization, three-row CSV-to-SQLite ingestion, recorded NHTSA/EPA adapters, and notebook verification pass | none |
-| 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass | Phase 4 API and conversion tests |
+| 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, contextual alternatives follow-up, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass; 62 Python tests pass | Phase 4 API and conversion tests |
 | 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, text/voice command normalization, clean offline demo, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, streamed live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review modal, and suggested-vehicle review context pass; 60 Python tests, 4 frontend trace-history tests, and frontend typecheck/build pass | none |
 
 ### Update protocol
@@ -52,6 +52,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-04 | Phase 4 streamed LLM answer generation | Live CrewAI turns use native `Crew(stream=True)` output; shopper-facing message deltas are emitted as `response_delta` SSE events before the final typed response, while tool-call chunks and structured state remain server-side; 58 Python tests and frontend typecheck/build pass | `8ac91ee` | none |
 | 2026-09-04 | Phase 4 complete tool-trace history | The browser preserves completed tool calls across turns, keeps repeated same-name calls as separate entries, and reconciles missing live completions from the final per-turn response; 59 Python tests, 4 frontend trace-history tests, and frontend typecheck/build pass | `35e8c1c` | none |
 | 2026-09-04 | Phase 4 processing placeholder | The browser shows an assistant-style `Thinking...` placeholder immediately after submission, removes it at the first streamed answer delta, and clears it on completion, error, or cancellation; 60 Python tests, frontend contract tests, and frontend typecheck/build pass | `770274a` | none |
+| 2026-09-04 | Phase 3 contextual alternatives follow-up | After an unavailable exact lookup, a clear follow-up such as `tell me about similar sports cars` reuses the grounded alternatives, retrieves their details, and responds with options in both deterministic and live facades; 62 Python tests pass | `a8e9856` | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -127,6 +128,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P3-T5 | Object to maintenance or price | Agent gives a sourced trade-off and next action | implemented |
 | P3-T6 | Run 20 scripted conversations | 20/20 expected outcomes pass; budget compliance is 100% | implemented |
 | P3-T7 | Ask for an explicit year/make/model | `lookup_vehicle_exact` returns `exact_match: true` only for an exact current record; `false` produces a clear unavailable response and triggers grounded alternative search, including for compact replies such as `2001 BMW M3` | implemented |
+| P3-T8 | Ask about similar cars after an unavailable exact lookup | A clear contextual follow-up reuses the prior grounded alternatives, returns their details, and does not ask the shopper to restate what “similar” means; the same route is used by offline and live facades | implemented |
 
 ## Phase 4 — Conversion and polish
 
