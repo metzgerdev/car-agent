@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, PrivateAttr
 
 from .agent import DemoSalesAgent, TraceObserver
+from .conversation_context import ConversationTurn, build_prompt_context
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall
 from .profiling import TimingRecorder
@@ -231,6 +232,7 @@ class CrewAISalesAgent:
         self.deterministic_agent = DemoSalesAgent(tools, profiler=self.profiler)
         self.tools = self.deterministic_agent.tools
         self.sessions = self.deterministic_agent.sessions
+        self.turn_history: dict[str, list[ConversationTurn]] = {}
         self.use_live_model = (
             _env_truthy(os.getenv("CAR_AGENT_USE_CREWAI"))
             if use_live_model is None
@@ -240,6 +242,23 @@ class CrewAISalesAgent:
         self.last_crew: Crew | None = None
 
     def respond(
+        self,
+        conversation_id: str,
+        user_message: str,
+        *,
+        trace_observer: TraceObserver | None = None,
+        response_observer: ResponseObserver | None = None,
+    ) -> AgentResponse:
+        response = self._respond(
+            conversation_id,
+            user_message,
+            trace_observer=trace_observer,
+            response_observer=response_observer,
+        )
+        self._record_turn(conversation_id, user_message, response)
+        return response
+
+    def _respond(
         self,
         conversation_id: str,
         user_message: str,
@@ -301,6 +320,20 @@ class CrewAISalesAgent:
             response_observer,
         )
 
+    def _record_turn(
+        self,
+        conversation_id: str,
+        user_message: str,
+        response: AgentResponse,
+    ) -> None:
+        self.turn_history.setdefault(conversation_id, []).append(
+            ConversationTurn(
+                user_message=user_message.strip(),
+                assistant_message=response.message,
+                tool_calls=[call.to_dict(redact_sensitive=True) for call in response.trace],
+            )
+        )
+
     def build_crew(
         self,
         trace: list[ToolCall] | None = None,
@@ -355,6 +388,10 @@ class CrewAISalesAgent:
                 "Handle one shopper turn for conversation {conversation_id}.\n"
                 "Shopper message:\n{user_message}\n\n"
                 "Current domain state as JSON:\n{state_json}\n\n"
+                "Compact summary of older conversation turns:\n{conversation_summary}\n\n"
+                "Recent conversation turns (at most four):\n{recent_history}\n\n"
+                "Active vehicle record:\n{active_vehicle}\n\n"
+                "Latest safe grounding result:\n{latest_grounding}\n\n"
                 "Curated magazine review context for this turn:\n{review_context}\n\n"
                 "Use the inventory and knowledge tools whenever a claim needs grounding. "
                 "For an explicit year/make/model availability question, call lookup_vehicle_exact "
@@ -418,6 +455,11 @@ class CrewAISalesAgent:
                 if response_observer:
                     build_kwargs["stream"] = True
                 crew = self.build_crew(trace, **build_kwargs)
+            prompt_context = build_prompt_context(
+                self.turn_history.get(conversation_id, []),
+                previous_state,
+                self.tools.inventory,
+            ).as_prompt_inputs()
             with self.profiler.span("crewai.crew_kickoff"):
                 result = self._kickoff(
                     crew,
@@ -426,6 +468,7 @@ class CrewAISalesAgent:
                         "user_message": user_message.strip(),
                         "state_json": json.dumps(previous_state.to_dict()),
                         "review_context": "",
+                        **prompt_context,
                     },
                     response_observer,
                 )
@@ -468,6 +511,11 @@ class CrewAISalesAgent:
             return prepared
 
         trace = prepared.trace
+        prompt_context = build_prompt_context(
+            self.turn_history.get(conversation_id, []),
+            prepared.state,
+            self.tools.inventory,
+        ).as_prompt_inputs()
         with self.profiler.span("crewai.live_review_turn"):
             with self.profiler.span("crewai.crew_build"):
                 build_kwargs: dict[str, Any] = {"review_only": True}
@@ -484,6 +532,7 @@ class CrewAISalesAgent:
                         "user_message": user_message.strip(),
                         "state_json": json.dumps(prepared.state.to_dict()),
                         "review_context": json.dumps(reviews, ensure_ascii=False),
+                        **prompt_context,
                     },
                     response_observer,
                 )

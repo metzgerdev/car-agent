@@ -1,6 +1,9 @@
+import json
+
 from crewai import Crew
 from crewai.types.streaming import CrewStreamingOutput, StreamChunk, StreamChunkType
 
+from car_agent.conversation_context import ConversationTurn
 from car_agent.crewai_agent import CrewAISalesAgent, CrewTurnOutput
 from car_agent.models import ConversationState, ShopperPreferences
 from car_agent.profiling import TimingRecorder
@@ -246,6 +249,66 @@ def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) ->
         "crewai.crew_kickoff",
         "crewai.output_normalization",
     }
+
+
+def test_live_turn_receives_bounded_history_and_grounded_context(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
+    conversation_id = "live-hybrid-context"
+    agent.sessions[conversation_id] = ConversationState(
+        conversation_id,
+        stage="recommending",
+        preferences=ShopperPreferences(selected_vehicle_id="honda-s2000-2004"),
+        last_vehicle_ids=["honda-s2000-2004"],
+    )
+    agent.turn_history[conversation_id] = [
+        ConversationTurn(
+            user_message=f"Earlier question {index}",
+            assistant_message=f"Earlier answer {index}",
+            tool_calls=(
+                [
+                    {
+                        "name": "search_inventory",
+                        "arguments": {"filters": {"intended_use": "weekend"}},
+                        "result": {"vehicles": [{"id": "honda-s2000-2004"}]},
+                    }
+                ]
+                if index == 0
+                else []
+            ),
+        )
+        for index in range(5)
+    ]
+
+    class FakeCrew:
+        def kickoff(self, *, inputs):
+            recent = json.loads(inputs["recent_history"])
+            active_vehicle = json.loads(inputs["active_vehicle"])
+            grounding = json.loads(inputs["latest_grounding"])
+            assert len(recent) == 4
+            assert recent[0]["user"] == "Earlier question 1"
+            assert "Earlier question 0" in inputs["conversation_summary"]
+            assert active_vehicle["id"] == "honda-s2000-2004"
+            assert grounding["name"] == "search_inventory"
+            return type(
+                "FakeCrewOutput",
+                (),
+                {
+                    "pydantic": CrewTurnOutput(
+                        message="The S2000 remains the active grounded vehicle.",
+                        state={
+                            "stage": "recommending",
+                            "last_vehicle_ids": ["honda-s2000-2004"],
+                        },
+                    )
+                },
+            )()
+
+    monkeypatch.setattr(agent, "build_crew", lambda trace: FakeCrew())
+
+    response = agent.respond(conversation_id, "Why is this a good fit for a long trip?")
+
+    assert response.message == "The S2000 remains the active grounded vehicle."
+    assert len(agent.turn_history[conversation_id]) == 6
 
 
 def test_live_crewai_stream_emits_only_the_shopper_message(monkeypatch) -> None:
