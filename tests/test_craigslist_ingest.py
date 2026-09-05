@@ -39,6 +39,8 @@ def test_craigslist_sample_ingests_into_sqlite_and_feeds_search(tmp_path) -> Non
     assert all(vehicle.provenance.source_type == "craigslist_snapshot" for vehicle in repository.all())
     honda = repository.get("craigslist-1234567890")
     assert honda is not None
+    assert honda.service_history
+    assert all(record.source == "synthetic_demo" for record in honda.service_history)
     assert {review.outlet for review in ReviewRepository().retrieve(honda)} == {
         "Car and Driver",
         "MotorTrend",
@@ -63,6 +65,10 @@ def test_craigslist_sample_ingests_into_sqlite_and_feeds_search(tmp_path) -> Non
     assert response.state.last_vehicle_ids
     assert response.trace[0].name == "search_inventory"
     assert response.trace[1].result["vehicle"]["provenance"]["source_type"] == "craigslist_snapshot"
+
+    history = SalesTools(inventory=repository).retrieve_service_history(honda.id)
+    assert history["record_count"] == 2
+    assert history["synthetic"] is True
 
 
 def test_craigslist_sample_ingestion_is_idempotent(tmp_path) -> None:

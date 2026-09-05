@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from .models import Provenance, Vehicle
+from .models import Provenance, ServiceRecord, Vehicle
 
 MIN_YEAR = 1990
 MAX_YEAR = 2020
@@ -57,6 +57,12 @@ def normalize_inventory_record(record: dict[str, Any]) -> Vehicle:
         errors.append(f"year must be an integer from {MIN_YEAR} to {MAX_YEAR}")
 
     provenance = _parse_provenance(record.get("provenance"), errors)
+    service_history = _parse_service_history(
+        record.get("service_history"),
+        vehicle_id=record.get("id"),
+        mileage=record.get("mileage"),
+        errors=errors,
+    )
     if errors:
         raise InventoryValidationError(errors)
 
@@ -73,6 +79,7 @@ def normalize_inventory_record(record: dict[str, Any]) -> Vehicle:
         horsepower=int(record["horsepower"]),
         description=record["description"].strip(),
         tags=tuple(str(tag).strip() for tag in record.get("tags", []) if str(tag).strip()),
+        service_history=service_history,
         provenance=provenance,
     )
 
@@ -128,11 +135,25 @@ class SQLiteInventoryStore:
                 source_type TEXT NOT NULL,
                 retrieved_at TEXT NOT NULL,
                 source_record_id TEXT,
-                license TEXT
+                license TEXT,
+                service_history_json TEXT NOT NULL DEFAULT '[]'
             )
             """
         )
+        self._ensure_service_history_column()
         self.connection.commit()
+
+    def _ensure_service_history_column(self) -> None:
+        """Upgrade SQLite stores created before service history was added."""
+
+        columns = {
+            row[1]
+            for row in self.connection.execute("PRAGMA table_info(inventory)").fetchall()
+        }
+        if "service_history_json" not in columns:
+            self.connection.execute(
+                "ALTER TABLE inventory ADD COLUMN service_history_json TEXT NOT NULL DEFAULT '[]'"
+            )
 
     def ingest(self, vehicles: Iterable[Vehicle]) -> int:
         count = 0
@@ -146,8 +167,8 @@ class SQLiteInventoryStore:
                     INSERT INTO inventory (
                         id, make, model, year, price, mileage, body_style, transmission,
                         drivetrain, horsepower, description, tags_json, source_url,
-                        source_type, retrieved_at, source_record_id, license
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        source_type, retrieved_at, source_record_id, license, service_history_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                         make=excluded.make, model=excluded.model, year=excluded.year,
                         price=excluded.price, mileage=excluded.mileage,
@@ -156,7 +177,8 @@ class SQLiteInventoryStore:
                         description=excluded.description, tags_json=excluded.tags_json,
                         source_url=excluded.source_url, source_type=excluded.source_type,
                         retrieved_at=excluded.retrieved_at,
-                        source_record_id=excluded.source_record_id, license=excluded.license
+                        source_record_id=excluded.source_record_id, license=excluded.license,
+                        service_history_json=excluded.service_history_json
                     """,
                     (
                         vehicle.id,
@@ -176,6 +198,7 @@ class SQLiteInventoryStore:
                         provenance.retrieved_at,
                         provenance.source_record_id,
                         provenance.license,
+                        json.dumps([record.to_dict() for record in vehicle.service_history]),
                     ),
                 )
                 count += 1
@@ -203,6 +226,12 @@ class SQLiteInventoryStore:
 
 
 def _vehicle_from_row(row: sqlite3.Row) -> Vehicle:
+    service_history = tuple(
+        ServiceRecord(**record)
+        for record in json.loads(row["service_history_json"] or "[]")
+    )
+    if not service_history:
+        service_history = _synthetic_service_history(row["id"], row["mileage"])
     return Vehicle(
         id=row["id"],
         make=row["make"],
@@ -216,12 +245,84 @@ def _vehicle_from_row(row: sqlite3.Row) -> Vehicle:
         horsepower=row["horsepower"],
         description=row["description"],
         tags=tuple(json.loads(row["tags_json"])),
+        service_history=service_history,
         provenance=Provenance(
             source_url=row["source_url"],
             source_type=row["source_type"],
             retrieved_at=row["retrieved_at"],
             source_record_id=row["source_record_id"],
             license=row["license"],
+        ),
+    )
+
+
+def _parse_service_history(
+    value: Any,
+    *,
+    vehicle_id: Any,
+    mileage: Any,
+    errors: list[str],
+) -> tuple[ServiceRecord, ...]:
+    """Validate supplied records and synthesize a clearly labeled fallback."""
+
+    if value is None:
+        if isinstance(mileage, (int, float)) and not isinstance(mileage, bool):
+            return _synthetic_service_history(str(vehicle_id), int(mileage))
+        return ()
+    if not isinstance(value, list):
+        errors.append("service_history must be a list")
+        return ()
+
+    records: list[ServiceRecord] = []
+    for index, item in enumerate(value):
+        prefix = f"service_history[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{prefix} must be an object")
+            continue
+        valid_text = True
+        for field in ("date", "service_type", "details", "source"):
+            if not isinstance(item.get(field), str) or not item[field].strip():
+                errors.append(f"{prefix}.{field} must be a non-empty string")
+                valid_text = False
+        record_mileage = item.get("mileage")
+        if (
+            not isinstance(record_mileage, (int, float))
+            or isinstance(record_mileage, bool)
+            or record_mileage < 0
+        ):
+            errors.append(f"{prefix}.mileage must be non-negative")
+            continue
+        if not valid_text:
+            continue
+        records.append(
+            ServiceRecord(
+                date=item["date"].strip(),
+                mileage=int(record_mileage),
+                service_type=item["service_type"].strip(),
+                details=item["details"].strip(),
+                source=item["source"].strip(),
+            )
+        )
+    return tuple(records)
+
+
+def _synthetic_service_history(vehicle_id: str, mileage: int) -> tuple[ServiceRecord, ...]:
+    """Create deterministic placeholder history for source rows without records."""
+
+    first_mileage = max(1_000, int(mileage * 0.55))
+    second_mileage = max(first_mileage, int(mileage * 0.82))
+    return (
+        ServiceRecord(
+            date="2021-05-15",
+            mileage=first_mileage,
+            service_type="Scheduled maintenance",
+            details=f"Synthetic demo record generated for {vehicle_id}: fluids, filters, and belts inspected.",
+        ),
+        ServiceRecord(
+            date="2024-09-21",
+            mileage=second_mileage,
+            service_type="Annual inspection",
+            details=f"Synthetic demo record generated for {vehicle_id}: brakes, tires, and suspension inspected.",
         ),
     )
 

@@ -136,6 +136,8 @@ def _print_trace(trace: list[ToolCall]) -> None:
             detail = call.result.get("vehicle", {}).get("name", "not found")
         elif call.name == "retrieve_vehicle_facts":
             detail = f"{call.result.get('source_count', 0)} source(s)"
+        elif call.name == "retrieve_service_history":
+            detail = f"{call.result.get('record_count', 0)} service record(s)"
         elif call.name == "compare_vehicles":
             detail = f"{len(call.result.get('vehicles', []))} vehicle(s)"
         elif call.name == "schedule_test_drive":

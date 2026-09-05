@@ -15,7 +15,7 @@ retrieval grounding, and deterministic verification.
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
 | 2 — Data and knowledge | complete | Pydantic source models, Craigslist streaming normalization, three-row CSV-to-SQLite ingestion, recorded NHTSA/EPA adapters, and notebook verification pass | none |
-| 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, context-aware vehicle follow-ups, bounded hybrid LLM context, shared consultative salesperson persona, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass; 71 Python tests pass | Phase 4 API and conversion tests |
+| 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, context-aware vehicle follow-ups, bounded hybrid LLM context, shared consultative salesperson persona, synthetic service-history retrieval, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass; 73 Python tests pass | Phase 4 API and conversion tests |
 | 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, text/voice command normalization, clean offline demo, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, streamed live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review modal, and suggested-vehicle review context pass; 60 Python tests, 4 frontend trace-history tests, and frontend typecheck/build pass | none |
 
 ### Update protocol
@@ -56,6 +56,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-04 | Phase 3 context-aware vehicle follow-ups | References such as `it`/`that car` resolve to the selected or latest vehicle; clear detail, facts, comparison, alternatives, and scheduling follow-ups use grounded state-aware routes in deterministic and live facades; 64 Python tests pass | `bd19c3b` | none |
 | 2026-09-04 | Phase 3 hybrid conversation context | The backend retains typed full turn records while live CrewAI receives only four recent turns, a bounded older-turn summary, the active vehicle record, and the latest non-sensitive grounding result; 68 Python tests pass | `0513a18` | none |
 | 2026-09-05 | Phase 3 salesperson persona | A shared `CLASSIC_CAR_PERSONA` contract gives CrewAI and the deterministic advisor the same named, consultative voice, with tests covering role/backstory/task guidance, grounded recommendations, and natural next steps; 71 Python tests pass | `2d76669` | none |
+| 2026-09-05 | Phase 3 service-history retrieval | Inventory records carry typed synthetic `ServiceRecord` entries, SQLite/Craigslist normalization preserves or generates them, and both deterministic and CrewAI paths expose `retrieve_service_history`; 73 Python tests plus frontend build pass | pending | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -123,7 +124,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
-| P3-T0 | Construct the CrewAI sales crew and OpenRouter configuration | One CrewAI agent, one structured task, all six domain tools, and an OpenRouter LLM configuration are available without exposing the key | implemented |
+| P3-T0 | Construct the CrewAI sales crew and OpenRouter configuration | One CrewAI agent, one structured task, all domain tools including `retrieve_service_history`, and an OpenRouter LLM configuration are available without exposing the key | implemented |
 | P3-T1 | Give preferences over multiple turns | State persists and each turn asks at most two useful questions | implemented |
 | P3-T2 | Combine hard and soft preferences | Hard constraints always win; soft preferences affect ranking | implemented |
 | P3-T3 | Say only “I like Porsche” | Agent asks which Porsche instead of selecting one | implemented |
@@ -135,6 +136,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P3-T9 | Use a vehicle reference in a follow-up | Phrases such as “tell me more about it” resolve to the selected or latest grounded vehicle, retrieve its listing, and preserve the vehicle as the active context; clear contextual routes remain deterministic in live mode | implemented |
 | P3-T10 | Run an open-ended live turn after prior conversation | CrewAI receives validated state plus bounded recent history, an older-turn summary, the active vehicle record, and safe grounding context; the full typed turn log remains retained without forwarding scheduling contact data | implemented |
 | P3-T11 | Inspect the salesperson character | CrewAI exposes the shared Alex persona through role, goal, backstory, and task guidance; deterministic responses use the same consultative voice, grounded trade-offs, and natural next steps | implemented |
+| P3-T12 | Ask for listing service history | Typed synthetic service records are returned by the dedicated `retrieve_service_history` tool, appear in the trace, are disclosed as synthetic, and do not replace general ownership facts | implemented |
 
 ## Phase 4 — Conversion and polish
 

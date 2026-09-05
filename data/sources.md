@@ -15,6 +15,7 @@ explicit.
 | [NHTSA recalls](https://www.nhtsa.gov/nhtsa-datasets-and-apis) | Safety recall and campaign context | `NHTSARecallResponse` / `NHTSARecallRecord` | Provenance-backed `VehicleFact(topic="safety_recall")` |
 | [EPA FuelEconomy.gov](https://www.fueleconomy.gov/feg/ws/) | Fuel type, MPG, estimated fuel cost, emissions, drivetrain, and related configuration data | `EPAFuelEconomyVehicle` | Provenance-backed efficiency, ownership, emissions, and specification facts |
 | Local knowledge fixture | Curated ownership and driving notes for the sales conversation | Existing `VehicleFact` records | Model-specific retrieved facts |
+| Synthetic service-history fixture | Listing-level maintenance events used to demonstrate a second inventory enrichment path | `ServiceRecord` | Dedicated `retrieve_service_history` tool output, explicitly marked `synthetic_demo` |
 | [Car and Driver](https://www.caranddriver.com/) / [MotorTrend](https://www.motortrend.com/) | Editorial context for a matched model: a link plus a short paraphrased summary | `MagazineReview` | UI review modal; editorial context remains separate from canonical vehicle facts |
 
 ## Pipeline
@@ -33,6 +34,10 @@ explicit.
    silently overwrites another source's fields.
 6. Expose the resulting facts through the existing retrieval tool so the
    CrewAI agent can use source-grounded information in its response and trace.
+7. Keep listing-level service history separate from general knowledge facts.
+   The checked-in records and fallback records for source rows are synthetic,
+   typed as `ServiceRecord`, and retrieved only through
+   `retrieve_service_history`.
 
 ## Source precedence and join keys
 
@@ -65,6 +70,10 @@ provenance, deterministic recorded fixtures, and inspectable retrieval.
 Magazine reviews are curated external links matched by make/model. Their
 summaries are brief paraphrases for navigation and context, not copied article
 text or claims about the condition of a specific listing.
+
+Service history is synthetic demo enrichment rather than an external provider
+claim. Every generated record carries `source: synthetic_demo`, and the agent
+discloses that limitation before suggesting a pre-purchase inspection.
 
 ## Implementation status
 

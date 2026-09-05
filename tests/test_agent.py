@@ -53,6 +53,21 @@ def test_facts_are_retrieved_for_a_mentioned_vehicle() -> None:
     assert response.state.preferences.selected_vehicle_id == "honda-s2000-2004"
 
 
+def test_service_history_is_a_separate_grounded_tool_call() -> None:
+    agent = DemoSalesAgent()
+
+    response = agent.respond("service-history", "What service history does the Honda S2000 have?")
+
+    assert [call.name for call in response.trace] == ["retrieve_service_history"]
+    result = response.trace[0].result
+    assert result["vehicle_id"] == "honda-s2000-2004"
+    assert result["record_count"] == 3
+    assert result["synthetic"] is True
+    listing = agent.tools.get_vehicle("honda-s2000-2004")
+    assert "service_history" not in listing["vehicle"]
+    assert "synthetic demo records" in response.message
+
+
 def test_schedule_request_collects_details_then_creates_request() -> None:
     agent = DemoSalesAgent()
     recommendation = agent.respond("schedule", "I want a weekend car under $40k with spirited driving.")

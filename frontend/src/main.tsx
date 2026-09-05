@@ -213,6 +213,7 @@ function traceProgressLabel(event: ActiveTrace): string {
     case "lookup_vehicle_exact": return `Checking exact availability for ${args.year ?? "the requested"} ${args.make ?? "vehicle"} ${args.model ?? ""}…`;
     case "get_vehicle": return `Loading listing details for ${vehicle}…`;
     case "retrieve_vehicle_facts": return `Retrieving sourced facts for ${vehicle}…`;
+    case "retrieve_service_history": return `Retrieving service history for ${vehicle}…`;
     case "retrieve_magazine_reviews": return `Retrieving magazine reviews for ${vehicle}…`;
     case "compare_vehicles": return "Comparing the grounded vehicle options…";
     case "schedule_test_drive": return `Validating the test-drive request for ${vehicle}…`;

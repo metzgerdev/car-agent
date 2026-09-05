@@ -86,6 +86,16 @@ class DemoSalesAgent:
                 )
             return self._review_summary(state, vehicle_context, trace)
 
+        if self._is_service_history_request(message):
+            if not vehicle_context:
+                state.stage = "qualifying"
+                return AgentResponse(
+                    "Which specific vehicle should I check service history for? Please name the year and model.",
+                    state,
+                    trace,
+                )
+            return self._service_history_summary(state, vehicle_context, trace)
+
         if vehicle_context and self._is_unsupported_spec_question(message):
             state.preferences.selected_vehicle_id = vehicle_context.id
             state.stage = "recommending"
@@ -542,6 +552,40 @@ class DemoSalesAgent:
         lines.append("These are editorial impressions, not a condition report for this specific listing.")
         return AgentResponse("\n".join(lines), state, trace)
 
+    def _service_history_summary(
+        self,
+        state: ConversationState,
+        vehicle: Vehicle,
+        trace: list[ToolCall],
+    ) -> AgentResponse:
+        """Return listing records through the dedicated service-history tool."""
+
+        state.preferences.selected_vehicle_id = vehicle.id
+        state.stage = "recommending"
+        result = self._call(
+            trace,
+            "retrieve_service_history",
+            {"vehicle_id": vehicle.id},
+            lambda: self.tools.retrieve_service_history(vehicle.id),
+        )
+        records = result.get("service_history", [])
+        if not records:
+            return AgentResponse(
+                f"I don’t have service history on file for the {vehicle.name}. I can arrange an inspection and test drive so its condition can be verified.",
+                state,
+                trace,
+            )
+
+        lines = [f"Here’s the service history on file for the {vehicle.name}:"]
+        for record in records:
+            lines.append(
+                f"- {record['date']} at {record['mileage']:,} miles — {record['service_type']}: {record['details']}"
+            )
+        if result.get("synthetic"):
+            lines.append("These are synthetic demo records, not seller documents or a condition report.")
+        lines.append("A pre-purchase inspection is still the right next step. Would you like to arrange one or a test drive?")
+        return AgentResponse("\n".join(lines), state, trace)
+
     def _call(
         self,
         trace: list[ToolCall],
@@ -623,6 +667,24 @@ class DemoSalesAgent:
                 "motor trend",
                 "road test",
                 "editorial review",
+            )
+        )
+
+    @staticmethod
+    def _is_service_history_request(message: str) -> bool:
+        lowered = message.lower()
+        return any(
+            phrase in lowered
+            for phrase in (
+                "service history",
+                "service record",
+                "service records",
+                "maintenance history",
+                "maintenance records",
+                "maintenance record",
+                "work has been done",
+                "previous service",
+                "service receipts",
             )
         )
 

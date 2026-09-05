@@ -111,6 +111,18 @@ def test_phase3_agent_summarizes_reviews_for_the_last_vehicle() -> None:
     assert "https://" in response.message
 
 
+def test_phase3_agent_retrieves_service_history_for_the_explicit_vehicle() -> None:
+    response = DemoSalesAgent().respond(
+        "phase3-service-history",
+        "Show me the maintenance records for the 2004 Honda S2000.",
+    )
+
+    assert [call.name for call in response.trace] == ["retrieve_service_history"]
+    assert "2004 Honda S2000" in response.message
+    assert "synthetic demo records" in response.message
+    assert response.trace[0].result["service_history"]
+
+
 def test_phase3_ambiguity_does_not_guess_a_porsche_model() -> None:
     response = DemoSalesAgent().respond("phase3-ambiguity", "I like Porsche.")
 

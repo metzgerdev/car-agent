@@ -11,6 +11,11 @@
     "drivetrain": "RWD",
     "horsepower": 200,
     "description": "A lightweight, analog sports coupe with a high-revving rotary engine and strong weekend-car character.",
+    "service_history": [
+      {"date": "2018-04-12", "mileage": 62000, "service_type": "Cooling system service", "details": "Replaced radiator hoses and thermostat; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2021-06-03", "mileage": 70500, "service_type": "Rotary maintenance", "details": "Performed compression check and ignition-system service; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2024-08-19", "mileage": 76500, "service_type": "Scheduled maintenance", "details": "Changed fluids, filters, and belts; synthetic demo record.", "source": "synthetic_demo"}
+    ],
     "provenance": {"source_url": "local://demo-seed/inventory/mazda-rx7-1992", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "mazda-rx7-1992", "license": "internal-demo"},
     "tags": ["weekend", "analog", "lightweight", "spirited", "project-friendly"]
   },
@@ -26,6 +31,11 @@
     "drivetrain": "RWD",
     "horsepower": 240,
     "description": "A two-seat roadster known for precise controls, a willing engine, and an engaging open-air experience.",
+    "service_history": [
+      {"date": "2019-05-17", "mileage": 42000, "service_type": "Scheduled maintenance", "details": "Changed fluids and filters; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2022-07-09", "mileage": 53500, "service_type": "Clutch and differential service", "details": "Inspected clutch hydraulics and replaced differential fluid; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2025-01-21", "mileage": 62000, "service_type": "Annual service", "details": "Inspected soft top, brakes, tires, and suspension; synthetic demo record.", "source": "synthetic_demo"}
+    ],
     "provenance": {"source_url": "local://demo-seed/inventory/honda-s2000-2004", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "honda-s2000-2004", "license": "internal-demo"},
     "tags": ["weekend", "roadster", "analog", "spirited", "lightweight"]
   },
@@ -41,6 +51,11 @@
     "drivetrain": "RWD",
     "horsepower": 343,
     "description": "A compact, manual rear-drive coupe balancing long-distance usability with serious performance.",
+    "service_history": [
+      {"date": "2018-03-22", "mileage": 46000, "service_type": "Cooling system service", "details": "Replaced cooling-system hoses and inspected the water pump; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2021-11-06", "mileage": 59000, "service_type": "Inspection and fluids", "details": "Inspected brakes and suspension and changed drivetrain fluids; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2024-05-14", "mileage": 69000, "service_type": "Scheduled maintenance", "details": "Changed engine oil, filters, and belts; synthetic demo record.", "source": "synthetic_demo"}
+    ],
     "provenance": {"source_url": "local://demo-seed/inventory/bmw-z4-m-2008", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "bmw-z4-m-2008", "license": "internal-demo"},
     "tags": ["weekend", "grand-tourer", "spirited", "manual", "practical"]
   },
@@ -56,6 +71,11 @@
     "drivetrain": "RWD",
     "horsepower": 296,
     "description": "A classic rear-engine sports car with a strong enthusiast following and everyday usability.",
+    "service_history": [
+      {"date": "2017-06-08", "mileage": 41000, "service_type": "Major service", "details": "Completed fluids, filters, belts, and brake inspection; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2020-10-27", "mileage": 53500, "service_type": "Clutch inspection", "details": "Inspected clutch operation, suspension, and tires; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2023-09-18", "mileage": 64500, "service_type": "Annual service", "details": "Changed fluids and inspected for deferred maintenance; synthetic demo record.", "source": "synthetic_demo"}
+    ],
     "provenance": {"source_url": "local://demo-seed/inventory/porsche-911-1999", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "porsche-911-1999", "license": "internal-demo"},
     "tags": ["weekend", "daily", "grand-tourer", "spirited", "collector"]
   },
@@ -71,6 +91,11 @@
     "drivetrain": "AWD",
     "horsepower": 530,
     "description": "A high-performance all-wheel-drive coupe with supercar pace and a technology-heavy driving experience.",
+    "service_history": [
+      {"date": "2018-02-16", "mileage": 28000, "service_type": "Dual-clutch transmission service", "details": "Changed transmission fluid and inspected drivetrain systems; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2021-04-30", "mileage": 39000, "service_type": "Scheduled maintenance", "details": "Changed fluids, filters, and spark plugs; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2025-02-11", "mileage": 50000, "service_type": "Annual service", "details": "Inspected brakes, tires, electronics, and cooling systems; synthetic demo record.", "source": "synthetic_demo"}
+    ],
     "provenance": {"source_url": "local://demo-seed/inventory/nissan-gt-r-2012", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "nissan-gt-r-2012", "license": "internal-demo"},
     "tags": ["daily", "track", "high-performance", "fast", "technology"]
   },
@@ -86,6 +111,11 @@
     "drivetrain": "RWD",
     "horsepower": 365,
     "description": "A modern mid-engine coupe with sharp handling, a comfortable cabin, and track-day capability.",
+    "service_history": [
+      {"date": "2020-08-04", "mileage": 12000, "service_type": "Scheduled maintenance", "details": "Changed engine oil and filters and completed a brake inspection; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2023-03-15", "mileage": 22000, "service_type": "Brake and tire service", "details": "Inspected brakes and replaced tires; synthetic demo record.", "source": "synthetic_demo"},
+      {"date": "2025-06-20", "mileage": 28000, "service_type": "Annual service", "details": "Inspected fluids, suspension, and track-use wear items; synthetic demo record.", "source": "synthetic_demo"}
+    ],
     "provenance": {"source_url": "local://demo-seed/inventory/porsche-718-2018", "source_type": "illustrative_fixture", "retrieved_at": "2026-09-03T00:00:00Z", "source_record_id": "porsche-718-2018", "license": "internal-demo"},
     "tags": ["daily", "track", "high-performance", "modern", "spirited"]
   }

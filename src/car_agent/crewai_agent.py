@@ -51,6 +51,10 @@ class RetrieveVehicleFactsInput(BaseModel):
     topic: str | None = Field(default=None, description="Optional fact topic such as maintenance")
 
 
+class RetrieveServiceHistoryInput(BaseModel):
+    vehicle_id: str = Field(description="Exact inventory vehicle ID")
+
+
 class RetrieveMagazineReviewsInput(BaseModel):
     vehicle_id: str = Field(description="Exact inventory vehicle ID")
 
@@ -163,6 +167,19 @@ class RetrieveVehicleFactsTool(_CrewSalesTool):
             "retrieve_vehicle_facts",
             arguments,
             lambda: self._backend.retrieve_vehicle_facts(vehicle_id, topic),
+        )
+
+
+class RetrieveServiceHistoryTool(_CrewSalesTool):
+    name: str = "retrieve_service_history"
+    description: str = "Retrieve the listing's service records and clearly labeled record provenance for one exact inventory vehicle."
+    args_schema: type[BaseModel] = RetrieveServiceHistoryInput
+
+    def _run(self, vehicle_id: str) -> str:
+        return self._run_backend(
+            "retrieve_service_history",
+            {"vehicle_id": vehicle_id},
+            lambda: self._backend.retrieve_service_history(vehicle_id),
         )
 
 
@@ -351,6 +368,7 @@ class CrewAISalesAgent:
             LookupVehicleExactTool(self.tools, trace, self.profiler, trace_observer),
             GetVehicleTool(self.tools, trace, self.profiler, trace_observer),
             RetrieveVehicleFactsTool(self.tools, trace, self.profiler, trace_observer),
+            RetrieveServiceHistoryTool(self.tools, trace, self.profiler, trace_observer),
             RetrieveMagazineReviewsTool(self.tools, trace, self.profiler, trace_observer),
             CompareVehiclesTool(self.tools, trace, self.profiler, trace_observer),
             ScheduleTestDriveTool(self.tools, trace, self.profiler, trace_observer),
@@ -391,6 +409,9 @@ class CrewAISalesAgent:
                 "before claiming availability. Treat exact_match=false as authoritative absence from "
                 "the current snapshot; then use search_inventory only to find grounded alternatives. "
                 "Never turn a fuzzy search result into an exact availability claim. "
+                "For service-history, service-record, or maintenance-record requests, call "
+                "retrieve_service_history for the explicitly selected vehicle; do not substitute "
+                "general ownership facts for listing history. Clearly label synthetic demo records. "
                 f"{review_instructions} "
                 "Preserve prior state, enforce the budget as a hard constraint, and ask no more "
                 "than two useful questions in one turn. Never guess an ambiguous model or an "

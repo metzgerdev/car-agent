@@ -20,6 +20,7 @@ GROUNDING_TOOLS = {
     "lookup_vehicle_exact",
     "get_vehicle",
     "retrieve_vehicle_facts",
+    "retrieve_service_history",
     "retrieve_magazine_reviews",
     "compare_vehicles",
 }
@@ -70,7 +71,11 @@ def build_prompt_context(
     ]
     earlier_summary = _summarize_earlier_turns(history[:recent_start])
     active_id = state.preferences.selected_vehicle_id or (state.last_vehicle_ids[0] if state.last_vehicle_ids else None)
-    active_vehicle = inventory.get(active_id).to_dict() if active_id and inventory.get(active_id) else None
+    active_vehicle = (
+        inventory.get(active_id).to_dict(include_service_history=False)
+        if active_id and inventory.get(active_id)
+        else None
+    )
     latest_grounding = _latest_grounding(history)
     return ConversationPromptContext(
         recent_turns=recent_turns,

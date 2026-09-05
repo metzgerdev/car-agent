@@ -31,7 +31,10 @@ class SalesTools:
             driving_style=filters.get("driving_style"),
         )
         vehicles = self.inventory.search(preferences, filters.get("query"))
-        return {"count": len(vehicles), "vehicles": [vehicle.to_dict() for vehicle in vehicles]}
+        return {
+            "count": len(vehicles),
+            "vehicles": [vehicle.to_dict(include_service_history=False) for vehicle in vehicles],
+        }
 
     def lookup_vehicle_exact(self, query: dict[str, Any]) -> dict[str, Any]:
         """Check exact year/make/model availability without fuzzy matching."""
@@ -46,7 +49,7 @@ class SalesTools:
             and _normalize_identity(vehicle.make) == normalized_make
             and _normalize_identity(vehicle.model) == normalized_model
         ]
-        match_dicts = [vehicle.to_dict() for vehicle in matches]
+        match_dicts = [vehicle.to_dict(include_service_history=False) for vehicle in matches]
         if len(matches) == 1:
             result = ExactVehicleLookupResult(
                 exact_match=True,
@@ -74,7 +77,7 @@ class SalesTools:
         vehicle = self.inventory.get(vehicle_id)
         if not vehicle:
             return {"found": False, "error": "Vehicle not found."}
-        return {"found": True, "vehicle": vehicle.to_dict()}
+        return {"found": True, "vehicle": vehicle.to_dict(include_service_history=False)}
 
     def retrieve_vehicle_facts(self, vehicle_id: str, topic: str | None = None) -> dict[str, Any]:
         facts = self.knowledge.retrieve(vehicle_id, topic)
@@ -82,6 +85,28 @@ class SalesTools:
             "vehicle_id": vehicle_id,
             "facts": [fact.to_dict() for fact in facts],
             "source_count": len({fact.source for fact in facts}),
+        }
+
+    def retrieve_service_history(self, vehicle_id: str) -> dict[str, Any]:
+        """Return listing-level service records, including their demo provenance."""
+
+        vehicle = self.inventory.get(vehicle_id)
+        if not vehicle:
+            return {
+                "found": False,
+                "vehicle_id": vehicle_id,
+                "service_history": [],
+                "record_count": 0,
+                "error": "Vehicle not found.",
+            }
+        records = [record.to_dict() for record in vehicle.service_history]
+        return {
+            "found": True,
+            "vehicle_id": vehicle.id,
+            "vehicle_name": vehicle.name,
+            "service_history": records,
+            "record_count": len(records),
+            "synthetic": all(record["source"] == "synthetic_demo" for record in records),
         }
 
     def retrieve_magazine_reviews(self, vehicle_id: str) -> dict[str, Any]:
@@ -102,7 +127,7 @@ class SalesTools:
         vehicles = [self.inventory.get(vehicle_id) for vehicle_id in vehicle_ids]
         found = [vehicle for vehicle in vehicles if vehicle]
         return {
-            "vehicles": [vehicle.to_dict() for vehicle in found],
+            "vehicles": [vehicle.to_dict(include_service_history=False) for vehicle in found],
             "missing_ids": [vehicle_id for vehicle_id, vehicle in zip(vehicle_ids, vehicles) if not vehicle],
         }
 

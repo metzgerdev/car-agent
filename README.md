@@ -2,7 +2,7 @@
 
 This is a portfolio demo of a used classic-sports-car sales agent. It is deliberately built around explicit state, typed tools, retrieval, and an inspectable tool trace so its behavior can be evaluated independently of a language model. CrewAI provides the live `Agent`/`Task`/`Crew` orchestration boundary, while the default mode remains deterministic and offline.
 
-The current slice supports preference discovery, exact availability lookup, inventory search, vehicle facts, comparisons, and a validated mock test-drive request. CrewAI 1.15.x is supported on the Python 3.12.13 baseline. The HTTP app loads the local `.env` and uses its `OPENROUTER_API_KEY` for live CrewAI turns; the acceptance verifier remains explicitly offline.
+The current slice supports preference discovery, exact availability lookup, inventory search, vehicle facts, synthetic service-history retrieval, comparisons, and a validated mock test-drive request. CrewAI 1.15.x is supported on the Python 3.12.13 baseline. The HTTP app loads the local `.env` and uses its `OPENROUTER_API_KEY` for live CrewAI turns; the acceptance verifier remains explicitly offline.
 
 ## Run locally
 
@@ -89,6 +89,12 @@ from an unbounded transcript.
 When recommendations are available, the advisor can include curated Car and
 Driver and MotorTrend review links in its response. These are editorial
 context, not condition reports for a specific listing.
+
+The advisor can also answer questions about a car's service history. The
+dedicated `retrieve_service_history` tool returns typed listing records and
+appears in the Tool Trace. These records are synthetic demo data, clearly
+marked as `synthetic_demo`; they demonstrate a separate inventory enrichment
+source and must not be treated as seller documents or a real condition report.
 
 The advisor can also answer a contextual request such as `summarize magazine
 reviews of the car`. It retrieves the curated review records, passes those

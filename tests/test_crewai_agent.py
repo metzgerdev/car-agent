@@ -23,6 +23,7 @@ def test_crewai_crew_is_constructed_without_an_api_key() -> None:
         "lookup_vehicle_exact",
         "get_vehicle",
         "retrieve_vehicle_facts",
+        "retrieve_service_history",
         "retrieve_magazine_reviews",
         "compare_vehicles",
         "schedule_test_drive",
