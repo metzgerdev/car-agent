@@ -79,6 +79,13 @@ resolves “those two” and “similar cars.” Clear contextual requests for d
 facts, comparisons, alternatives, or scheduling are routed to the grounded
 domain tools before the live model is used for open-ended language.
 
+The live model uses a hybrid context window. The backend retains the complete
+typed turn log for the conversation, but each CrewAI prompt receives only the
+latest four turns, a bounded summary of older turns, the active vehicle record,
+and the latest non-sensitive grounding result. This keeps prompts useful and
+bounded without making the model responsible for reconstructing business state
+from an unbounded transcript.
+
 When recommendations are available, the advisor can include curated Car and
 Driver and MotorTrend review links in its response. These are editorial
 context, not condition reports for a specific listing.
