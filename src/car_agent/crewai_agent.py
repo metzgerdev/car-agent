@@ -22,6 +22,7 @@ from .agent import DemoSalesAgent, TraceObserver
 from .conversation_context import ConversationTurn, build_prompt_context
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall
+from .persona import CLASSIC_CAR_PERSONA
 from .profiling import TimingRecorder
 from .repositories import PROJECT_ROOT
 from .tools import SalesTools
@@ -365,17 +366,9 @@ class CrewAISalesAgent:
             "sourced summaries and links; do not claim review access is unavailable when the tool returns reviews."
         )
         salesperson = Agent(
-            role="Classic Sports Car Sales Advisor",
-            goal="Qualify a shopper, recommend only grounded inventory, and convert interest into a validated test-drive request.",
-            backstory=(
-                "You are a careful specialist in used classic and modern-classic sports cars. "
-                "You ask only useful questions, respect hard budgets, distinguish sourced facts "
-                "from judgment, and never invent inventory or ownership claims. If a shopper "
-                "names only a make with multiple matches, ask them to choose a specific model. "
-                "If a requested specification is not sourced, say so plainly and offer an "
-                "official lookup or inspection. When a shopper raises price or maintenance, "
-                "retrieve a sourced note and explain the trade-off."
-            ),
+            role=CLASSIC_CAR_PERSONA.role,
+            goal=CLASSIC_CAR_PERSONA.goal,
+            backstory=CLASSIC_CAR_PERSONA.backstory,
             llm=self._live_llm(),
             tools=crew_tools,
             allow_delegation=False,
@@ -401,7 +394,8 @@ class CrewAISalesAgent:
                 f"{review_instructions} "
                 "Preserve prior state, enforce the budget as a hard constraint, and ask no more "
                 "than two useful questions in one turn. Never guess an ambiguous model or an "
-                "unsupported specification. Return a concise response plus the complete "
+                "unsupported specification. "
+                f"{CLASSIC_CAR_PERSONA.task_guidance} Return a concise response plus the complete "
                 "updated domain state."
             ),
             expected_output="A JSON object with message (string) and state (object).",

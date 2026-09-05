@@ -156,6 +156,16 @@ uvicorn car_agent.app:app --reload
 
 For deterministic local checks, use `car-agent-verify --strict`; it never makes model calls. Both paths return the same domain response shape: message, conversation state, and tool trace.
 
+### Salesperson character
+
+The advisor uses the shared `CLASSIC_CAR_PERSONA` contract in
+[`src/car_agent/persona.py`](src/car_agent/persona.py). It gives the live
+CrewAI agent a named, consultative character—Alex—through its role, goal, and
+backstory, while the deterministic demo uses the same user-facing voice. The
+character is enthusiastic but not pushy: it explains trade-offs, distinguishes
+facts from opinions, never invents inventory or specifications, and ends with
+a natural next step.
+
 ## Verify Phase 1 interactively
 
 After installing the project, run:

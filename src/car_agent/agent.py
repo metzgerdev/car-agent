@@ -12,6 +12,7 @@ from typing import Any, Callable, Literal
 
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall, Vehicle
+from .persona import CLASSIC_CAR_PERSONA
 from .profiling import TimingRecorder
 from .tools import SalesTools
 
@@ -45,7 +46,11 @@ class DemoSalesAgent:
         message = user_message.strip()
         trace: list[ToolCall] = []
         if not message:
-            return AgentResponse("Tell me a little about the car you’re shopping for.", state, trace)
+            return AgentResponse(
+                f"{CLASSIC_CAR_PERSONA.greeting} Tell me a little about the car you’re shopping for.",
+                state,
+                trace,
+            )
 
         with self.profiler.span("agent.preference_parsing"):
             preference_changed = self._update_preferences(state.preferences, message)
@@ -574,7 +579,7 @@ class DemoSalesAgent:
 
     @staticmethod
     def _recommendation_message(vehicles: list[dict[str, Any]], facts: dict[str, Any]) -> str:
-        lines = ["I found a few promising matches:"]
+        lines = [f"{CLASSIC_CAR_PERSONA.recommendation_opening}:"]
         for vehicle in vehicles[:3]:
             lines.append(f"- {vehicle['name']} — ${vehicle['price']:,}, {vehicle['mileage']:,} miles; {vehicle['description']}")
         if facts.get("facts"):
@@ -595,7 +600,7 @@ class DemoSalesAgent:
         if not result.get("found"):
             return "I couldn’t find that vehicle in the current inventory."
         vehicle = result["vehicle"]
-        return f"The {vehicle['name']} is listed at ${vehicle['price']:,} with {vehicle['mileage']:,} miles. {vehicle['description']} Would you like the ownership notes or a test drive?"
+        return f"{CLASSIC_CAR_PERSONA.detail_opening}: the {vehicle['name']} is listed at ${vehicle['price']:,} with {vehicle['mileage']:,} miles. {vehicle['description']} Would you like the ownership notes or a test drive?"
 
     @staticmethod
     def _facts_question(message: str) -> bool:
