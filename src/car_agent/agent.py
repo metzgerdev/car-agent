@@ -62,6 +62,9 @@ class DemoSalesAgent:
         if exact_query:
             return self._lookup_exact(state, exact_query, trace)
 
+        if self._is_alternative_request(message) and state.last_vehicle_ids:
+            return self._similar_options(state, mentioned_vehicles, trace)
+
         ambiguous_make = self._ambiguous_make(message, mentioned_vehicles)
         if ambiguous_make:
             state.stage = "qualifying"
@@ -125,6 +128,77 @@ class DemoSalesAgent:
             state,
             trace,
         )
+
+    def _similar_options(
+        self,
+        state: ConversationState,
+        mentioned_vehicles: list[Vehicle],
+        trace: list[ToolCall],
+    ) -> AgentResponse:
+        """Explain grounded alternatives when a shopper asks for similar cars."""
+
+        excluded_ids = {
+            vehicle.id for vehicle in mentioned_vehicles
+        }
+        if state.preferences.selected_vehicle_id:
+            excluded_ids.add(state.preferences.selected_vehicle_id)
+        candidate_ids = [vehicle_id for vehicle_id in state.last_vehicle_ids if vehicle_id not in excluded_ids]
+
+        # A successful exact lookup only leaves the selected vehicle in state,
+        # so fall back to an inventory search for other grounded options.
+        if not candidate_ids:
+            preferences = state.preferences
+            filters = {
+                key: value
+                for key, value in {
+                    "budget_max": preferences.budget_max,
+                    "intended_use": preferences.intended_use,
+                    "body_style": preferences.body_style,
+                    "driving_style": preferences.driving_style,
+                    "query": "sports car",
+                }.items()
+                if value is not None
+            }
+            search = self._call(
+                trace,
+                "search_inventory",
+                {"filters": filters},
+                lambda: self.tools.search_inventory(filters),
+            )
+            candidate_ids = [
+                vehicle.get("id")
+                for vehicle in search.get("vehicles", [])
+                if vehicle.get("id") not in excluded_ids
+            ]
+
+        vehicles: list[dict[str, Any]] = []
+        for vehicle_id in candidate_ids[:3]:
+            result = self._call(
+                trace,
+                "get_vehicle",
+                {"vehicle_id": vehicle_id},
+                lambda vehicle_id=vehicle_id: self.tools.get_vehicle(vehicle_id),
+            )
+            if result.get("found") and result.get("vehicle"):
+                vehicles.append(result["vehicle"])
+
+        if not vehicles:
+            state.stage = "qualifying"
+            return AgentResponse(
+                "I don’t have other grounded sports-car options to show right now. Would you like to broaden the model or budget criteria?",
+                state,
+                trace,
+            )
+
+        state.last_vehicle_ids = [vehicle["id"] for vehicle in vehicles]
+        state.stage = "recommending"
+        lines = ["Absolutely—here are similar sports cars currently in inventory:"]
+        for vehicle in vehicles:
+            lines.append(
+                f"- {vehicle['name']} — ${vehicle['price']:,}, {vehicle['mileage']:,} miles; {vehicle['description']}"
+            )
+        lines.append("Would you like more details on one of these?")
+        return AgentResponse("\n".join(lines), state, trace)
 
     def _lookup_exact(
         self,
@@ -527,6 +601,23 @@ class DemoSalesAgent:
     @staticmethod
     def _is_compare_request(message: str) -> bool:
         return "compar" in message.lower() or "versus" in message.lower() or re.search(r"\bvs\.?\b", message.lower()) is not None
+
+    @staticmethod
+    def _is_alternative_request(message: str) -> bool:
+        lowered = message.lower()
+        return any(
+            phrase in lowered
+            for phrase in (
+                "similar sports car",
+                "similar car",
+                "similar vehicle",
+                "something similar",
+                "other option",
+                "other car",
+                "alternative",
+                "what else",
+            )
+        )
 
     def _exact_vehicle_query(self, message: str) -> ExactVehicleQuery | None:
         if not self._is_availability_request(message):

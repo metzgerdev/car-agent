@@ -66,6 +66,20 @@ def test_phase3_bare_vehicle_identity_is_an_exact_availability_request() -> None
     assert "2001 bmw m3" in response.message.lower()
 
 
+def test_phase3_similar_followup_uses_grounded_alternatives_from_unavailable_lookup() -> None:
+    agent = DemoSalesAgent()
+
+    first = agent.respond("phase3-similar", "Do you have a 1999 BMW Z4 in inventory?")
+    followup = agent.respond("phase3-similar", "Yeah, tell me about similar sports cars.")
+
+    assert first.state.last_vehicle_ids
+    assert [call.name for call in followup.trace] == ["get_vehicle", "get_vehicle", "get_vehicle"]
+    assert "similar sports cars currently in inventory" in followup.message
+    assert "2008 BMW Z4 M Coupe" in followup.message
+    assert "2004 Honda S2000" in followup.message
+    assert "clarify" not in followup.message.lower()
+
+
 def test_phase3_agent_summarizes_reviews_for_the_last_vehicle() -> None:
     agent = DemoSalesAgent()
     agent.respond("phase3-reviews", "I want a weekend roadster under $40k with spirited driving.")

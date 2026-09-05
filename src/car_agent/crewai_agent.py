@@ -262,6 +262,21 @@ class CrewAISalesAgent:
                 user_message,
                 trace_observer=trace_observer,
             )
+        # A follow-up such as "tell me about similar sports cars" refers to
+        # grounded alternatives already stored by an unavailable lookup. Keep
+        # this contextual handoff deterministic so the model cannot ask the
+        # shopper to restate a clear request.
+        previous_state = self.sessions.get(conversation_id)
+        if (
+            previous_state
+            and previous_state.last_vehicle_ids
+            and self.deterministic_agent._is_alternative_request(user_message)
+        ):
+            return self.deterministic_agent.respond(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+            )
         if self.deterministic_agent._is_review_request(user_message):
             return self._respond_live_review(
                 conversation_id,

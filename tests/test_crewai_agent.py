@@ -76,6 +76,22 @@ def test_live_facade_completes_bare_vehicle_lookup_without_model_call(monkeypatc
     assert "2001 bmw m3" in response.message.lower()
 
 
+def test_live_facade_routes_clear_similar_followup_to_grounded_alternatives(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+    agent.respond("live-similar", "Do you have a 1999 BMW Z4 in inventory?")
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("a clear alternatives follow-up should not ask the model to clarify")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-similar", "Yeah, tell me about similar sports cars.")
+
+    assert [call.name for call in response.trace] == ["get_vehicle", "get_vehicle", "get_vehicle"]
+    assert "2008 BMW Z4 M Coupe" in response.message
+    assert "2004 Honda S2000" in response.message
+
+
 def test_live_facade_synthesizes_contextual_magazine_reviews_with_model(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
     agent.sessions["live-review"] = ConversationState(
