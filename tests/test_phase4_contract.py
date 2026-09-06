@@ -57,6 +57,7 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("javascript" in asset.headers.get("content-type", "") for asset in assets)
     css_assets = [asset.text for asset in assets if "text/css" in asset.headers.get("content-type", "")]
     javascript_assets = [asset.text for asset in assets if "javascript" in asset.headers.get("content-type", "")]
+    vite_config_source = (Path(__file__).parents[1] / "frontend" / "vite.config.ts").read_text()
     assert any("--chat-bg" in css for css in css_assets)
     assert any("color-scheme:dark" in css.replace(" ", "") for css in css_assets)
     assert any("trace-phase" in css for css in css_assets)
@@ -66,6 +67,7 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("trace-purpose" in javascript for javascript in javascript_assets)
     assert all("Guide the shopper" not in javascript for javascript in javascript_assets)
     assert all("Shopper profile" not in javascript for javascript in javascript_assets)
+    assert '"/voice"' not in vite_config_source
 
 
 def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:

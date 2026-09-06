@@ -270,7 +270,6 @@ class CrewAISalesAgent:
             else use_live_model
         )
         self.llm = llm or os.getenv("CAR_AGENT_CREWAI_MODEL") or "openrouter/deepseek/deepseek-chat"
-        self.last_crew: Crew | None = None
 
     def respond(
         self,
@@ -475,7 +474,7 @@ class CrewAISalesAgent:
             agent=salesperson,
             output_pydantic=CrewTurnOutput,
         )
-        self.last_crew = Crew(
+        return Crew(
             name="classic_car_sales_crew",
             agents=[salesperson],
             tasks=[turn],
@@ -485,7 +484,6 @@ class CrewAISalesAgent:
             tracing=False,
             stream=stream,
         )
-        return self.last_crew
 
     def _live_llm(self) -> LLM | None:
         if not self.use_live_model:

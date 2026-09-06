@@ -10,20 +10,6 @@ import { Thread } from "./components/assistant-ui/elements/thread";
 import { mergeTraceHistory } from "./trace-history.js";
 import "./styles.css";
 
-type Preferences = {
-  budget_max?: number | null;
-  intended_use?: string | null;
-  body_style?: string | null;
-  driving_style?: string | null;
-  selected_vehicle_id?: string | null;
-};
-
-type ConversationState = {
-  stage?: string;
-  preferences?: Preferences;
-  last_vehicle_ids?: string[];
-};
-
 type ToolCall = {
   name: string;
   arguments: Record<string, unknown>;
@@ -34,25 +20,9 @@ type ToolCall = {
   duration_ms: number;
 };
 
-type Review = {
-  id: string;
-  outlet: string;
-  title: string;
-  url: string;
-  summary: string;
-};
-
-type ReviewGroup = {
-  vehicle_id: string;
-  vehicle_name: string;
-  reviews: Review[];
-};
-
 type ChatPayload = {
   message: string;
-  state: ConversationState;
   trace: ToolCall[];
-  reviews: ReviewGroup[];
 };
 
 type TraceStreamEvent = {
@@ -70,18 +40,14 @@ type TraceStreamEvent = {
 type ActiveTrace = Omit<TraceStreamEvent, "status" | "call"> & { status: "running" };
 
 type Dashboard = {
-  state: ConversationState;
   trace: ToolCall[];
-  reviews: ReviewGroup[];
   activeTrace: ActiveTrace[];
   turnTraceCount: number;
   isProcessing: boolean;
 };
 
 const EMPTY_DASHBOARD: Dashboard = {
-  state: { stage: "qualifying", preferences: {}, last_vehicle_ids: [] },
   trace: [],
-  reviews: [],
   activeTrace: [],
   turnTraceCount: 0,
   isProcessing: false,
@@ -395,9 +361,7 @@ function App() {
   const handleResponse = useCallback(
     (payload: ChatPayload) => setDashboard((current) => {
       return {
-        state: payload.state,
         trace: mergeTraceHistory(current.trace, current.turnTraceCount, payload.trace),
-        reviews: payload.reviews,
         activeTrace: [],
         turnTraceCount: 0,
         isProcessing: false,

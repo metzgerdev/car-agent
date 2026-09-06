@@ -69,7 +69,7 @@ a { color: #65b8a2; }
   text-transform: uppercase;
 }
 .topbar-actions { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
-.status-pill, .stage-badge, .step-count {
+.status-pill, .step-count {
   border-radius: 999px;
   font-size: 0.68rem;
   font-weight: 700;
@@ -239,50 +239,16 @@ a { color: #65b8a2; }
 .aui-mode-dot { width: 6px; height: 6px; background: var(--chat-green); border-radius: 50%; }
 .aui-composer-hint { text-align: right; }
 
-.button, .prompt-button, .review-button, .text-button, .dialog-close { transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease; }
+.button, .text-button { transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease; }
 .button { padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; font-size: 0.79rem; font-weight: 650; }
-.button:hover, .prompt-button:hover, .review-button:hover { transform: translateY(-1px); }
-.button-primary { color: #fff; background: var(--chat-green); }
-.button-primary:hover { background: #0d8f70; }
+.button:hover { transform: translateY(-1px); }
 .button-secondary { color: var(--chat-text); background: rgba(255, 255, 255, 0.06); border-color: var(--chat-border); }
 .button-secondary:hover { background: var(--chat-input-hover); border-color: var(--chat-border-strong); }
 .text-button { padding: 3px 0; color: #73cdb6; background: transparent; border: 0; font-size: 0.78rem; text-decoration: underline; }
 .sidebar { display: grid; gap: 12px; }
-.quick-start, .evidence-card { padding: 17px; }
+.evidence-card { padding: 17px; }
 .section-heading { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
-.quick-prompts { display: grid; gap: 7px; }
-.prompt-button {
-  width: 100%;
-  padding: 9px 10px;
-  color: var(--chat-muted);
-  text-align: left;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid var(--chat-border);
-  border-radius: 8px;
-  font-size: 0.78rem;
-}
-.prompt-button:hover { color: var(--chat-text); background: var(--chat-input-hover); border-color: var(--chat-border-strong); }
-.profile-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; margin: 0; }
-.profile-list div { min-width: 0; }
-.profile-list dt { margin-bottom: 2px; color: var(--chat-subtle); font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.06em; }
-.profile-list dd { margin: 0; overflow: hidden; color: var(--chat-text); font-size: 0.8rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-.stage-badge { padding: 4px 8px; color: #8fe4ce; background: var(--chat-green-soft); text-transform: capitalize; }
 .step-count { color: var(--chat-subtle); font-size: 0.7rem; }
-.reviews-list { display: grid; gap: 8px; }
-.review-group { display: grid; gap: 6px; }
-.review-group + .review-group { padding-top: 10px; border-top: 1px solid var(--chat-border); }
-.review-vehicle { margin: 0; color: var(--chat-text); font-size: 0.77rem; font-weight: 700; }
-.review-button { display: block; width: 100%; padding: 8px 9px; color: var(--chat-text); text-align: left; background: rgba(255, 255, 255, 0.035); border: 1px solid var(--chat-border); border-radius: 7px; }
-.review-button:hover { background: var(--chat-input-hover); border-color: var(--chat-border-strong); }
-.review-outlet { display: block; margin-bottom: 2px; color: #73cdb6; font-size: 0.63rem; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
-.review-title { display: block; color: var(--chat-muted); font-size: 0.76rem; font-weight: 600; }
-.review-overlay { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.72); }
-.review-dialog { width: min(540px, 100%); padding: 22px; color: var(--chat-text); background: #2a2a2a; border: 1px solid var(--chat-border-strong); border-radius: 12px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5); }
-.dialog-heading { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
-.dialog-close { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; color: var(--chat-muted); background: rgba(255, 255, 255, 0.08); border: 0; border-radius: 50%; font-size: 1.25rem; line-height: 1; }
-.dialog-close:hover { color: var(--chat-text); background: rgba(255, 255, 255, 0.15); }
-.dialog-vehicle { margin: 18px 0 8px; color: #73cdb6; font-size: 0.8rem; font-weight: 750; }
-.dialog-summary { margin-bottom: 20px; color: var(--chat-muted); }
 .trace-progress { display: grid; gap: 6px; padding: 8px 9px 9px; margin-bottom: 8px; background: var(--chat-green-soft); border: 1px solid rgba(16, 163, 127, 0.25); border-radius: 7px; }
 .trace-live { display: flex; align-items: center; gap: 8px; color: #9de8d3; font-size: 0.73rem; }
 .trace-spinner { width: 8px; height: 8px; flex: 0 0 auto; border: 2px solid rgba(157, 232, 211, 0.35); border-top-color: #9de8d3; border-radius: 50%; animation: spin 800ms linear infinite; }
