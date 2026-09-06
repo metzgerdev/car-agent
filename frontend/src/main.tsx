@@ -44,11 +44,29 @@ type ReviewGroup = {
   reviews: Review[];
 };
 
+type EvaluationMetadata = {
+  route: "deterministic" | "crewai_live";
+  route_reason: string;
+  total_ms: number;
+  phases: { name: string; duration_ms: number; share: number }[];
+  tools: { name: string; count: number }[];
+  sources: { name: string; kind: string; count: number }[];
+  confidence: { label: "high" | "medium" | "limited"; score: number; rationale: string };
+  recommendation_change: {
+    changed: boolean;
+    before: string[];
+    after: string[];
+    changed_preferences: string[];
+    reason: string;
+  };
+};
+
 type ChatPayload = {
   message: string;
   state: ConversationState;
   trace: ToolCall[];
   reviews: ReviewGroup[];
+  evaluation?: EvaluationMetadata | null;
 };
 
 type TraceStreamEvent = {
@@ -68,6 +86,7 @@ type Dashboard = {
   activeTrace: ActiveTrace[];
   turnTraceCount: number;
   isProcessing: boolean;
+  evaluation: EvaluationMetadata | null;
 };
 
 const EMPTY_DASHBOARD: Dashboard = {
@@ -77,6 +96,7 @@ const EMPTY_DASHBOARD: Dashboard = {
   activeTrace: [],
   turnTraceCount: 0,
   isProcessing: false,
+  evaluation: null,
 };
 
 function newConversationId() {
@@ -99,6 +119,7 @@ function latestUserText(messages: readonly ThreadMessage[]) {
 function createChatAdapter(
   conversationId: string,
   modality: "text" | "voice",
+  evaluationMode: boolean,
   onStreamStarted: () => void,
   onResponseDelta: () => void,
   onResponse: (payload: ChatPayload) => void,
@@ -117,7 +138,7 @@ function createChatAdapter(
             Accept: "text/event-stream",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ conversation_id: conversationId, message, modality }),
+          body: JSON.stringify({ conversation_id: conversationId, message, modality, evaluation: evaluationMode }),
           signal: abortSignal,
         });
         if (!response.ok) {
@@ -259,10 +280,85 @@ function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
   );
 }
 
+function EvaluationPanel({ evaluation }: { evaluation: EvaluationMetadata | null }) {
+  if (!evaluation) {
+    return (
+      <section className="panel evaluation-panel" aria-label="Agent evaluation">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Evaluation cockpit</p>
+            <h2>Ready for the next turn</h2>
+          </div>
+          <span className="eval-live-dot">ON</span>
+        </div>
+        <p className="empty-state">Send a message to inspect routing, latency, grounding, confidence, and recommendation changes.</p>
+      </section>
+    );
+  }
+
+  const maxPhase = Math.max(...evaluation.phases.map((phase) => phase.duration_ms), 1);
+  const routeLabel = evaluation.route === "deterministic" ? "Deterministic route" : "CrewAI / OpenRouter";
+  const recommendation = evaluation.recommendation_change;
+
+  return (
+    <section className="panel evaluation-panel" aria-label="Agent evaluation">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Evaluation cockpit</p>
+          <h2>{routeLabel}</h2>
+        </div>
+        <span className={`confidence-badge ${evaluation.confidence.label}`}>{evaluation.confidence.label} confidence</span>
+      </div>
+      <p className="evaluation-route-reason">{evaluation.route_reason}</p>
+      <div className="evaluation-metrics">
+        <div><span>Turn latency</span><strong>{evaluation.total_ms.toFixed(0)} ms</strong></div>
+        <div><span>Tool calls</span><strong>{evaluation.tools.reduce((sum, tool) => sum + tool.count, 0)}</strong></div>
+        <div><span>Sources</span><strong>{evaluation.sources.length}</strong></div>
+        <div><span>Confidence</span><strong>{Math.round(evaluation.confidence.score * 100)}%</strong></div>
+      </div>
+      <div className="evaluation-columns">
+        <div>
+          <p className="evaluation-label">Latency phases</p>
+          <div className="evaluation-phases">
+            {evaluation.phases.map((phase) => (
+              <div className="evaluation-phase" key={phase.name}>
+                <div className="evaluation-phase-heading">
+                  <span>{phase.name}</span>
+                  <strong>{phase.duration_ms.toFixed(1)} ms</strong>
+                </div>
+                <div className="evaluation-bar"><span style={{ width: `${Math.max(3, (phase.duration_ms / maxPhase) * 100)}%` }} /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="evaluation-label">Grounding coverage</p>
+          <div className="evaluation-source-list">
+            {evaluation.sources.length ? evaluation.sources.map((source) => (
+              <span className="evaluation-source" key={`${source.kind}-${source.name}`}>
+                {source.name} <small>{source.kind}</small>
+              </span>
+            )) : <span className="empty-state">No sources retrieved.</span>}
+          </div>
+          <p className="evaluation-confidence-note">{evaluation.confidence.rationale}</p>
+        </div>
+      </div>
+      <div className={`recommendation-delta${recommendation.changed ? " changed" : ""}`}>
+        <div className="evaluation-label">Recommendation delta</div>
+        <strong>{recommendation.changed ? "Changed this turn" : "No change"}</strong>
+        <span>{recommendation.reason}</span>
+        {recommendation.changed ? <div className="recommendation-sets"><span>Before: {recommendation.before.join(" · ") || "none"}</span><span>After: {recommendation.after.join(" · ") || "none"}</span></div> : null}
+      </div>
+    </section>
+  );
+}
+
 function AdvisorWorkspace({
   dashboard,
   modality,
   setModality,
+  evaluationMode,
+  setEvaluationMode,
   isSpeaking,
   onReset,
   connectionStatus,
@@ -270,6 +366,8 @@ function AdvisorWorkspace({
   dashboard: Dashboard;
   modality: "text" | "voice";
   setModality: (value: "text" | "voice") => void;
+  evaluationMode: boolean;
+  setEvaluationMode: (value: boolean) => void;
   isSpeaking: boolean;
   onReset: () => void;
   connectionStatus: "checking" | "connected" | "offline";
@@ -284,6 +382,9 @@ function AdvisorWorkspace({
         </div>
         <div className="topbar-actions">
           <span className={`status-pill ${connectionStatus}`}>{connectionStatus === "checking" ? "Checking API…" : connectionStatus === "connected" ? "API connected" : "API unavailable"}</span>
+          <button className={`button evaluation-toggle${evaluationMode ? " active" : ""}`} type="button" aria-pressed={evaluationMode} onClick={() => setEvaluationMode(!evaluationMode)}>
+            ◉ Evaluation {evaluationMode ? "on" : "off"}
+          </button>
           <button className="button button-secondary" type="button" onClick={onReset}>New conversation</button>
         </div>
       </header>
@@ -294,6 +395,7 @@ function AdvisorWorkspace({
         </div>
         <button className="text-button" type="button" onClick={onReset}>Start over</button>
       </section>
+      {evaluationMode ? <EvaluationPanel evaluation={dashboard.evaluation} /> : null}
       <div className="workspace">
         <section className="conversation-card panel" aria-label="Conversation">
         <Thread modality={modality} setModality={setModality} isProcessing={dashboard.isProcessing} isSpeaking={isSpeaking} />
@@ -310,6 +412,8 @@ function RuntimeShell({
   conversationId,
   modality,
   setModality,
+  evaluationMode,
+  setEvaluationMode,
   onStreamStarted,
   onResponseDelta,
   onResponse,
@@ -324,6 +428,8 @@ function RuntimeShell({
   conversationId: string;
   modality: "text" | "voice";
   setModality: (value: "text" | "voice") => void;
+  evaluationMode: boolean;
+  setEvaluationMode: (value: boolean) => void;
   onStreamStarted: () => void;
   onResponseDelta: () => void;
   onResponse: (payload: ChatPayload) => void;
@@ -336,8 +442,8 @@ function RuntimeShell({
   connectionStatus: "checking" | "connected" | "offline";
 }) {
   const adapter = useMemo(
-    () => createChatAdapter(conversationId, modality, onStreamStarted, onResponseDelta, onResponse, onResponseSpeech, onTrace, onStreamFinished),
-    [conversationId, modality, onStreamStarted, onResponseDelta, onResponse, onResponseSpeech, onTrace, onStreamFinished],
+    () => createChatAdapter(conversationId, modality, evaluationMode, onStreamStarted, onResponseDelta, onResponse, onResponseSpeech, onTrace, onStreamFinished),
+    [conversationId, modality, evaluationMode, onStreamStarted, onResponseDelta, onResponse, onResponseSpeech, onTrace, onStreamFinished],
   );
   const runtime = useLocalRuntime(adapter);
   return (
@@ -346,6 +452,8 @@ function RuntimeShell({
         dashboard={dashboard}
         modality={modality}
         setModality={setModality}
+        evaluationMode={evaluationMode}
+        setEvaluationMode={setEvaluationMode}
         isSpeaking={isSpeaking}
         onReset={onReset}
         connectionStatus={connectionStatus}
@@ -357,6 +465,7 @@ function RuntimeShell({
 function App() {
   const [conversationId, setConversationId] = useState(newConversationId);
   const [modality, setModality] = useState<"text" | "voice">("text");
+  const [evaluationMode, setEvaluationMode] = useState(false);
   const [dashboard, setDashboard] = useState<Dashboard>(EMPTY_DASHBOARD);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "offline">("checking");
@@ -423,6 +532,7 @@ function App() {
         activeTrace: [],
         turnTraceCount: 0,
         isProcessing: false,
+        evaluation: payload.evaluation ?? null,
       };
     }),
     [],
@@ -460,8 +570,10 @@ function App() {
     <RuntimeShell
       key={conversationId}
       conversationId={conversationId}
-      modality={modality}
-      setModality={setModality}
+        modality={modality}
+        setModality={setModality}
+        evaluationMode={evaluationMode}
+        setEvaluationMode={setEvaluationMode}
       onStreamStarted={handleStreamStarted}
       onResponseDelta={handleResponseDelta}
       onResponse={handleResponse}

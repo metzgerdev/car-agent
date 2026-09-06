@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from queue import Queue
 from threading import Thread
+from time import perf_counter
 from typing import Any, Iterator, Literal
 
 import httpx
@@ -29,6 +30,7 @@ class ChatRequest(BaseModel):
     conversation_id: str = Field(min_length=1)
     message: str = Field(min_length=1)
     modality: Literal["text", "voice"] = "text"
+    evaluation: bool = False
 
     @field_validator("conversation_id", "message")
     @classmethod
@@ -49,11 +51,54 @@ class VehicleReviewsResponse(BaseModel):
     reviews: list[MagazineReview]
 
 
+class EvaluationPhase(BaseModel):
+    name: str
+    duration_ms: float
+    share: float
+
+
+class EvaluationTool(BaseModel):
+    name: str
+    count: int
+
+
+class EvaluationSource(BaseModel):
+    name: str
+    kind: str
+    count: int
+
+
+class EvaluationConfidence(BaseModel):
+    label: Literal["high", "medium", "limited"]
+    score: float
+    rationale: str
+
+
+class RecommendationChange(BaseModel):
+    changed: bool
+    before: list[str]
+    after: list[str]
+    changed_preferences: list[str] = Field(default_factory=list)
+    reason: str
+
+
+class EvaluationMetadata(BaseModel):
+    route: Literal["deterministic", "crewai_live"]
+    route_reason: str
+    total_ms: float
+    phases: list[EvaluationPhase]
+    tools: list[EvaluationTool]
+    sources: list[EvaluationSource]
+    confidence: EvaluationConfidence
+    recommendation_change: RecommendationChange
+
+
 class ChatResponse(BaseModel):
     message: str
     state: dict[str, Any]
     trace: list[dict[str, Any]]
     reviews: list[VehicleReviewsResponse] = Field(default_factory=list)
+    evaluation: EvaluationMetadata | None = None
 
 
 class VoiceTokenResponse(BaseModel):
@@ -152,7 +197,13 @@ def create_app(
         command = normalize_command(request.conversation_id, request.message, request.modality)
         if "text/event-stream" in http_request.headers.get("accept", ""):
             return StreamingResponse(
-                _stream_chat(service, reviews, command.conversation_id, command.message),
+                _stream_chat(
+                    service,
+                    reviews,
+                    command.conversation_id,
+                    command.message,
+                    evaluation=request.evaluation,
+                ),
                 media_type="text/event-stream",
                 headers={
                     "Cache-Control": "no-cache",
@@ -160,9 +211,28 @@ def create_app(
                     "X-Accel-Buffering": "no",
                 },
             )
-        response = service.respond(command.conversation_id, command.message)
+        timing = _TurnEvaluation() if request.evaluation else None
+        before = _evaluation_snapshot(service, command.conversation_id)
+        route, route_reason = _evaluation_route(service, command.conversation_id, command.message)
+        if timing:
+            response = service.respond(
+                command.conversation_id,
+                command.message,
+                trace_observer=timing.observe,
+            )
+        else:
+            response = service.respond(command.conversation_id, command.message)
         payload = response.to_dict()
         payload["reviews"] = _reviews_for_response(service, response, reviews)
+        if timing:
+            payload["evaluation"] = _build_evaluation(
+                service,
+                response,
+                before,
+                route,
+                route_reason,
+                timing,
+            )
         return ChatResponse.model_validate(payload)
 
 
@@ -185,12 +255,17 @@ def _stream_chat(
     repository: ReviewRepository,
     conversation_id: str,
     message: str,
+    *,
+    evaluation: bool = False,
 ) -> Iterator[str]:
     """Run one synchronous agent turn while yielding trace events as tools run."""
 
     events: Queue[tuple[str, dict[str, Any]] | None] = Queue()
     pending_trace_ids: dict[str, list[str]] = {}
     trace_counter = 0
+    timing = _TurnEvaluation() if evaluation else None
+    before = _evaluation_snapshot(service, conversation_id)
+    route, route_reason = _evaluation_route(service, conversation_id, message)
 
     def observe(
         status: Literal["start", "complete"],
@@ -199,6 +274,8 @@ def _stream_chat(
         call: ToolCall | None,
     ) -> None:
         nonlocal trace_counter
+        if timing:
+            timing.observe(status, name)
         if status == "start":
             trace_counter += 1
             trace_id = f"trace-{trace_counter}"
@@ -228,6 +305,15 @@ def _stream_chat(
             )
             payload = response.to_dict()
             payload["reviews"] = _reviews_for_response(service, response, repository)
+            if timing:
+                payload["evaluation"] = _build_evaluation(
+                    service,
+                    response,
+                    before,
+                    route,
+                    route_reason,
+                    timing,
+                )
             events.put(("response", ChatResponse.model_validate(payload).model_dump(mode="json")))
         except Exception as exc:  # pragma: no cover - surfaced through the client event
             events.put(("error", {"message": str(exc)}))
@@ -278,6 +364,206 @@ def _redacted_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
 
 app = create_app()
 agent: CrewAISalesAgent = app.state.agent
+
+
+class _TurnEvaluation:
+    def __init__(self) -> None:
+        self.started_at = perf_counter()
+        self._pending: dict[str, list[float]] = {}
+        self.tool_durations: dict[str, list[float]] = {}
+
+    def observe(
+        self,
+        status: Literal["start", "complete"],
+        name: str,
+        _arguments: dict[str, Any] | None = None,
+        _call: ToolCall | None = None,
+    ) -> None:
+        if status == "start":
+            self._pending.setdefault(name, []).append(perf_counter())
+            return
+        starts = self._pending.get(name, [])
+        started = starts.pop(0) if starts else None
+        if started is not None:
+            self.tool_durations.setdefault(name, []).append((perf_counter() - started) * 1000)
+
+    @property
+    def total_ms(self) -> float:
+        return (perf_counter() - self.started_at) * 1000
+
+
+def _evaluation_route(
+    service: CrewAISalesAgent,
+    conversation_id: str,
+    message: str,
+) -> tuple[Literal["deterministic", "crewai_live"], str]:
+    route_method = getattr(service, "evaluation_route", None)
+    if callable(route_method):
+        route, reason = route_method(conversation_id, message)
+        return route, reason
+    route = "crewai_live" if getattr(service, "use_live_model", False) else "deterministic"
+    return route, "The configured agent facade selected this execution path."
+
+
+def _evaluation_snapshot(service: CrewAISalesAgent, conversation_id: str) -> dict[str, Any]:
+    state = getattr(service, "sessions", {}).get(conversation_id)
+    if state is None:
+        return {"vehicle_ids": [], "preferences": {}}
+    preferences = state.preferences.to_dict()
+    preferences.pop("name", None)
+    preferences.pop("email", None)
+    return {"vehicle_ids": list(state.last_vehicle_ids), "preferences": preferences}
+
+
+def _build_evaluation(
+    service: CrewAISalesAgent,
+    response: Any,
+    before: dict[str, Any],
+    route: Literal["deterministic", "crewai_live"],
+    route_reason: str,
+    timing: _TurnEvaluation,
+) -> dict[str, Any]:
+    total_ms = max(timing.total_ms, 0.0)
+    tool_total_ms = sum(sum(values) for values in timing.tool_durations.values())
+    decision_ms = max(0.0, total_ms - tool_total_ms)
+    phase_name = "CrewAI / OpenRouter" if route == "crewai_live" else "Deterministic policy"
+    raw_phases: list[tuple[str, float]] = [(phase_name, decision_ms)]
+    raw_phases.extend(
+        (f"Tool: {name}", sum(durations))
+        for name, durations in timing.tool_durations.items()
+    )
+    phases = [
+        {
+            "name": name,
+            "duration_ms": round(duration, 2),
+            "share": round((duration / total_ms * 100) if total_ms else 0.0, 1),
+        }
+        for name, duration in raw_phases
+        if duration > 0.0
+    ]
+    tool_counts: dict[str, int] = {}
+    for call in response.trace:
+        tool_counts[call.name] = tool_counts.get(call.name, 0) + 1
+    sources = _source_coverage(response.trace)
+    confidence = _confidence(response.trace, len(sources))
+    after_ids = list(response.state.last_vehicle_ids)
+    before_ids = list(before.get("vehicle_ids", []))
+    changed_preferences = [
+        key
+        for key, value in response.state.preferences.to_dict().items()
+        if key not in {"name", "email"} and value != before.get("preferences", {}).get(key)
+    ]
+    recommendation_changed = before_ids != after_ids
+    if recommendation_changed:
+        if changed_preferences:
+            reason = f"The turn changed {', '.join(changed_preferences)} and refreshed grounded vehicle options."
+        else:
+            reason = "The turn requested a new grounded vehicle set or selected a different vehicle."
+    elif changed_preferences:
+        reason = f"The turn updated {', '.join(changed_preferences)}, but the current vehicle set stayed the same."
+    else:
+        reason = "No recommendation change was detected for this turn."
+    tools = getattr(service, "tools", None)
+    inventory = getattr(tools, "inventory", None)
+    return EvaluationMetadata(
+        route=route,
+        route_reason=route_reason,
+        total_ms=round(total_ms, 2),
+        phases=[EvaluationPhase.model_validate(phase) for phase in phases],
+        tools=[EvaluationTool(name=name, count=count) for name, count in tool_counts.items()],
+        sources=[EvaluationSource.model_validate(source) for source in sources],
+        confidence=confidence,
+        recommendation_change=RecommendationChange(
+            changed=recommendation_changed,
+            before=_vehicle_names(inventory, before_ids),
+            after=_vehicle_names(inventory, after_ids),
+            changed_preferences=changed_preferences,
+            reason=reason,
+        ),
+    ).model_dump(mode="json")
+
+
+def _vehicle_names(inventory: Any, vehicle_ids: list[str]) -> list[str]:
+    if inventory is None:
+        return vehicle_ids
+    names: list[str] = []
+    for vehicle_id in vehicle_ids:
+        vehicle = inventory.get(vehicle_id)
+        names.append(vehicle.name if vehicle else vehicle_id)
+    return names
+
+
+def _source_coverage(trace: list[ToolCall]) -> list[dict[str, Any]]:
+    coverage: dict[str, dict[str, Any]] = {}
+
+    def add(name: Any, kind: str) -> None:
+        if not isinstance(name, str) or not name:
+            return
+        entry = coverage.setdefault(name, {"name": name, "kind": kind, "count": 0})
+        entry["count"] += 1
+
+    def inspect(value: Any) -> None:
+        if not isinstance(value, dict):
+            return
+        provenance = value.get("provenance")
+        if isinstance(provenance, dict):
+            add(provenance.get("source_type"), "inventory")
+        facts = value.get("facts")
+        if isinstance(facts, list):
+            for fact in facts:
+                if isinstance(fact, dict):
+                    add(fact.get("source"), "facts")
+        reviews = value.get("reviews")
+        if isinstance(reviews, list):
+            for review in reviews:
+                if isinstance(review, dict):
+                    add(review.get("outlet"), "editorial")
+        service_history = value.get("service_history")
+        if isinstance(service_history, list):
+            for record in service_history:
+                if isinstance(record, dict):
+                    add(record.get("source"), "service history")
+        for key in ("vehicle", "vehicles", "matches"):
+            nested = value.get(key)
+            if isinstance(nested, list):
+                for item in nested:
+                    inspect(item)
+            else:
+                inspect(nested)
+
+    for call in trace:
+        inspect(call.result)
+    return list(coverage.values())
+
+
+def _confidence(trace: list[ToolCall], source_count: int) -> EvaluationConfidence:
+    exact_match = any(
+        call.name == "lookup_vehicle_exact" and call.result.get("exact_match") is True
+        for call in trace
+    )
+    if exact_match:
+        return EvaluationConfidence(
+            label="high",
+            score=0.98,
+            rationale="Exact inventory availability was verified by the deterministic lookup tool.",
+        )
+    if trace and source_count >= 2:
+        return EvaluationConfidence(
+            label="high",
+            score=0.9,
+            rationale=f"The answer is grounded by {len(trace)} tool calls across {source_count} sources.",
+        )
+    if trace:
+        return EvaluationConfidence(
+            label="medium",
+            score=0.72,
+            rationale=f"The answer used {len(trace)} grounded tool call(s), but source diversity is limited.",
+        )
+    return EvaluationConfidence(
+        label="limited",
+        score=0.45,
+        rationale="No retrieval tool was used for this turn, so the evaluation has limited grounding evidence.",
+    )
 
 
 def _reviews_for_response(
