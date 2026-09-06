@@ -4,7 +4,7 @@ import {
   type ChatModelAdapter,
   type ThreadMessage,
 } from "@assistant-ui/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Thread } from "./components/assistant-ui/elements/thread";
 import { mergeTraceHistory } from "./trace-history.js";
@@ -98,11 +98,9 @@ function latestUserText(messages: readonly ThreadMessage[]) {
 
 function createChatAdapter(
   conversationId: string,
-  modality: "text" | "voice",
   onStreamStarted: () => void,
   onResponseDelta: () => void,
   onResponse: (payload: ChatPayload) => void,
-  onResponseSpeech: (text: string, modality: "text" | "voice") => void,
   onTrace: (event: TraceStreamEvent) => void,
   onStreamFinished: () => void,
 ): ChatModelAdapter {
@@ -117,7 +115,7 @@ function createChatAdapter(
             Accept: "text/event-stream",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ conversation_id: conversationId, message, modality }),
+          body: JSON.stringify({ conversation_id: conversationId, message }),
           signal: abortSignal,
         });
         if (!response.ok) {
@@ -142,7 +140,6 @@ function createChatAdapter(
           } else if (eventName === "response") {
             payload = data as ChatPayload;
             onResponse(payload);
-            onResponseSpeech(payload.message, modality);
           } else if (eventName === "error") {
             throw new Error(String((data as { message?: string }).message ?? "Advisor request failed."));
           } else if (eventName === "done") {
@@ -261,16 +258,10 @@ function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
 
 function AdvisorWorkspace({
   dashboard,
-  modality,
-  setModality,
-  isSpeaking,
   onReset,
   connectionStatus,
 }: {
   dashboard: Dashboard;
-  modality: "text" | "voice";
-  setModality: (value: "text" | "voice") => void;
-  isSpeaking: boolean;
   onReset: () => void;
   connectionStatus: "checking" | "connected" | "offline";
 }) {
@@ -296,7 +287,7 @@ function AdvisorWorkspace({
       </section>
       <div className="workspace">
         <section className="conversation-card panel" aria-label="Conversation">
-        <Thread modality={modality} setModality={setModality} isProcessing={dashboard.isProcessing} isSpeaking={isSpeaking} />
+        <Thread isProcessing={dashboard.isProcessing} />
         </section>
         <aside className="sidebar" aria-label="Agent evidence">
           <ToolTracePanel dashboard={dashboard} />
@@ -308,45 +299,34 @@ function AdvisorWorkspace({
 
 function RuntimeShell({
   conversationId,
-  modality,
-  setModality,
   onStreamStarted,
   onResponseDelta,
   onResponse,
-  onResponseSpeech,
   dashboard,
-  isSpeaking,
   onReset,
   connectionStatus,
   onTrace,
   onStreamFinished,
 }: {
   conversationId: string;
-  modality: "text" | "voice";
-  setModality: (value: "text" | "voice") => void;
   onStreamStarted: () => void;
   onResponseDelta: () => void;
   onResponse: (payload: ChatPayload) => void;
-  onResponseSpeech: (text: string, modality: "text" | "voice") => void;
   onTrace: (event: TraceStreamEvent) => void;
   onStreamFinished: () => void;
   dashboard: Dashboard;
-  isSpeaking: boolean;
   onReset: () => void;
   connectionStatus: "checking" | "connected" | "offline";
 }) {
   const adapter = useMemo(
-    () => createChatAdapter(conversationId, modality, onStreamStarted, onResponseDelta, onResponse, onResponseSpeech, onTrace, onStreamFinished),
-    [conversationId, modality, onStreamStarted, onResponseDelta, onResponse, onResponseSpeech, onTrace, onStreamFinished],
+    () => createChatAdapter(conversationId, onStreamStarted, onResponseDelta, onResponse, onTrace, onStreamFinished),
+    [conversationId, onStreamStarted, onResponseDelta, onResponse, onTrace, onStreamFinished],
   );
   const runtime = useLocalRuntime(adapter);
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <AdvisorWorkspace
         dashboard={dashboard}
-        modality={modality}
-        setModality={setModality}
-        isSpeaking={isSpeaking}
         onReset={onReset}
         connectionStatus={connectionStatus}
       />
@@ -356,22 +336,8 @@ function RuntimeShell({
 
 function App() {
   const [conversationId, setConversationId] = useState(newConversationId);
-  const [modality, setModality] = useState<"text" | "voice">("text");
   const [dashboard, setDashboard] = useState<Dashboard>(EMPTY_DASHBOARD);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "offline">("checking");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
-
-  const stopSpeaking = useCallback(() => {
-    audioRef.current?.pause();
-    audioRef.current = null;
-    if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
-    audioUrlRef.current = null;
-    setIsSpeaking(false);
-  }, []);
-
-  useEffect(() => stopSpeaking, [stopSpeaking]);
 
   useEffect(() => {
     fetch("/health")
@@ -383,31 +349,9 @@ function App() {
   }, []);
 
   const reset = () => {
-    stopSpeaking();
     setConversationId(newConversationId());
     setDashboard(EMPTY_DASHBOARD);
   };
-  const handleResponseSpeech = useCallback(async (text: string, turnModality: "text" | "voice") => {
-    if (turnModality !== "voice") return;
-    stopSpeaking();
-    setIsSpeaking(true);
-    try {
-      const response = await fetch("/voice/speak", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (!response.ok) throw new Error(`Voice playback failed: ${response.status}`);
-      const audio = new Audio(URL.createObjectURL(await response.blob()));
-      audioUrlRef.current = audio.src;
-      audioRef.current = audio;
-      audio.onended = stopSpeaking;
-      audio.onerror = stopSpeaking;
-      await audio.play();
-    } catch {
-      stopSpeaking();
-    }
-  }, [stopSpeaking]);
   const handleStreamStarted = useCallback(() => {
     setDashboard((current) => ({ ...current, activeTrace: [], turnTraceCount: 0, isProcessing: true }));
   }, []);
@@ -460,16 +404,12 @@ function App() {
     <RuntimeShell
       key={conversationId}
       conversationId={conversationId}
-      modality={modality}
-      setModality={setModality}
       onStreamStarted={handleStreamStarted}
       onResponseDelta={handleResponseDelta}
       onResponse={handleResponse}
-      onResponseSpeech={handleResponseSpeech}
       onTrace={handleTrace}
       onStreamFinished={handleStreamFinished}
       dashboard={dashboard}
-      isSpeaking={isSpeaking}
       onReset={reset}
       connectionStatus={connectionStatus}
     />

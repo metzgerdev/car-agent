@@ -38,28 +38,8 @@ returning the availability result.
 
 For the browser demo, open [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 after starting the server. The page has the conversation and a right-side Tool
-Trace panel that exposes redacted agent activity. The “Voice transcript” option
-uses the ElevenLabs Scribe realtime microphone when voice credentials are
-configured. Click the microphone button, speak until the transcript commits,
-then click the send arrow. The transcript is submitted to the same `/chat`
-boundary with `modality: "voice"`.
-
-To enable the voice layer, add these values to the local `.env` (the file is
-ignored by Git):
-
-```bash
-ELEVENLABS_API_KEY=your-elevenlabs-api-key
-ELEVENLABS_VOICE_ID=your-voice-id
-ELEVENLABS_TTS_MODEL=eleven_flash_v2_5
-```
-
-FastAPI mints the short-lived Scribe token and proxies assistant speech from
-ElevenLabs, so the API key never reaches the browser. If the credentials are
-absent, text chat continues to work and the voice controls report that voice
-is not configured. The browser uses the official
-[`@elevenlabs/react`](https://www.npmjs.com/package/@elevenlabs/react) hook;
-see ElevenLabs' [realtime Scribe client-side streaming guide](https://elevenlabs.io/docs/eleven-api/guides/how-to/speech-to-text/realtime/client-side-streaming)
-for the provider-side protocol.
+Trace panel that exposes redacted agent activity. The composer accepts text
+messages only.
 
 The browser frontend is built with [assistant-ui](https://github.com/assistant-ui/assistant-ui)
 and uses its `LocalRuntime` adapter to call the existing FastAPI `/chat`

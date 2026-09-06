@@ -1,5 +1,4 @@
 import json
-import importlib
 import re
 import subprocess
 import sys
@@ -9,11 +8,7 @@ from fastapi.testclient import TestClient
 
 from car_agent.app import create_app
 from car_agent.crewai_agent import CrewAISalesAgent
-from car_agent.modality import VoiceConversationAdapter, TextConversationAdapter
 from car_agent.models import AgentResponse, ConversationState, ToolCall
-
-
-app_module = importlib.import_module("car_agent.app")
 
 
 def _offline_client() -> tuple[TestClient, CrewAISalesAgent]:
@@ -389,20 +384,6 @@ def test_p4_t4_public_response_redacts_contact_values() -> None:
     assert "alex@example.com" not in response.message
 
 
-def test_p4_t5_text_and_voice_share_one_domain_command() -> None:
-    text = TextConversationAdapter.to_command(
-        "modality",
-        "I want a weekend car under $40k with spirited driving.",
-    )
-    voice = VoiceConversationAdapter.to_command(
-        "modality",
-        "Um, I want a weekend car under $40k with spirited driving.",
-    )
-
-    assert text == voice
-    assert text.intent == "recommend"
-
-
 def test_p4_t6_clean_checkout_demo_runs_to_completion() -> None:
     result = subprocess.run(
         [sys.executable, "-m", "car_agent.demo_cli"],
@@ -415,83 +396,18 @@ def test_p4_t6_clean_checkout_demo_runs_to_completion() -> None:
     assert "Demo result: PASS" in result.stdout
 
 
-def test_p4_t15_scribe_token_is_server_minted_without_exposing_api_key(monkeypatch) -> None:
-    client, _ = _offline_client()
-    monkeypatch.setenv("ELEVENLABS_API_KEY", "test-elevenlabs-key")
-    captured: dict[str, object] = {}
-
-    class FakeResponse:
-        def raise_for_status(self) -> None:
-            return None
-
-        def json(self) -> dict[str, str]:
-            return {"token": "single-use-scribe-token"}
-
-    def fake_post(url: str, *, headers: dict[str, str], timeout: float) -> FakeResponse:
-        captured.update(url=url, headers=headers, timeout=timeout)
-        return FakeResponse()
-
-    monkeypatch.setattr(app_module.httpx, "post", fake_post)
-    response = client.get("/voice/scribe-token")
-
-    assert response.status_code == 200
-    assert response.json() == {"token": "single-use-scribe-token"}
-    assert captured["url"] == "https://api.elevenlabs.io/v1/single-use-token/realtime_scribe"
-    assert captured["headers"] == {"xi-api-key": "test-elevenlabs-key"}
-    assert "test-elevenlabs-key" not in response.text
-
-
-def test_p4_t15_voice_endpoints_fail_cleanly_when_unconfigured(monkeypatch) -> None:
-    client, _ = _offline_client()
-    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
-    monkeypatch.delenv("ELEVENLABS_VOICE_ID", raising=False)
-
-    token = client.get("/voice/scribe-token")
-    speech = client.post("/voice/speak", json={"text": "Hello"})
-
-    assert token.status_code == 503
-    assert speech.status_code == 503
-    assert "ELEVENLABS_API_KEY" in token.json()["detail"]
-    assert "ELEVENLABS_VOICE_ID" in speech.json()["detail"]
-
-
-def test_p4_t15_voice_speech_returns_audio_stream(monkeypatch) -> None:
-    client, _ = _offline_client()
-    monkeypatch.setenv("ELEVENLABS_API_KEY", "test-elevenlabs-key")
-    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "test-voice-id")
-    requested: list[str] = []
-
-    def fake_stream(text: str):
-        requested.append(text)
-        yield b"audio-part-one"
-        yield b"audio-part-two"
-
-    monkeypatch.setattr(app_module, "_stream_elevenlabs_tts", fake_stream)
-    response = client.post("/voice/speak", json={"text": "  Welcome to the S2000.  "})
-
-    assert response.status_code == 200
-    assert response.headers["content-type"].startswith("audio/mpeg")
-    assert response.content == b"audio-part-oneaudio-part-two"
-    assert requested == ["Welcome to the S2000."]
-
-
-def test_p4_t15_browser_voice_controls_use_scribe_and_existing_chat_boundary() -> None:
+def test_p4_t5_browser_is_text_only() -> None:
     root = Path(__file__).parents[1]
+    client, _ = _offline_client()
     thread_source = (root / "frontend" / "src" / "components" / "assistant-ui" / "elements" / "thread.tsx").read_text()
     main_source = (root / "frontend" / "src" / "main.tsx").read_text()
     package = json.loads((root / "frontend" / "package.json").read_text())
 
-    assert "@elevenlabs/react" in package["dependencies"]
-    assert 'useScribe' in thread_source
-    assert '"/voice/scribe-token"' in thread_source
-    assert "aui.composer.setText(transcript)" in thread_source
-    assert "aui.composer.send()" in thread_source
-    assert "Transcript ready — click send" in thread_source
-    assert "onClick={sendCurrentComposer}" in thread_source
-    assert "const voiceStatus = pendingTranscript" in thread_source
-    assert "scribe.commit()" in thread_source
-    assert "Commit transcript" in thread_source
-    assert "onClick={commitTranscript}" in thread_source
-    assert '"/voice/speak"' in main_source
-    assert "body: JSON.stringify({ conversation_id: conversationId, message, modality })" in main_source
+    assert "@elevenlabs/react" not in package["dependencies"]
+    assert "useScribe" not in thread_source
+    assert "/voice/" not in thread_source
+    assert "/voice/" not in main_source
+    assert "modality" not in main_source
     assert "evaluation" not in main_source.lower()
+    assert client.get("/voice/scribe-token").status_code == 404
+    assert client.post("/voice/speak", json={"text": "Hello"}).status_code == 404

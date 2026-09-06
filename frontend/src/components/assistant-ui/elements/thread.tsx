@@ -7,18 +7,12 @@ import {
   useAui,
   unstable_useComposerInput,
 } from "@assistant-ui/react";
-import { useScribe } from "@elevenlabs/react";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
 
-type Modality = "text" | "voice";
-
 type ThreadProps = {
-  modality: Modality;
-  setModality: (value: Modality) => void;
   isProcessing: boolean;
-  isSpeaking: boolean;
 };
 
 /**
@@ -27,7 +21,7 @@ type ThreadProps = {
  * Vite app keeps that same boundary, with local CSS tokens instead of a
  * shadcn/Tailwind build step so the FastAPI bundle stays self-contained.
  */
-export function Thread({ modality, setModality, isProcessing, isSpeaking }: ThreadProps) {
+export function Thread({ isProcessing }: ThreadProps) {
   return (
     <ThreadPrimitive.Root className="aui-styled-thread">
       <ThreadPrimitive.Viewport className="aui-styled-viewport">
@@ -47,7 +41,7 @@ export function Thread({ modality, setModality, isProcessing, isSpeaking }: Thre
           {isProcessing ? <ThinkingPlaceholder /> : null}
 
           <ThreadPrimitive.ViewportFooter className="aui-styled-footer">
-            <Composer modality={modality} setModality={setModality} isSpeaking={isSpeaking} />
+            <Composer />
           </ThreadPrimitive.ViewportFooter>
         </div>
       </ThreadPrimitive.Viewport>
@@ -115,118 +109,37 @@ function AssistantMessage() {
   );
 }
 
-function Composer({ modality, setModality, isSpeaking }: Pick<ThreadProps, "modality" | "setModality" | "isSpeaking">) {
-  const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [pendingTranscript, setPendingTranscript] = useState<string | null>(null);
+function Composer() {
   const aui = useAui();
   const { canSend } = unstable_useComposerInput();
-
-  const queueTranscript = useCallback((rawText: string) => {
-    const transcript = rawText.trim();
-    if (!transcript) return;
-    aui.composer.setText(transcript);
-    setPendingTranscript(transcript);
-  }, [aui]);
-
-  const scribe = useScribe({
-    modelId: "scribe_v2_realtime",
-    onPartialTranscript: () => setVoiceError(null),
-    onCommittedTranscript: ({ text }) => queueTranscript(text),
-    onError: (error) => setVoiceError(error instanceof Error ? error.message : "Voice transcription failed."),
-  });
 
   const sendCurrentComposer = useCallback(() => {
     const composer = aui.composer.getState();
     if (!composer.isEditing || composer.isEmpty || !composer.canSend || !canSend) return;
     aui.composer.send();
-    setPendingTranscript(null);
   }, [aui, canSend]);
-
-  const commitTranscript = useCallback(() => {
-    if (!scribe.isConnected || !scribe.partialTranscript.trim()) return;
-    scribe.commit();
-  }, [scribe]);
-
-  const toggleVoice = useCallback(async () => {
-    setModality("voice");
-    setVoiceError(null);
-    if (scribe.isConnected) {
-      scribe.disconnect();
-      return;
-    }
-    try {
-      const response = await fetch("/voice/scribe-token");
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(String(payload.detail ?? `Voice setup failed: ${response.status}`));
-      }
-      const { token } = (await response.json()) as { token?: string };
-      if (!token) throw new Error("Voice setup returned no transcription token.");
-      await scribe.connect({
-        token,
-        microphone: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      });
-    } catch (error) {
-      scribe.disconnect();
-      setVoiceError(error instanceof Error ? error.message : "Voice transcription failed.");
-    }
-  }, [scribe, setModality]);
-
-  const voiceStatus = pendingTranscript
-    ? "Transcript ready — click send"
-    : scribe.isConnected
-      ? scribe.partialTranscript || "Listening…"
-      : isSpeaking
-        ? "Advisor is speaking…"
-        : voiceError || "Click the microphone to speak";
 
   return (
     <ComposerPrimitive.Root className="aui-styled-composer">
       <div className="aui-composer-input-wrap">
         <ComposerPrimitive.Input rows={1} placeholder="Message Classic Car Advisor" />
         <button
-          className={`aui-voice-button${scribe.isConnected ? " active" : ""}`}
-          type="button"
-          onClick={toggleVoice}
-          aria-label={scribe.isConnected ? "Stop voice input" : "Start voice input"}
-          title={scribe.isConnected ? "Stop voice input" : "Start voice input"}
-        >
-          <span aria-hidden="true">{scribe.isConnected ? "■" : "●"}</span>
-        </button>
-        <button
           className="aui-styled-send"
           type="button"
           onClick={sendCurrentComposer}
           disabled={!canSend}
           aria-label="Send message"
-          title={pendingTranscript ? "Send transcript to advisor" : "Send message"}
+          title="Send message"
         >
           <span aria-hidden="true">↑</span>
         </button>
       </div>
       <div className="aui-styled-composer-footer">
-        <label className="aui-styled-modality">
+        <div className="aui-styled-mode">
           <span className="aui-mode-dot" aria-hidden="true" />
-          <span>Input mode</span>
-          <select value={modality} onChange={(event) => setModality(event.target.value as Modality)}>
-            <option value="text">Text</option>
-            <option value="voice">Voice transcript</option>
-          </select>
-        </label>
-        {scribe.isConnected ? (
-          <button
-            className="aui-commit-transcript"
-            type="button"
-            onClick={commitTranscript}
-            disabled={!scribe.partialTranscript.trim()}
-            title="Commit the current voice transcript"
-          >
-            Commit transcript
-          </button>
-        ) : null}
-        <span className={`aui-composer-hint${voiceError ? " voice-error" : ""}`} aria-live="polite">
-          {modality === "voice" ? voiceStatus : "Grounded by inventory and source records"}
-        </span>
+          <span>Text chat</span>
+        </div>
+        <span className="aui-composer-hint">Grounded by inventory and source records</span>
       </div>
     </ComposerPrimitive.Root>
   );

@@ -3,20 +3,17 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from queue import Queue
 from threading import Thread
 from typing import Any, Iterator, Literal
 
-import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from .crewai_agent import CrewAISalesAgent
-from .modality import normalize_command
 from .models import ToolCall
 from .repositories import ReviewRepository
 from .review_models import MagazineReview
@@ -28,7 +25,6 @@ WEB_ROOT = Path(__file__).parent / "web"
 class ChatRequest(BaseModel):
     conversation_id: str = Field(min_length=1)
     message: str = Field(min_length=1)
-    modality: Literal["text", "voice"] = "text"
 
     @field_validator("conversation_id", "message")
     @classmethod
@@ -56,22 +52,6 @@ class ChatResponse(BaseModel):
     reviews: list[VehicleReviewsResponse] = Field(default_factory=list)
 
 
-class VoiceTokenResponse(BaseModel):
-    token: str
-
-
-class SpeechRequest(BaseModel):
-    text: str = Field(min_length=1, max_length=5_000)
-
-    @field_validator("text")
-    @classmethod
-    def require_nonblank_text(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("text must not be blank")
-        return cleaned
-
-
 def create_app(
     sales_agent: CrewAISalesAgent | None = None,
     review_repository: ReviewRepository | None = None,
@@ -96,67 +76,15 @@ def create_app(
         return HealthResponse(status="ok")
 
 
-    @api.get("/voice/scribe-token", response_model=VoiceTokenResponse)
-    def voice_scribe_token() -> VoiceTokenResponse:
-        """Mint a short-lived ElevenLabs token without exposing the API key."""
-
-        api_key = os.getenv("ELEVENLABS_API_KEY")
-        if not api_key:
-            raise HTTPException(
-                status_code=503,
-                detail="ElevenLabs voice is not configured. Set ELEVENLABS_API_KEY.",
-            )
-        try:
-            response = httpx.post(
-                "https://api.elevenlabs.io/v1/single-use-token/realtime_scribe",
-                headers={"xi-api-key": api_key},
-                timeout=10.0,
-            )
-            response.raise_for_status()
-            payload = response.json()
-            token = payload.get("token") if isinstance(payload, dict) else None
-        except (httpx.HTTPError, ValueError) as exc:
-            raise HTTPException(
-                status_code=502,
-                detail="ElevenLabs could not issue a realtime transcription token.",
-            ) from exc
-        if not isinstance(token, str) or not token:
-            raise HTTPException(
-                status_code=502,
-                detail="ElevenLabs returned an invalid realtime transcription token.",
-            )
-        return VoiceTokenResponse(token=token)
-
-
-    @api.post("/voice/speak")
-    def voice_speak(request: SpeechRequest) -> StreamingResponse:
-        """Stream an assistant answer from ElevenLabs as playable MPEG audio."""
-
-        if not os.getenv("ELEVENLABS_API_KEY") or not os.getenv("ELEVENLABS_VOICE_ID"):
-            raise HTTPException(
-                status_code=503,
-                detail=(
-                    "ElevenLabs speech is not configured. Set ELEVENLABS_API_KEY "
-                    "and ELEVENLABS_VOICE_ID."
-                ),
-            )
-        return StreamingResponse(
-            _stream_elevenlabs_tts(request.text),
-            media_type="audio/mpeg",
-            headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
-        )
-
-
     @api.post("/chat", response_model=ChatResponse)
     def chat(request: ChatRequest, http_request: Request) -> Any:
-        command = normalize_command(request.conversation_id, request.message, request.modality)
         if "text/event-stream" in http_request.headers.get("accept", ""):
             return StreamingResponse(
                 _stream_chat(
                     service,
                     reviews,
-                    command.conversation_id,
-                    command.message,
+                    request.conversation_id,
+                    request.message,
                 ),
                 media_type="text/event-stream",
                 headers={
@@ -165,7 +93,7 @@ def create_app(
                     "X-Accel-Buffering": "no",
                 },
             )
-        response = service.respond(command.conversation_id, command.message)
+        response = service.respond(request.conversation_id, request.message)
         payload = response.to_dict()
         payload["reviews"] = _reviews_for_response(service, response, reviews)
         return ChatResponse.model_validate(payload)
@@ -251,28 +179,6 @@ def _stream_chat(
 
 def _sse(event_name: str, payload: dict[str, Any]) -> str:
     return f"event: {event_name}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
-
-
-def _stream_elevenlabs_tts(text: str) -> Iterator[bytes]:
-    api_key = os.environ["ELEVENLABS_API_KEY"]
-    voice_id = os.environ["ELEVENLABS_VOICE_ID"]
-    model_id = os.getenv("ELEVENLABS_TTS_MODEL", "eleven_flash_v2_5")
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream"
-    with httpx.Client(timeout=60.0) as client:
-        with client.stream(
-            "POST",
-            url,
-            headers={
-                "xi-api-key": api_key,
-                "Accept": "audio/mpeg",
-                "Content-Type": "application/json",
-            },
-            json={"text": text, "model_id": model_id},
-        ) as response:
-            response.raise_for_status()
-            for chunk in response.iter_bytes():
-                if chunk:
-                    yield chunk
 
 
 def _redacted_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
