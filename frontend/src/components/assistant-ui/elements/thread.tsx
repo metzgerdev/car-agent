@@ -142,6 +142,11 @@ function Composer({ modality, setModality, isSpeaking }: Pick<ThreadProps, "moda
     setPendingTranscript(null);
   }, [aui, canSend]);
 
+  const commitTranscript = useCallback(() => {
+    if (!scribe.isConnected || !scribe.partialTranscript.trim()) return;
+    scribe.commit();
+  }, [scribe]);
+
   const toggleVoice = useCallback(async () => {
     setModality("voice");
     setVoiceError(null);
@@ -208,6 +213,17 @@ function Composer({ modality, setModality, isSpeaking }: Pick<ThreadProps, "moda
             <option value="voice">Voice transcript</option>
           </select>
         </label>
+        {scribe.isConnected ? (
+          <button
+            className="aui-commit-transcript"
+            type="button"
+            onClick={commitTranscript}
+            disabled={!scribe.partialTranscript.trim()}
+            title="Commit the current voice transcript"
+          >
+            Commit transcript
+          </button>
+        ) : null}
         <span className={`aui-composer-hint${voiceError ? " voice-error" : ""}`} aria-live="polite">
           {modality === "voice" ? voiceStatus : "Grounded by inventory and source records"}
         </span>
