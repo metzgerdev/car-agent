@@ -41,8 +41,8 @@ after starting the server. The page has the conversation and a right-side Tool
 Trace panel that exposes redacted agent activity. The “Voice transcript” option
 uses the ElevenLabs Scribe realtime microphone when voice credentials are
 configured. Click the microphone button, speak until the transcript commits,
-and the transcript is submitted to the same `/chat` boundary with
-`modality: "voice"`.
+then click the send arrow. The transcript is submitted to the same `/chat`
+boundary with `modality: "voice"`.
 
 To enable the voice layer, add these values to the local `.env` (the file is
 ignored by Git):
