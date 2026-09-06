@@ -167,13 +167,13 @@ function Composer({ modality, setModality, isSpeaking }: Pick<ThreadProps, "moda
     }
   }, [scribe, setModality]);
 
-  const voiceStatus = scribe.isConnected
-    ? scribe.partialTranscript || "Listening…"
-    : isSpeaking
-      ? "Advisor is speaking…"
-      : pendingTranscript
-        ? "Transcript ready — click send"
-      : voiceError || "Click the microphone to speak";
+  const voiceStatus = pendingTranscript
+    ? "Transcript ready — click send"
+    : scribe.isConnected
+      ? scribe.partialTranscript || "Listening…"
+      : isSpeaking
+        ? "Advisor is speaking…"
+        : voiceError || "Click the microphone to speak";
 
   return (
     <ComposerPrimitive.Root className="aui-styled-composer">

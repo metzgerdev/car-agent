@@ -445,5 +445,6 @@ def test_p4_t15_browser_voice_controls_use_scribe_and_existing_chat_boundary() -
     assert "aui.composer.send()" in thread_source
     assert "Transcript ready — click send" in thread_source
     assert "onClick={sendCurrentComposer}" in thread_source
+    assert "const voiceStatus = pendingTranscript" in thread_source
     assert '"/voice/speak"' in main_source
     assert "body: JSON.stringify({ conversation_id: conversationId, message, modality })" in main_source
