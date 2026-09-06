@@ -4,10 +4,11 @@ import {
   MessagePartPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
+  useAui,
   unstable_useComposerInput,
 } from "@assistant-ui/react";
 import { useScribe } from "@elevenlabs/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -116,28 +117,31 @@ function AssistantMessage() {
 
 function Composer({ modality, setModality, isSpeaking }: Pick<ThreadProps, "modality" | "setModality" | "isSpeaking">) {
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [pendingTranscript, setPendingTranscript] = useState(false);
-  const { setText, send, canSend } = unstable_useComposerInput();
-  const sendRef = useRef(send);
-  sendRef.current = send;
+  const [pendingTranscript, setPendingTranscript] = useState<string | null>(null);
+  const aui = useAui();
+  const { canSend } = unstable_useComposerInput();
+
+  const queueTranscript = useCallback((rawText: string) => {
+    const transcript = rawText.trim();
+    if (!transcript) return;
+    aui.composer.setText(transcript);
+    setPendingTranscript(transcript);
+  }, [aui]);
 
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
     onPartialTranscript: () => setVoiceError(null),
-    onCommittedTranscript: ({ text }) => {
-      const transcript = text.trim();
-      if (!transcript) return;
-      setText(transcript);
-      setPendingTranscript(true);
-    },
+    onCommittedTranscript: ({ text }) => queueTranscript(text),
     onError: (error) => setVoiceError(error instanceof Error ? error.message : "Voice transcription failed."),
   });
 
   useEffect(() => {
     if (!pendingTranscript || !canSend) return;
-    sendRef.current();
-    setPendingTranscript(false);
-  }, [canSend, pendingTranscript]);
+    const composer = aui.composer.getState();
+    if (!composer.isEditing || composer.isEmpty || !composer.canSend) return;
+    aui.composer.send();
+    setPendingTranscript(null);
+  }, [aui, canSend, pendingTranscript]);
 
   const toggleVoice = useCallback(async () => {
     setModality("voice");
