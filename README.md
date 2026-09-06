@@ -73,6 +73,11 @@ those deltas incrementally to the answer bubble, then replaces them with the
 final typed response when the turn completes. Clients that do not request SSE
 continue to receive the existing single JSON response.
 
+Deterministic turns use the same `response_delta` contract. The local policy
+splits its already-computed answer into small chunks without adding an
+artificial delay, so offline and live demos exercise the same browser streaming
+path.
+
 Follow-up turns use the structured conversation state: `selected_vehicle_id`
 resolves references such as “it” or “that car,” while `last_vehicle_ids`
 resolves “those two” and “similar cars.” Clear contextual requests for details,

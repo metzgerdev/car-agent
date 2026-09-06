@@ -65,6 +65,20 @@ def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
     ]
 
 
+def test_deterministic_facade_emits_response_deltas() -> None:
+    agent = CrewAISalesAgent(use_live_model=False)
+    deltas: list[str] = []
+
+    response = agent.respond(
+        "offline-stream",
+        "I want a weekend car under $45k with spirited driving in a coupe.",
+        response_observer=deltas.append,
+    )
+
+    assert len(deltas) > 1
+    assert "".join(deltas) == response.message
+
+
 def test_live_facade_completes_bare_vehicle_lookup_without_model_call(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
 

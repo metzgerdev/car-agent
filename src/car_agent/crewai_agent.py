@@ -285,19 +285,21 @@ class CrewAISalesAgent:
         response_observer: ResponseObserver | None = None,
     ) -> AgentResponse:
         if not self.use_live_model:
-            return self.deterministic_agent.respond(
+            return self._respond_deterministic(
                 conversation_id,
                 user_message,
                 trace_observer=trace_observer,
+                response_observer=response_observer,
             )
         # Exact availability is a deterministic inventory contract. Handle it
         # before CrewAI so a live model cannot end a turn with "one moment"
         # without returning the lookup result and a complete next step.
         if self.deterministic_agent._exact_vehicle_query(user_message.strip()):
-            return self.deterministic_agent.respond(
+            return self._respond_deterministic(
                 conversation_id,
                 user_message,
                 trace_observer=trace_observer,
+                response_observer=response_observer,
             )
         # A follow-up such as "tell me about similar sports cars" refers to
         # grounded alternatives already stored by an unavailable lookup. Keep
@@ -309,10 +311,11 @@ class CrewAISalesAgent:
             and previous_state.last_vehicle_ids
             and self.deterministic_agent._is_alternative_request(user_message)
         ):
-            return self.deterministic_agent.respond(
+            return self._respond_deterministic(
                 conversation_id,
                 user_message,
                 trace_observer=trace_observer,
+                response_observer=response_observer,
             )
         if self.deterministic_agent._is_review_request(user_message):
             return self._respond_live_review(
@@ -326,10 +329,11 @@ class CrewAISalesAgent:
             and previous_state.last_vehicle_ids
             and self.deterministic_agent._is_contextual_followup(user_message)
         ):
-            return self.deterministic_agent.respond(
+            return self._respond_deterministic(
                 conversation_id,
                 user_message,
                 trace_observer=trace_observer,
+                response_observer=response_observer,
             )
         return self._respond_live(
             conversation_id,
@@ -337,6 +341,25 @@ class CrewAISalesAgent:
             trace_observer,
             response_observer,
         )
+
+    def _respond_deterministic(
+        self,
+        conversation_id: str,
+        user_message: str,
+        *,
+        trace_observer: TraceObserver | None = None,
+        response_observer: ResponseObserver | None = None,
+    ) -> AgentResponse:
+        """Run the local policy and expose its answer using the live stream contract."""
+
+        response = self.deterministic_agent.respond(
+            conversation_id,
+            user_message,
+            trace_observer=trace_observer,
+        )
+        if response_observer:
+            _emit_response_chunks(response.message, response_observer)
+        return response
 
     def _record_turn(
         self,
@@ -519,10 +542,14 @@ class CrewAISalesAgent:
             trace_observer=trace_observer,
         )
         if not prepared.trace or prepared.trace[-1].name != "retrieve_magazine_reviews":
+            if response_observer:
+                _emit_response_chunks(prepared.message, response_observer)
             return prepared
         review_result = prepared.trace[-1].result
         reviews = review_result.get("reviews", [])
         if not reviews:
+            if response_observer:
+                _emit_response_chunks(prepared.message, response_observer)
             return prepared
 
         trace = prepared.trace
@@ -582,6 +609,20 @@ class CrewAISalesAgent:
             # Preserve the normal output-normalization error at the caller.
             pass
         return final_result
+
+
+def _emit_response_chunks(message: str, observer: ResponseObserver, *, chunk_size: int = 32) -> None:
+    """Emit deterministic text in the same delta shape as CrewAI streaming."""
+
+    cursor = 0
+    while cursor < len(message):
+        end = min(len(message), cursor + chunk_size)
+        if end < len(message):
+            boundary = message.rfind(" ", cursor + 8, end)
+            if boundary > cursor:
+                end = boundary + 1
+        observer(message[cursor:end])
+        cursor = end
 
 
 def _coerce_crew_output(result: Any) -> CrewTurnOutput:
