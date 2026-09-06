@@ -286,6 +286,11 @@ class CrewAISalesAgent:
             return "deterministic", "Exact vehicle availability uses a deterministic safety route."
         previous_state = self.sessions.get(conversation_id)
         if (
+            self.deterministic_agent._is_schedule_request(message)
+            or (previous_state and previous_state.stage == "scheduling")
+        ):
+            return "deterministic", "Test-drive requests use a deterministic side-effect safety route."
+        if (
             previous_state
             and previous_state.last_vehicle_ids
             and self.deterministic_agent._is_alternative_request(message)
@@ -326,11 +331,24 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
+        # Scheduling is a side effect, so it must go through the deterministic
+        # validation path. This prevents the live model from claiming that a
+        # drive was booked without actually calling schedule_test_drive.
+        previous_state = self.sessions.get(conversation_id)
+        if (
+            self.deterministic_agent._is_schedule_request(user_message)
+            or (previous_state and previous_state.stage == "scheduling")
+        ):
+            return self._respond_deterministic(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
         # A follow-up such as "tell me about similar sports cars" refers to
         # grounded alternatives already stored by an unavailable lookup. Keep
         # this contextual handoff deterministic so the model cannot ask the
         # shopper to restate a clear request.
-        previous_state = self.sessions.get(conversation_id)
         if (
             previous_state
             and previous_state.last_vehicle_ids
@@ -460,6 +478,9 @@ class CrewAISalesAgent:
                 "For service-history, service-record, or maintenance-record requests, call "
                 "retrieve_service_history for the explicitly selected vehicle; do not substitute "
                 "general ownership facts for listing history. Clearly label synthetic demo records. "
+                "For any test-drive scheduling request, use schedule_test_drive when all required "
+                "vehicle and contact details are present. Never claim that a test drive is scheduled "
+                "unless that tool returned a successful request; otherwise ask for the missing details. "
                 f"{review_instructions} "
                 "Preserve prior state, enforce the budget as a hard constraint, and ask no more "
                 "than two useful questions in one turn. Never guess an ambiguous model or an "

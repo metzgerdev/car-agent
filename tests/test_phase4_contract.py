@@ -125,6 +125,49 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert events[-1][0] == "done"
 
 
+def test_p4_t14_scheduled_confirmation_includes_schedule_tool_trace() -> None:
+    client, agent = _offline_client()
+    _recommend(agent, "stream-schedule")
+
+    with client.stream(
+        "POST",
+        "/chat",
+        headers={"Accept": "text/event-stream"},
+        json={
+            "conversation_id": "stream-schedule",
+            "message": (
+                "Schedule a test drive for the Honda S2000. My name is Alex Rivera, "
+                "my email is alex@example.com, and Saturday at 10am works."
+            ),
+        },
+    ) as response:
+        lines = list(response.iter_lines())
+
+    events: list[tuple[str, dict]] = []
+    event_name: str | None = None
+    data_lines: list[str] = []
+    for line in lines:
+        if line.startswith("event: "):
+            event_name = line.removeprefix("event: ")
+        elif line.startswith("data: "):
+            data_lines.append(line.removeprefix("data: "))
+        elif not line and event_name:
+            events.append((event_name, json.loads("\n".join(data_lines))))
+            event_name = None
+            data_lines = []
+
+    trace_events = [payload for name, payload in events if name == "trace"]
+    response_payload = next(payload for name, payload in events if name == "response")
+
+    assert response.status_code == 200
+    assert [payload["name"] for payload in trace_events if payload["status"] == "complete"] == [
+        "schedule_test_drive",
+    ]
+    assert response_payload["state"]["stage"] == "scheduled"
+    assert [call["name"] for call in response_payload["trace"]] == ["schedule_test_drive"]
+    assert "Request td-0001" in response_payload["message"]
+
+
 def test_p4_t11_chat_streams_llm_response_deltas_before_final_response(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
 

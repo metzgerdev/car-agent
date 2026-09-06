@@ -94,6 +94,32 @@ def test_live_facade_completes_bare_vehicle_lookup_without_model_call(monkeypatc
     assert "2001 bmw m3" in response.message.lower()
 
 
+def test_live_facade_routes_test_drive_booking_through_traceable_safety_path(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+    agent.sessions["live-schedule"] = ConversationState(
+        "live-schedule",
+        stage="recommending",
+        last_vehicle_ids=["honda-s2000-2004"],
+        preferences=ShopperPreferences(selected_vehicle_id="honda-s2000-2004"),
+    )
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("test-drive scheduling must not be delegated to the live model")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond(
+        "live-schedule",
+        "Schedule a test drive for the Honda S2000. My name is Alex Rivera, "
+        "my email is alex@example.com, and Saturday at 10am works.",
+    )
+
+    assert agent.evaluation_route("live-schedule", "Schedule a test drive.")[0] == "deterministic"
+    assert response.state.stage == "scheduled"
+    assert [call.name for call in response.trace] == ["schedule_test_drive"]
+    assert response.trace[0].result["ok"] is True
+
+
 def test_live_facade_routes_clear_similar_followup_to_grounded_alternatives(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
     agent.respond("live-similar", "Do you have a 1999 BMW Z4 in inventory?")
