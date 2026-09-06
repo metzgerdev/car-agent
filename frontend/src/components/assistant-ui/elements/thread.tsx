@@ -8,7 +8,7 @@ import {
   unstable_useComposerInput,
 } from "@assistant-ui/react";
 import { useScribe } from "@elevenlabs/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -135,13 +135,12 @@ function Composer({ modality, setModality, isSpeaking }: Pick<ThreadProps, "moda
     onError: (error) => setVoiceError(error instanceof Error ? error.message : "Voice transcription failed."),
   });
 
-  useEffect(() => {
-    if (!pendingTranscript || !canSend) return;
+  const sendCurrentComposer = useCallback(() => {
     const composer = aui.composer.getState();
-    if (!composer.isEditing || composer.isEmpty || !composer.canSend) return;
+    if (!composer.isEditing || composer.isEmpty || !composer.canSend || !canSend) return;
     aui.composer.send();
     setPendingTranscript(null);
-  }, [aui, canSend, pendingTranscript]);
+  }, [aui, canSend]);
 
   const toggleVoice = useCallback(async () => {
     setModality("voice");
@@ -172,6 +171,8 @@ function Composer({ modality, setModality, isSpeaking }: Pick<ThreadProps, "moda
     ? scribe.partialTranscript || "Listening…"
     : isSpeaking
       ? "Advisor is speaking…"
+      : pendingTranscript
+        ? "Transcript ready — click send"
       : voiceError || "Click the microphone to speak";
 
   return (
@@ -187,9 +188,16 @@ function Composer({ modality, setModality, isSpeaking }: Pick<ThreadProps, "moda
         >
           <span aria-hidden="true">{scribe.isConnected ? "■" : "●"}</span>
         </button>
-        <ComposerPrimitive.Send className="aui-styled-send" aria-label="Send message" title="Send message">
+        <button
+          className="aui-styled-send"
+          type="button"
+          onClick={sendCurrentComposer}
+          disabled={!canSend}
+          aria-label="Send message"
+          title={pendingTranscript ? "Send transcript to advisor" : "Send message"}
+        >
           <span aria-hidden="true">↑</span>
-        </ComposerPrimitive.Send>
+        </button>
       </div>
       <div className="aui-styled-composer-footer">
         <label className="aui-styled-modality">
