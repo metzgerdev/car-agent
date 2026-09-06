@@ -11,6 +11,7 @@
   "dependencies": {
     "@assistant-ui/react": "^0.15.18",
     "@assistant-ui/react-markdown": "^0.14.14",
+    "@elevenlabs/react": "^1.15.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "remark-gfm": "^4.0.1"

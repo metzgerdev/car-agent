@@ -235,12 +235,29 @@ a { color: #65b8a2; }
 }
 .aui-styled-send:hover { background: #fff; transform: translateY(-1px); }
 .aui-styled-send:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+.aui-voice-button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  color: var(--chat-muted);
+  background: transparent;
+  border: 1px solid var(--chat-border);
+  border-radius: 50%;
+  font-size: 0.72rem;
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.aui-voice-button:hover { color: var(--chat-text); background: var(--chat-input-hover); border-color: var(--chat-border-strong); transform: translateY(-1px); }
+.aui-voice-button.active { color: #171717; background: #73cdb6; border-color: #73cdb6; box-shadow: 0 0 0 4px rgba(115, 205, 182, 0.14); }
 .aui-styled-composer-footer { display: flex; min-height: 20px; justify-content: space-between; gap: 14px; align-items: center; padding: 0 3px; color: var(--chat-subtle); font-size: 0.7rem; }
 .aui-styled-modality { display: flex; align-items: center; gap: 6px; }
 .aui-styled-modality select { padding: 2px 3px; color: var(--chat-muted); background: transparent; border: 0; outline: 0; font-size: 0.7rem; }
 .aui-styled-modality option { color: #222; background: #fff; }
 .aui-mode-dot { width: 6px; height: 6px; background: var(--chat-green); border-radius: 50%; }
 .aui-composer-hint { text-align: right; }
+.aui-composer-hint.voice-error { color: var(--chat-danger); }
 
 .button, .prompt-button, .review-button, .text-button, .dialog-close { transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease; }
 .button { padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; font-size: 0.79rem; font-weight: 650; }
