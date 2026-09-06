@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from time import perf_counter
 from typing import Any, Callable
 
 from crewai import Agent, Crew, LLM, Process, Task
@@ -104,12 +105,24 @@ class _CrewSalesTool(BaseTool):
     ) -> str:
         if self._trace_observer:
             self._trace_observer("start", name, arguments, None)
+        started = perf_counter()
         with self._profiler.span(f"tool.{name}"):
             result = function()
-        return self._record(name, arguments, result)
+        return self._record(name, arguments, result, (perf_counter() - started) * 1000)
 
-    def _record(self, name: str, arguments: dict[str, Any], result: dict[str, Any]) -> str:
-        call = ToolCall(name=name, arguments=arguments, result=result)
+    def _record(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        result: dict[str, Any],
+        duration_ms: float,
+    ) -> str:
+        call = ToolCall(
+            name=name,
+            arguments=arguments,
+            result=result,
+            duration_ms=duration_ms,
+        )
         self._trace.append(call)
         if self._trace_observer:
             self._trace_observer("complete", name, arguments, call)

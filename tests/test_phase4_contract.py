@@ -59,9 +59,11 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     javascript_assets = [asset.text for asset in assets if "javascript" in asset.headers.get("content-type", "")]
     assert any("--chat-bg" in css for css in css_assets)
     assert any("color-scheme:dark" in css.replace(" ", "") for css in css_assets)
+    assert any("trace-phase" in css for css in css_assets)
     assert any("cursor:not-allowed" in css.replace(" ", "") for css in css_assets)
     assert all(".aui-styled-send:disabled{cursor:wait" not in css.replace(" ", "") for css in css_assets)
     assert any("Tool Trace" in javascript for javascript in javascript_assets)
+    assert any("trace-purpose" in javascript for javascript in javascript_assets)
     assert all("Guide the shopper" not in javascript for javascript in javascript_assets)
     assert all("Shopper profile" not in javascript for javascript in javascript_assets)
 
@@ -103,8 +105,17 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert trace_events
     assert trace_events[0]["status"] == "running"
     assert trace_events[0]["name"] == "search_inventory"
+    assert trace_events[0]["phase"] == "retrieve"
+    assert trace_events[0]["purpose"]
+    assert trace_events[0]["outcome"] == "Running…"
+    assert trace_events[0]["duration_ms"] is None
     assert len(completed) == 4
     assert all(payload["call"]["name"] for payload in completed)
+    assert all(payload["phase"] for payload in completed)
+    assert all(payload["purpose"] for payload in completed)
+    assert all(payload["outcome"] for payload in completed)
+    assert all(payload["duration_ms"] >= 0 for payload in completed)
+    assert all(payload["call"]["duration_ms"] >= 0 for payload in completed)
     assert [payload["call"]["name"] for payload in completed] == [
         "search_inventory",
         "get_vehicle",
@@ -118,6 +129,26 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert all(name == "response_delta" for name, _ in events[:response_index] if name != "trace")
     assert "".join(deltas) == response_events[0]["message"]
     assert events[-1][0] == "done"
+
+
+def test_p4_t17_trace_metadata_explains_tool_purpose_and_outcome() -> None:
+    agent = CrewAISalesAgent(use_live_model=False)
+
+    response = agent.respond(
+        "trace-metadata",
+        "I want a weekend coupe under $40k with spirited driving.",
+    )
+
+    assert response.trace
+    first = response.trace[0]
+    assert first.phase == "retrieve"
+    assert first.purpose == "Find inventory listings that match the shopper's stated preferences."
+    assert first.outcome.startswith("Found ")
+    assert first.outcome.endswith(" matching listing(s).")
+    assert first.duration_ms >= 0
+
+    payload = response.to_dict()["trace"][0]
+    assert {"phase", "purpose", "outcome", "duration_ms"} <= payload.keys()
 
 
 def test_p4_t16_scheduled_confirmation_includes_schedule_tool_trace() -> None:
@@ -158,6 +189,11 @@ def test_p4_t16_scheduled_confirmation_includes_schedule_tool_trace() -> None:
     assert [payload["name"] for payload in trace_events if payload["status"] == "complete"] == [
         "schedule_test_drive",
     ]
+    completed = next(payload for payload in trace_events if payload["status"] == "complete")
+    assert completed["phase"] == "act"
+    assert completed["purpose"] == "Validate and create the requested test-drive appointment."
+    assert completed["outcome"] == "Test-drive request scheduled successfully."
+    assert completed["duration_ms"] >= 0
     assert response_payload["state"]["stage"] == "scheduled"
     assert [call["name"] for call in response_payload["trace"]] == ["schedule_test_drive"]
     assert "Request td-0001" in response_payload["message"]

@@ -3,7 +3,88 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Literal
+
+
+TracePhase = Literal["retrieve", "evaluate", "act"]
+
+
+_TRACE_DESCRIPTORS: dict[str, tuple[TracePhase, str]] = {
+    "search_inventory": (
+        "retrieve",
+        "Find inventory listings that match the shopper's stated preferences.",
+    ),
+    "lookup_vehicle_exact": (
+        "retrieve",
+        "Verify whether the requested year, make, and model is an exact inventory match.",
+    ),
+    "get_vehicle": (
+        "retrieve",
+        "Load the complete grounded listing for one specific vehicle.",
+    ),
+    "retrieve_vehicle_facts": (
+        "retrieve",
+        "Retrieve sourced ownership and vehicle facts for the selected vehicle.",
+    ),
+    "retrieve_service_history": (
+        "retrieve",
+        "Retrieve listing-level service records and their provenance.",
+    ),
+    "retrieve_magazine_reviews": (
+        "retrieve",
+        "Retrieve curated magazine reviews and links for the selected vehicle.",
+    ),
+    "compare_vehicles": (
+        "evaluate",
+        "Compare the grounded vehicle options requested by the shopper.",
+    ),
+    "schedule_test_drive": (
+        "act",
+        "Validate and create the requested test-drive appointment.",
+    ),
+}
+
+
+def trace_descriptor(name: str) -> tuple[TracePhase, str]:
+    """Return stable, deterministic metadata for a named tool."""
+
+    return _TRACE_DESCRIPTORS.get(
+        name,
+        ("evaluate", f"Run the {name} operation and use its result to answer the shopper."),
+    )
+
+
+def trace_outcome(name: str, result: dict[str, Any]) -> str:
+    """Summarize a tool result for the human-facing trace."""
+
+    if name == "search_inventory":
+        return f"Found {result.get('count', 0)} matching listing(s)."
+    if name == "lookup_vehicle_exact":
+        status = result.get("status", "completed")
+        return {
+            "matched": "Found an exact inventory match.",
+            "not_found": "No exact inventory match found.",
+            "ambiguous": "Found multiple exact inventory matches.",
+        }.get(status, f"Exact lookup completed with status: {status}.")
+    if name == "get_vehicle":
+        return "Loaded the vehicle listing." if result.get("found") else "Vehicle listing was not found."
+    if name == "retrieve_vehicle_facts":
+        return f"Retrieved {len(result.get('facts', []))} sourced fact(s)."
+    if name == "retrieve_service_history":
+        count = result.get("record_count", 0)
+        provenance = " synthetic demo record(s)" if result.get("synthetic") else " service record(s)"
+        return f"Retrieved {count}{provenance}."
+    if name == "retrieve_magazine_reviews":
+        return f"Retrieved {len(result.get('reviews', []))} magazine review(s)."
+    if name == "compare_vehicles":
+        return f"Compared {len(result.get('vehicles', []))} vehicle option(s)."
+    if name == "schedule_test_drive":
+        if result.get("ok"):
+            return "Test-drive request scheduled successfully."
+        return str(result.get("error", "Test-drive request was not scheduled."))
+    if result.get("error"):
+        return str(result["error"])
+    return "Operation completed."
 
 
 @dataclass(frozen=True)
@@ -119,6 +200,20 @@ class ToolCall:
     name: str
     arguments: dict[str, Any]
     result: dict[str, Any]
+    phase: TracePhase | None = None
+    purpose: str | None = None
+    outcome: str | None = None
+    duration_ms: float = 0.0
+
+    def __post_init__(self) -> None:
+        phase, purpose = trace_descriptor(self.name)
+        if self.phase is None:
+            object.__setattr__(self, "phase", phase)
+        if self.purpose is None:
+            object.__setattr__(self, "purpose", purpose)
+        if self.outcome is None:
+            object.__setattr__(self, "outcome", trace_outcome(self.name, self.result))
+        object.__setattr__(self, "duration_ms", round(max(0.0, self.duration_ms), 2))
 
     def to_dict(self, *, redact_sensitive: bool = False) -> dict[str, Any]:
         result = asdict(self)

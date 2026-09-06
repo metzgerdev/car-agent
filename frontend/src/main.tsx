@@ -28,6 +28,10 @@ type ToolCall = {
   name: string;
   arguments: Record<string, unknown>;
   result: unknown;
+  phase: "retrieve" | "evaluate" | "act";
+  purpose: string;
+  outcome: string;
+  duration_ms: number;
 };
 
 type Review = {
@@ -55,6 +59,10 @@ type TraceStreamEvent = {
   trace_id: string;
   status: "running" | "complete";
   name: string;
+  phase: "retrieve" | "evaluate" | "act";
+  purpose: string;
+  outcome: string;
+  duration_ms: number | null;
   arguments: Record<string, unknown>;
   call?: ToolCall;
 };
@@ -220,6 +228,22 @@ function traceProgressLabel(event: ActiveTrace): string {
   }
 }
 
+function tracePhaseLabel(phase: ToolCall["phase"]): string {
+  return phase === "retrieve" ? "Retrieve" : phase === "evaluate" ? "Evaluate" : "Act";
+}
+
+function traceToolLabel(name: string): string {
+  return name
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function formatDuration(durationMs: number | null | undefined): string {
+  if (typeof durationMs !== "number") return "—";
+  return durationMs < 1 ? "<1 ms" : `${Math.round(durationMs)} ms`;
+}
+
 function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
   return (
     <section className="panel evidence-card tool-trace-panel">
@@ -244,7 +268,17 @@ function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
         <div className="trace-list">
           {dashboard.trace.map((call, index) => (
             <details key={`${call.name}-${index}`} className="trace-item">
-              <summary>{index + 1}. {call.name}</summary>
+              <summary>
+                <span className="trace-summary-main">
+                  <span className={`trace-phase trace-phase-${call.phase}`}>{tracePhaseLabel(call.phase)}</span>
+                  <span>{index + 1}. {traceToolLabel(call.name)}</span>
+                </span>
+                <span className="trace-duration">{formatDuration(call.duration_ms)}</span>
+              </summary>
+              <div className="trace-explanation">
+                <p className="trace-purpose">{call.purpose}</p>
+                <p className="trace-outcome"><strong>Outcome:</strong> {call.outcome}</p>
+              </div>
               <pre>{JSON.stringify({ arguments: call.arguments, result: call.result }, null, 2)}</pre>
             </details>
           ))}

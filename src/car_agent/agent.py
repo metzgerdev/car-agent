@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from contextvars import ContextVar
+from time import perf_counter
 from typing import Any, Callable, Literal
 
 from .lookup_models import ExactVehicleQuery
@@ -596,9 +597,16 @@ class DemoSalesAgent:
         observer = _trace_observer.get()
         if observer:
             observer("start", name, arguments, None)
+        started = perf_counter()
         with self.profiler.span(f"tool.{name}"):
             result = function()
-        call = ToolCall(name=name, arguments=arguments, result=result)
+        duration_ms = (perf_counter() - started) * 1000
+        call = ToolCall(
+            name=name,
+            arguments=arguments,
+            result=result,
+            duration_ms=duration_ms,
+        )
         trace.append(call)
         if observer:
             observer("complete", name, arguments, call)

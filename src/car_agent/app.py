@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from .crewai_agent import CrewAISalesAgent
-from .models import ToolCall
+from .models import ToolCall, trace_descriptor
 from .repositories import ReviewRepository
 from .review_models import MagazineReview
 
@@ -139,14 +139,28 @@ def _stream_chat(
         else:
             trace_ids = pending_trace_ids.get(name, [])
             trace_id = trace_ids.pop(0) if trace_ids else f"trace-{trace_counter}"
+        phase, purpose = trace_descriptor(name)
         payload: dict[str, Any] = {
             "trace_id": trace_id,
             "status": "running" if status == "start" else "complete",
             "name": name,
+            "phase": phase,
+            "purpose": purpose,
+            "outcome": "Running…" if status == "start" else "Operation completed.",
+            "duration_ms": None if status == "start" else 0.0,
             "arguments": _redacted_arguments(name, arguments),
         }
         if call is not None:
-            payload["call"] = call.to_dict(redact_sensitive=True)
+            call_payload = call.to_dict(redact_sensitive=True)
+            payload["call"] = call_payload
+            payload.update(
+                {
+                    "phase": call_payload["phase"],
+                    "purpose": call_payload["purpose"],
+                    "outcome": call_payload["outcome"],
+                    "duration_ms": call_payload["duration_ms"],
+                }
+            )
         events.put(("trace", payload))
 
     def work() -> None:

@@ -288,7 +288,18 @@ a { color: #65b8a2; }
 .trace-spinner { width: 8px; height: 8px; flex: 0 0 auto; border: 2px solid rgba(157, 232, 211, 0.35); border-top-color: #9de8d3; border-radius: 50%; animation: spin 800ms linear infinite; }
 .trace-list { max-height: 260px; overflow: auto; }
 .trace-item { margin-bottom: 7px; border: 1px solid var(--chat-border); border-radius: 7px; }
-.trace-item summary { padding: 7px 9px; color: var(--chat-muted); cursor: pointer; font-size: 0.76rem; font-weight: 650; }
+.trace-item summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px; color: var(--chat-muted); cursor: pointer; font-size: 0.76rem; font-weight: 650; }
+.trace-summary-main { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.trace-summary-main > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trace-phase { display: inline-flex; flex: 0 0 auto; align-items: center; padding: 2px 5px; border-radius: 4px; font-size: 0.6rem; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
+.trace-phase-retrieve { color: #9de8d3; background: rgba(16, 163, 127, 0.16); }
+.trace-phase-evaluate { color: #b9c7ff; background: rgba(117, 133, 255, 0.16); }
+.trace-phase-act { color: #ffd69a; background: rgba(245, 166, 35, 0.16); }
+.trace-duration { flex: 0 0 auto; color: var(--chat-subtle); font-size: 0.65rem; font-weight: 500; }
+.trace-explanation { padding: 0 9px 7px; border-top: 1px solid rgba(255, 255, 255, 0.04); }
+.trace-purpose, .trace-outcome { margin: 6px 0 0; color: var(--chat-subtle); font-size: 0.68rem; line-height: 1.4; }
+.trace-outcome { color: var(--chat-muted); }
+.trace-outcome strong { color: var(--chat-subtle); font-weight: 650; }
 .trace-item pre { max-height: 180px; overflow: auto; padding: 0 9px 9px; margin: 0; color: var(--chat-subtle); font-size: 0.65rem; white-space: pre-wrap; word-break: break-word; }
 .empty-state { margin-bottom: 0; color: var(--chat-subtle); font-size: 0.78rem; }
 
