@@ -81,6 +81,14 @@ the existing JSON response for normal clients, but streams redacted tool-start
 and tool-complete events for the UI so the grounding panel can show messages
 such as “Searching inventory…” while CrewAI is working.
 
+The browser also has an optional `Evaluation` mode. When enabled, the next
+turn requests structured evaluation metadata and renders an evaluation
+cockpit above the conversation with the selected route (deterministic or
+CrewAI/OpenRouter), latency buckets, tool counts, source coverage, qualitative
+confidence, and recommendation changes. It exposes observable architecture
+signals rather than private model chain-of-thought; normal turns omit the
+evaluation payload.
+
 The Tool Trace panel retains completed calls across the entire conversation,
 including repeated calls with the same tool name. The final response acts as a
 per-turn reconciliation point, backfilling any completion that was not observed
