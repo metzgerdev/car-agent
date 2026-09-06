@@ -114,7 +114,6 @@ def test_live_facade_routes_test_drive_booking_through_traceable_safety_path(mon
         "my email is alex@example.com, and Saturday at 10am works.",
     )
 
-    assert agent.evaluation_route("live-schedule", "Schedule a test drive.")[0] == "deterministic"
     assert response.state.stage == "scheduled"
     assert [call.name for call in response.trace] == ["schedule_test_drive"]
     assert response.trace[0].result["ok"] is True

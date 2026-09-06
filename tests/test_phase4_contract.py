@@ -125,7 +125,7 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert events[-1][0] == "done"
 
 
-def test_p4_t14_scheduled_confirmation_includes_schedule_tool_trace() -> None:
+def test_p4_t16_scheduled_confirmation_includes_schedule_tool_trace() -> None:
     client, agent = _offline_client()
     _recommend(agent, "stream-schedule")
 
@@ -493,61 +493,5 @@ def test_p4_t15_browser_voice_controls_use_scribe_and_existing_chat_boundary() -
     assert "Commit transcript" in thread_source
     assert "onClick={commitTranscript}" in thread_source
     assert '"/voice/speak"' in main_source
-    assert "body: JSON.stringify({ conversation_id: conversationId, message, modality, evaluation: evaluationMode })" in main_source
-    assert "evaluationMode" in main_source
-    assert "EvaluationPanel" in main_source
-    assert 'aria-label="Agent evaluation"' in main_source
-
-
-def test_p4_t16_evaluation_mode_exposes_routing_latency_grounding_and_deltas() -> None:
-    client, _ = _offline_client()
-
-    response = client.post(
-        "/chat",
-        json={
-            "conversation_id": "evaluation-mode",
-            "message": "I want a weekend coupe under $40k with spirited driving.",
-            "evaluation": True,
-        },
-    )
-    payload = response.json()
-    evaluation = payload["evaluation"]
-
-    assert response.status_code == 200
-    assert evaluation["route"] == "deterministic"
-    assert evaluation["route_reason"]
-    assert evaluation["total_ms"] >= 0
-    assert {phase["name"] for phase in evaluation["phases"]} >= {
-        "Deterministic policy",
-        "Tool: search_inventory",
-    }
-    assert {tool["name"] for tool in evaluation["tools"]} >= {
-        "search_inventory",
-        "get_vehicle",
-        "retrieve_vehicle_facts",
-    }
-    assert evaluation["sources"]
-    assert evaluation["confidence"]["label"] in {"high", "medium", "limited"}
-    assert evaluation["recommendation_change"]["changed"] is True
-    assert evaluation["recommendation_change"]["after"]
-
-
-def test_p4_t16_evaluation_metadata_is_carried_by_sse_response() -> None:
-    client, _ = _offline_client()
-
-    with client.stream(
-        "POST",
-        "/chat",
-        headers={"Accept": "text/event-stream"},
-        json={
-            "conversation_id": "evaluation-sse",
-            "message": "Tell me more about the 2004 Honda S2000.",
-            "evaluation": True,
-        },
-    ) as response:
-        body = "".join(response.iter_text())
-
-    assert response.status_code == 200
-    assert "event: response\n" in body
-    assert '"evaluation"' in body
-    assert '"route": "deterministic"' in body
+    assert "body: JSON.stringify({ conversation_id: conversationId, message, modality })" in main_source
+    assert "evaluation" not in main_source.lower()

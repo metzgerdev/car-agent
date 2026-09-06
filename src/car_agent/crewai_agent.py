@@ -276,36 +276,6 @@ class CrewAISalesAgent:
         self._record_turn(conversation_id, user_message, response)
         return response
 
-    def evaluation_route(self, conversation_id: str, user_message: str) -> tuple[str, str]:
-        """Describe the public routing decision without exposing model reasoning."""
-
-        message = user_message.strip()
-        if not self.use_live_model:
-            return "deterministic", "The offline demo policy is configured for this turn."
-        if self.deterministic_agent._exact_vehicle_query(message):
-            return "deterministic", "Exact vehicle availability uses a deterministic safety route."
-        previous_state = self.sessions.get(conversation_id)
-        if (
-            self.deterministic_agent._is_schedule_request(message)
-            or (previous_state and previous_state.stage == "scheduling")
-        ):
-            return "deterministic", "Test-drive requests use a deterministic side-effect safety route."
-        if (
-            previous_state
-            and previous_state.last_vehicle_ids
-            and self.deterministic_agent._is_alternative_request(message)
-        ):
-            return "deterministic", "The follow-up reuses grounded alternatives from conversation state."
-        if self.deterministic_agent._is_review_request(message):
-            return "crewai_live", "Reviews are retrieved deterministically, then CrewAI synthesizes the cited records."
-        if (
-            previous_state
-            and previous_state.last_vehicle_ids
-            and self.deterministic_agent._is_contextual_followup(message)
-        ):
-            return "deterministic", "The vehicle follow-up is resolved from structured conversation state."
-        return "crewai_live", "The open-ended sales turn is delegated to CrewAI with grounded tools."
-
     def _respond(
         self,
         conversation_id: str,
