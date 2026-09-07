@@ -61,6 +61,7 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("--chat-bg" in css for css in css_assets)
     assert any("color-scheme:dark" in css.replace(" ", "") for css in css_assets)
     assert any("trace-phase" in css for css in css_assets)
+    assert any("tool-trace-panel" in css and "min-height:720px" in css.replace(" ", "") for css in css_assets)
     assert any("cursor:not-allowed" in css.replace(" ", "") for css in css_assets)
     assert all(".aui-styled-send:disabled{cursor:wait" not in css.replace(" ", "") for css in css_assets)
     assert any("Tool Trace" in javascript for javascript in javascript_assets)
