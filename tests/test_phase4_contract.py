@@ -348,6 +348,28 @@ def test_p4_t11_chat_streams_llm_response_deltas_before_final_response(monkeypat
     assert events[-1][0] == "done"
 
 
+def test_p4_t13_chat_stream_hides_internal_errors_from_client(caplog) -> None:
+    class FailingAgent:
+        def respond(self, conversation_id: str, user_message: str, **kwargs):
+            raise RuntimeError("provider secret at /internal/openrouter/debug")
+
+    client = TestClient(create_app(FailingAgent()))
+
+    with client.stream(
+        "POST",
+        "/chat",
+        headers={"Accept": "text/event-stream"},
+        json={"conversation_id": "error-stream", "message": "Tell me more about the S2000."},
+    ) as response:
+        body = "\n".join(response.iter_lines())
+
+    assert response.status_code == 200
+    assert "The advisor encountered an internal error." in body
+    assert "provider secret" not in body
+    assert "/internal/openrouter/debug" not in body
+    assert "provider secret at /internal/openrouter/debug" in caplog.text
+
+
 def test_p4_t12_trace_history_reducer_preserves_repeated_calls_across_turns() -> None:
     source = Path(__file__).parents[1] / "frontend" / "src" / "main.tsx"
     javascript = ""

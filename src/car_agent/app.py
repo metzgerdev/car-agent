@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from queue import Queue
 from threading import Thread
@@ -20,6 +21,7 @@ from .review_models import MagazineReview
 
 
 WEB_ROOT = Path(__file__).parent / "web"
+LOGGER = logging.getLogger(__name__)
 
 
 class ChatRequest(BaseModel):
@@ -211,8 +213,9 @@ def _stream_chat(
             payload = response.to_dict()
             payload["reviews"] = _reviews_for_response(service, response, repository)
             events.put(("response", ChatResponse.model_validate(payload).model_dump(mode="json")))
-        except Exception as exc:  # pragma: no cover - surfaced through the client event
-            events.put(("error", {"message": str(exc)}))
+        except Exception:  # pragma: no cover - surfaced through the client event
+            LOGGER.exception("Chat stream failed for conversation %s", conversation_id)
+            events.put(("error", {"message": "The advisor encountered an internal error."}))
         finally:
             events.put(None)
 
