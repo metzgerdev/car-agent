@@ -29,6 +29,7 @@ export function Thread({ isProcessing }: ThreadProps) {
           <AuiIf condition={(state) => state.thread.isEmpty}>
             <div className="aui-thread-welcome">
               <div className="aui-welcome-mark" aria-hidden="true">GP</div>
+              <p className="aui-welcome-tagline">Specializing in classic/modern-classic enthusiast sports cars</p>
             </div>
           </AuiIf>
 
