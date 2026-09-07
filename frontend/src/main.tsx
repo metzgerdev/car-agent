@@ -462,7 +462,6 @@ function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
     <section className="panel evidence-card tool-trace-panel">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Live agent activity</p>
           <h2>Tool Trace</h2>
         </div>
         <span className="step-count">{dashboard.trace.length + dashboard.activeTrace.length} calls</span>
@@ -496,8 +495,6 @@ function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
             </details>
           ))}
         </div>
-      ) : !dashboard.activeTrace.length ? (
-        <p className="empty-state">Tool calls will appear here after the advisor searches inventory or retrieves facts.</p>
       ) : null}
     </section>
   );
