@@ -134,13 +134,6 @@ function Composer() {
           <span aria-hidden="true">↑</span>
         </button>
       </div>
-      <div className="aui-styled-composer-footer">
-        <div className="aui-styled-mode">
-          <span className="aui-mode-dot" aria-hidden="true" />
-          <span>Text chat</span>
-        </div>
-        <span className="aui-composer-hint">Grounded by inventory and source records</span>
-      </div>
     </ComposerPrimitive.Root>
   );
 }

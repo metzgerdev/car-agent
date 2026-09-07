@@ -286,11 +286,6 @@ a { color: #65b8a2; }
 }
 .aui-styled-send:hover { background: #fff; transform: translateY(-1px); }
 .aui-styled-send:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
-.aui-styled-composer-footer { display: flex; min-height: 20px; justify-content: space-between; gap: 14px; align-items: center; padding: 0 3px; color: var(--chat-subtle); font-size: 0.7rem; }
-.aui-styled-mode { display: flex; align-items: center; gap: 6px; }
-.aui-mode-dot { width: 6px; height: 6px; background: var(--chat-green); border-radius: 50%; }
-.aui-composer-hint { text-align: right; }
-
 .button, .text-button { transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease; }
 .button { padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; font-size: 0.79rem; font-weight: 650; }
 .button:hover { transform: translateY(-1px); }
@@ -353,6 +348,4 @@ a { color: #65b8a2; }
   .aui-styled-user-message { grid-template-columns: minmax(0, 1fr) 26px; }
   .aui-styled-avatar { width: 26px; height: 26px; border-radius: 7px; font-size: 0.52rem; }
   .aui-styled-footer { padding: 14px 15px 18px; }
-  .aui-styled-composer-footer { align-items: flex-start; flex-direction: column; gap: 2px; }
-  .aui-composer-hint { text-align: left; }
 }
