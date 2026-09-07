@@ -14,7 +14,7 @@ and deterministic verification.
 | --- | --- | --- | --- |
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
-| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, recorded NHTSA/EPA adapters, deterministic 100-record fixture generation, and notebook verification pass; 72 Python tests pass | none |
+| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, recorded NHTSA/EPA adapters, deterministic 50-record fixture generation, and notebook verification pass; 78 Python tests pass | none |
 | 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, context-aware vehicle follow-ups, bounded hybrid LLM context, shared consultative salesperson persona, synthetic service-history retrieval, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass; 73 Python tests pass | Phase 4 API and conversion tests |
 | 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, clean offline demo, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, phase-aware tool purpose/outcome/timing metadata, streamed deterministic and live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review context, suggested-vehicle review context pass, text-only composer, and deterministic side-effect routing for test-drive scheduling; 77 Python tests, 4 frontend trace-history tests, and frontend build pass | none |
 
@@ -84,6 +84,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-07 | Phase 4 brand tagline placement | Moved `Specializing in classic/modern-classic enthusiast sports cars` from the gallery header to directly beneath the `GP` chat welcome mark; 77 Python tests, 4 frontend tests, and frontend build pass | `3218102` | none |
 | 2026-09-07 | Phase 4 starter prompt suggestions | Added three clickable starter prompts beneath the GP tagline; each sends through the existing assistant-ui composer path; 77 Python tests, 4 frontend tests, and frontend build pass | `c4f7cbc` | none |
 | 2026-09-07 | Phase 4 paginated inventory gallery | The gallery loads all 100 typed mock listings, displays six cards per page, resets pagination for filters, and provides accessible Previous/Next controls; 78 Python tests, 4 frontend tests, and frontend build pass | `b5d28bc` | none |
+| 2026-09-07 | Phase 4 complete inventory photo coverage | Reduced the canonical fixture to 50 records and mapped every listing model family to a real Wikimedia Commons reference photo with source-page, attribution, and license metadata; 78 Python tests, 4 frontend tests, and frontend build pass | `bfc5733` | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -146,7 +147,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | implemented |
 | P2-T6 | Run official-source adapters against recorded fixtures | NHTSA vPIC, NHTSA recall, and EPA payloads validate with Pydantic and normalize into provenance-backed `VehicleFact` records with source URL and retrieval timestamp | implemented |
 | P2-T7 | Load the checked-in mock inventory | `data/inventory.json` validates into canonical `Vehicle` records with `illustrative_fixture` provenance, repository loading and agent search work | implemented |
-| P2-T8 | Validate the generated inventory scale | The deterministic generator preserves the six curated records and produces 94 additional typed records, for 100 unique IDs with synthetic service history; curated records carry typed photo attribution metadata | implemented |
+| P2-T8 | Validate the generated inventory scale | The deterministic generator preserves the six curated records and produces 44 additional typed records, for 50 unique IDs with synthetic service history; every record carries typed model-reference photo attribution metadata | implemented |
 
 ## Phase 3 — Sales behavior
 
@@ -185,10 +186,10 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T14 | Stream an offline deterministic answer | A deterministic turn emits multiple `response_delta` events whose concatenation equals the final response, before the final typed response event and `done` marker | implemented |
 | P4-T5 | Use the text-only browser composer | The assistant-ui composer sends a plain text message through `/chat`; no voice controls, voice endpoints, modality fields, or ElevenLabs dependency are present | implemented |
 | P4-T16 | Arrange a test drive in live mode | Scheduling uses the deterministic side-effect safety route, validates required details, emits `schedule_test_drive` in the streamed Tool Trace, and never confirms a booking without a successful tool result | implemented |
-| P4-T18 | Browse featured inventory | The dark UI loads a typed featured slice from `/inventory`, renders the six curated cards with exact-model source photos and credit metadata, keeps a labeled fallback for unmapped generated records, opens a detail gallery modal, and keeps the right rail dedicated to Tool Trace | implemented |
+| P4-T18 | Browse featured inventory | The dark UI loads the typed 50-car fixture from `/inventory`, renders six cards per page with source photos and credit metadata, opens a detail gallery modal, and keeps the right rail dedicated to Tool Trace | implemented |
 | P4-T19 | Use the focused demo shell | The browser contains only the featured gallery, chat surface, and Tool Trace panel; the title/status header and instructional banner are absent | implemented |
 | P4-T20 | Inspect a long tool trace | On desktop, the Tool Trace panel extends to the conversation height and its history scrolls internally; mobile retains the stacked responsive layout | implemented |
-| P4-T21 | View a curated source photo | A mapped real vehicle photo renders cleanly without in-image text, gradients, lot labels, or synthetic badges; attribution remains outside the photo in the listing details | implemented |
+| P4-T21 | View a source photo | Every inventory record has a real model-reference photo that renders cleanly without in-image text, gradients, lot labels, or synthetic badges; attribution remains outside the photo in the listing details | implemented |
 | P4-T22 | Use the minimal gallery surface | The gallery opens directly to the listing cards and filter control without explanatory title, count, presentation, or fallback-copy labels | implemented |
 | P4-T23 | Identify the inventory owner | The gallery displays `Grand Prix Motors Inventory` in the compact inventory-label position | implemented |
 | P4-T24 | Display the Grand Prix brand mark | The chat welcome mark and assistant avatars display `GP` rather than `CC` | implemented |
@@ -198,7 +199,8 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T28 | Keep the Tool Trace panel focused | The Tool Trace panel shows its title and calls without the `Live agent activity` eyebrow or empty-state instructional copy | implemented |
 | P4-T29 | Place the inventory tagline beneath the brand mark | The empty chat state shows `Specializing in classic/modern-classic enthusiast sports cars` directly beneath the `GP` logo, and the gallery no longer repeats it | implemented |
 | P4-T30 | Use starter prompt suggestions | The empty chat state shows clickable starter prompts beneath the tagline; selecting one sends it through the existing assistant-ui composer path | implemented |
-| P4-T31 | Page through featured inventory | The gallery loads the typed inventory dataset, displays six cards per page, keeps filtering scoped to the loaded inventory, and provides accessible Previous/Next controls with page state | implemented |
+| P4-T31 | Page through featured inventory | The gallery loads the typed 50-car inventory dataset, displays six cards per page, keeps filtering scoped to the loaded inventory, and provides accessible Previous/Next controls with page state | implemented |
+| P4-T32 | Verify complete photo coverage | All 50 inventory records expose a Wikimedia Commons image URL, source page, attribution, and license metadata; generated model families reuse the correct model-reference photo | implemented |
 
 ## Completion rule
 
