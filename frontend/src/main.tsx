@@ -297,8 +297,10 @@ function ListingVisual({
 }
 
 function InventoryGallery() {
+  const pageSize = 6;
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [selectedVehicle, setSelectedVehicle] = useState<InventoryVehicle | null>(null);
   const [activeShot, setActiveShot] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -306,7 +308,7 @@ function InventoryGallery() {
 
   useEffect(() => {
     let active = true;
-    fetch("/inventory?limit=6")
+    fetch("/inventory?limit=100")
       .then((response) => {
         if (!response.ok) throw new Error("inventory request failed");
         return response.json() as Promise<InventoryPayload>;
@@ -342,6 +344,13 @@ function InventoryGallery() {
       .toLowerCase()
       .includes(normalizedQuery);
   });
+  const totalPages = Math.max(1, Math.ceil(visibleVehicles.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageVehicles = visibleVehicles.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [normalizedQuery]);
 
   const selectVehicle = (vehicle: InventoryVehicle) => {
     setSelectedVehicle(vehicle);
@@ -367,7 +376,7 @@ function InventoryGallery() {
         {error ? <p className="gallery-state gallery-error">Featured inventory is unavailable. The chat remains available.</p> : null}
         {!loading && !error && !visibleVehicles.length ? <p className="gallery-state">No featured listings match that filter.</p> : null}
         <div className="gallery-grid">
-          {visibleVehicles.slice(0, 6).map((vehicle, index) => (
+          {pageVehicles.map((vehicle, index) => (
             <article className="inventory-card" key={vehicle.id}>
               <button className="inventory-card-hit" type="button" onClick={() => selectVehicle(vehicle)}>
                 <ListingVisual vehicle={vehicle} shot={index % 2} />
@@ -389,6 +398,29 @@ function InventoryGallery() {
             </article>
           ))}
         </div>
+        {!loading && !error && visibleVehicles.length > pageSize ? (
+          <nav className="gallery-pagination" aria-label="Inventory pages">
+            <button
+              className="gallery-page-button"
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={currentPage === 1}
+              aria-label="Previous inventory page"
+            >
+              Previous
+            </button>
+            <span aria-live="polite">Page {currentPage} of {totalPages}</span>
+            <button
+              className="gallery-page-button"
+              type="button"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={currentPage === totalPages}
+              aria-label="Next inventory page"
+            >
+              Next
+            </button>
+          </nav>
+        ) : null}
       </section>
 
       {selectedVehicle ? (

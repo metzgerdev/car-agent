@@ -102,7 +102,7 @@ def create_app(
 
 
     @api.get("/inventory", response_model=InventoryResponse)
-    def inventory(limit: int = Query(default=12, ge=1, le=24)) -> InventoryResponse:
+    def inventory(limit: int = Query(default=12, ge=1, le=100)) -> InventoryResponse:
         all_vehicles = service.tools.inventory.all()
         featured = [
             InventoryVehicleResponse.model_validate(vehicle.to_dict(include_service_history=False))

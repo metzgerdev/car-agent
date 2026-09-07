@@ -74,6 +74,9 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("aui-welcome-tagline" in javascript for javascript in javascript_assets)
     assert any("aui-starter-prompts" in javascript for javascript in javascript_assets)
     assert any("Find a weekend sports car" in javascript for javascript in javascript_assets)
+    assert any("/inventory?limit=100" in javascript for javascript in javascript_assets)
+    assert any("gallery-pagination" in javascript for javascript in javascript_assets)
+    assert any("Previous inventory page" in javascript for javascript in javascript_assets)
     assert all("gallery-tagline" not in javascript for javascript in javascript_assets)
     assert all("Live agent activity" not in javascript for javascript in javascript_assets)
     assert all("Tool calls will appear here after the advisor searches inventory or retrieves facts." not in javascript for javascript in javascript_assets)
@@ -107,6 +110,17 @@ def test_p4_t18_inventory_gallery_returns_typed_featured_listings() -> None:
     assert payload["vehicles"][0]["image_url"].startswith("https://commons.wikimedia.org/")
     assert payload["vehicles"][0]["image_source_url"].startswith("https://commons.wikimedia.org/wiki/File:")
     assert payload["vehicles"][0]["image_license"] == "CC BY-SA 3.0"
+
+
+def test_p4_t31_inventory_gallery_can_request_the_full_paginated_dataset() -> None:
+    client, _ = _offline_client()
+
+    response = client.get("/inventory?limit=100")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 100
+    assert len(payload["vehicles"]) == 100
 
 
 def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
