@@ -65,6 +65,7 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("cursor:not-allowed" in css.replace(" ", "") for css in css_assets)
     assert all(".aui-styled-send:disabled{cursor:wait" not in css.replace(" ", "") for css in css_assets)
     assert any("Tool Trace" in javascript for javascript in javascript_assets)
+    assert any(">GP<" in javascript or "children:`GP`" in javascript for javascript in javascript_assets)
     assert any("trace-purpose" in javascript for javascript in javascript_assets)
     assert any("listing-photo" in javascript for javascript in javascript_assets)
     assert any("image-credit" in javascript for javascript in javascript_assets)

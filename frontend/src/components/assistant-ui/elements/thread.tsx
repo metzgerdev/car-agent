@@ -28,7 +28,7 @@ export function Thread({ isProcessing }: ThreadProps) {
         <div className="aui-thread-content">
           <AuiIf condition={(state) => state.thread.isEmpty}>
             <div className="aui-thread-welcome">
-              <div className="aui-welcome-mark" aria-hidden="true">CC</div>
+              <div className="aui-welcome-mark" aria-hidden="true">GP</div>
               <p className="eyebrow">Classic Car Advisor</p>
               <h2>What kind of classic or modern-classic sports car are you looking for?</h2>
               <p className="welcome-note">Describe the car, budget, and driving experience you have in mind.</p>
@@ -52,7 +52,7 @@ export function Thread({ isProcessing }: ThreadProps) {
 function ThinkingPlaceholder() {
   return (
     <div className="aui-styled-message aui-styled-assistant-message aui-thinking-message" role="status" aria-label="Thinking...">
-      <div className="aui-styled-avatar aui-assistant-avatar" aria-hidden="true">CC</div>
+      <div className="aui-styled-avatar aui-assistant-avatar" aria-hidden="true">GP</div>
       <div className="aui-styled-message-body">
         <div className="aui-styled-message-label">Advisor</div>
         <div className="aui-thinking-indicator">
@@ -87,7 +87,7 @@ function UserMessage() {
 function AssistantMessage() {
   return (
     <MessagePrimitive.Root className="aui-styled-message aui-styled-assistant-message">
-      <div className="aui-styled-avatar aui-assistant-avatar" aria-hidden="true">CC</div>
+      <div className="aui-styled-avatar aui-assistant-avatar" aria-hidden="true">GP</div>
       <div className="aui-styled-message-body">
         <div className="aui-styled-message-label">Advisor</div>
         <div className="aui-styled-message-text aui-styled-markdown">

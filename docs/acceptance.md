@@ -183,6 +183,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T21 | View a curated source photo | A mapped real vehicle photo renders cleanly without in-image text, gradients, lot labels, or synthetic badges; attribution remains outside the photo in the listing details | implemented |
 | P4-T22 | Use the minimal gallery surface | The gallery opens directly to the listing cards and filter control without explanatory title, count, presentation, or fallback-copy labels | implemented |
 | P4-T23 | Identify the inventory owner | The gallery displays `Grand Prix Motors Inventory` in the compact inventory-label position | implemented |
+| P4-T24 | Display the Grand Prix brand mark | The chat welcome mark and assistant avatars display `GP` rather than `CC` | implemented |
 
 ## Completion rule
 
