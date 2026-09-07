@@ -29,9 +29,6 @@ export function Thread({ isProcessing }: ThreadProps) {
           <AuiIf condition={(state) => state.thread.isEmpty}>
             <div className="aui-thread-welcome">
               <div className="aui-welcome-mark" aria-hidden="true">GP</div>
-              <p className="eyebrow">Classic Car Advisor</p>
-              <h2>What kind of classic or modern-classic sports car are you looking for?</h2>
-              <p className="welcome-note">Describe the car, budget, and driving experience you have in mind.</p>
             </div>
           </AuiIf>
 
@@ -122,7 +119,7 @@ function Composer() {
   return (
     <ComposerPrimitive.Root className="aui-styled-composer">
       <div className="aui-composer-input-wrap">
-        <ComposerPrimitive.Input rows={1} placeholder="Message Classic Car Advisor" />
+        <ComposerPrimitive.Input rows={1} placeholder="Message Grand Prix Motors" />
         <button
           className="aui-styled-send"
           type="button"

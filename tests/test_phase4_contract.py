@@ -71,6 +71,8 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("image-credit" in javascript for javascript in javascript_assets)
     assert any("Grand Prix Motors Inventory" in javascript for javascript in javascript_assets)
     assert any("Specializing in classic/modern-classic enthusiast sports cars" in javascript for javascript in javascript_assets)
+    assert all("What kind of classic or modern-classic sports car are you looking for?" not in javascript for javascript in javascript_assets)
+    assert all("Classic Car Advisor" not in javascript for javascript in javascript_assets)
     assert all("Text chat" not in javascript for javascript in javascript_assets)
     assert all("Grounded by inventory and source records" not in javascript for javascript in javascript_assets)
     assert all("Enthusiast cars worth a closer look" not in javascript for javascript in javascript_assets)

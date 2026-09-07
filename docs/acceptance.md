@@ -79,6 +79,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-07 | Phase 4 Grand Prix brand mark | Replaced the chat welcome and assistant `CC` marks with `GP`; 77 Python tests, 4 frontend tests, and frontend build pass | `24113b4` | none |
 | 2026-09-07 | Phase 4 minimal composer | Removed the `Text chat` and `Grounded by inventory and source records` helper text below the composer; 77 Python tests, 4 frontend tests, and frontend build pass | `70a78e3` | none |
 | 2026-09-07 | Phase 4 inventory tagline | Added the corrected tagline `Specializing in classic/modern-classic enthusiast sports cars` beneath the Grand Prix Motors Inventory label; 77 Python tests, 4 frontend tests, and frontend build pass | `66b7017` | none |
+| 2026-09-07 | Phase 4 minimal empty chat | Removed the `Classic Car Advisor` heading and introductory question from the empty chat state, retaining only the `GP` mark and changing the composer placeholder to Grand Prix Motors; 77 Python tests, 4 frontend tests, and frontend build pass | `pending` | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -189,6 +190,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T24 | Display the Grand Prix brand mark | The chat welcome mark and assistant avatars display `GP` rather than `CC` | implemented |
 | P4-T25 | Keep the composer minimal | The composer shows only the input and send control without the `Text chat` or grounding helper text below it | implemented |
 | P4-T26 | Display the inventory tagline | The gallery shows `Specializing in classic/modern-classic enthusiast sports cars` beneath the Grand Prix Motors Inventory label | implemented |
+| P4-T27 | Keep the empty chat branded but minimal | The empty chat state shows only the `GP` mark and no `Classic Car Advisor` heading or introductory question | implemented |
 
 ## Completion rule
 
