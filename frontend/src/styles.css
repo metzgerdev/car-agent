@@ -66,6 +66,7 @@ a { color: #65b8a2; }
 }
 .inventory-gallery { padding: 18px; margin-bottom: 16px; }
 .gallery-controls { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.gallery-title { margin: 0; }
 .gallery-search input {
   width: 220px;
   padding: 9px 11px;
@@ -337,7 +338,7 @@ a { color: #65b8a2; }
 }
 @media (max-width: 520px) {
   .shell { width: min(100% - 20px, 1440px); padding-top: 18px; }
-  .gallery-controls { justify-content: stretch; }
+  .gallery-controls { align-items: stretch; flex-direction: column; gap: 8px; }
   .gallery-search input { width: 100%; }
   .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .inventory-gallery { padding: 13px; }

@@ -352,6 +352,7 @@ function InventoryGallery() {
     <>
       <section className="inventory-gallery panel" aria-label="Featured inventory gallery">
         <div className="gallery-controls">
+          <p className="eyebrow gallery-title">Grand Prix Motors Inventory</p>
           <label className="gallery-search">
             <span className="sr-only">Filter featured inventory</span>
             <input
