@@ -83,6 +83,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-07 | Phase 4 minimal Tool Trace chrome | Removed the `Live agent activity` eyebrow and empty Tool Trace instructional copy, leaving the trace title, progress, call count, and history; 77 Python tests, 4 frontend tests, and frontend build pass | `5160510` | none |
 | 2026-09-07 | Phase 4 brand tagline placement | Moved `Specializing in classic/modern-classic enthusiast sports cars` from the gallery header to directly beneath the `GP` chat welcome mark; 77 Python tests, 4 frontend tests, and frontend build pass | `3218102` | none |
 | 2026-09-07 | Phase 4 starter prompt suggestions | Added three clickable starter prompts beneath the GP tagline; each sends through the existing assistant-ui composer path; 77 Python tests, 4 frontend tests, and frontend build pass | `c4f7cbc` | none |
+| 2026-09-07 | Phase 4 paginated inventory gallery | The gallery loads all 100 typed mock listings, displays six cards per page, resets pagination for filters, and provides accessible Previous/Next controls; 78 Python tests, 4 frontend tests, and frontend build pass | `b5d28bc` | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -197,6 +198,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T28 | Keep the Tool Trace panel focused | The Tool Trace panel shows its title and calls without the `Live agent activity` eyebrow or empty-state instructional copy | implemented |
 | P4-T29 | Place the inventory tagline beneath the brand mark | The empty chat state shows `Specializing in classic/modern-classic enthusiast sports cars` directly beneath the `GP` logo, and the gallery no longer repeats it | implemented |
 | P4-T30 | Use starter prompt suggestions | The empty chat state shows clickable starter prompts beneath the tagline; selecting one sends it through the existing assistant-ui composer path | implemented |
+| P4-T31 | Page through featured inventory | The gallery loads the typed inventory dataset, displays six cards per page, keeps filtering scoped to the loaded inventory, and provides accessible Previous/Next controls with page state | implemented |
 
 ## Completion rule
 
