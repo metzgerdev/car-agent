@@ -1,15 +1,16 @@
 # Multi-source data plan
 
 This project is a portfolio demonstration of AI engineering. The inventory is
-deliberately a checked-in mock fixture; the goal is to show typed boundaries,
-provenance, source separation, and agent grounding without requiring live
-marketplace ingestion.
+deliberately a checked-in mock fixture with 1,000 deterministic records; the
+goal is to show typed boundaries, provenance, source separation, and agent
+grounding without requiring live marketplace ingestion.
 
 ## Source roles
 
 | Source | Role in the demo | Boundary model | Normalized output |
 | --- | --- | --- | --- |
 | Checked-in mock inventory (`data/inventory.json`) | Canonical listing facts: price, mileage, description, configuration, provenance, and synthetic service history | `Vehicle` through `normalize_inventory_record` | Validated `Vehicle` records |
+| Deterministic inventory generator (`scripts/generate_mock_inventory.py`) | Reproducible synthetic auction-style records inspired by common enthusiast-listing fields; preserves the six curated demo vehicles | Generator output validated by `normalize_inventory_record` | 994 generated `Vehicle` records with local provenance |
 | [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/) | VIN decoding and vehicle identity/specification normalization | `NHTSAVPICResponse` / `NHTSAVPICResult` | Provenance-backed `VehicleFact(topic="identity")` |
 | [NHTSA recalls](https://www.nhtsa.gov/nhtsa-datasets-and-apis) | Safety recall and campaign context | `NHTSARecallResponse` / `NHTSARecallRecord` | Provenance-backed `VehicleFact(topic="safety_recall")` |
 | [EPA FuelEconomy.gov](https://www.fueleconomy.gov/feg/ws/) | Fuel type, MPG, estimated fuel cost, emissions, drivetrain, and related configuration data | `EPAFuelEconomyVehicle` | Provenance-backed efficiency, ownership, emissions, and specification facts |
@@ -19,16 +20,19 @@ marketplace ingestion.
 
 ## Pipeline
 
-1. Validate the checked-in JSON records with `normalize_inventory_record` and
+1. Run `scripts/generate_mock_inventory.py` when the fixture needs to be
+   regenerated. It preserves the six curated demo vehicles and writes 994
+   synthetic records, for exactly 1,000 total records.
+2. Validate the checked-in JSON records with `normalize_inventory_record` and
    load them through `InventoryRepository`.
-2. Use a VIN, when present in an enrichment fixture, to associate NHTSA vPIC
+3. Use a VIN, when present in an enrichment fixture, to associate NHTSA vPIC
    identity facts. Use year/make/model and matching options to associate EPA
    configuration facts.
-3. Store inventory observations and external facts separately. No source
+4. Store inventory observations and external facts separately. No source
    silently overwrites another source's fields.
-4. Expose the resulting facts through retrieval tools so CrewAI can use
+5. Expose the resulting facts through retrieval tools so CrewAI can use
    source-grounded information in its response and trace.
-5. Keep listing-level service history separate from general knowledge facts.
+6. Keep listing-level service history separate from general knowledge facts.
    The checked-in records are synthetic, typed as `ServiceRecord`, and
    retrieved only through `retrieve_service_history`.
 
@@ -64,8 +68,14 @@ discloses that limitation before suggesting a pre-purchase inspection.
 
 ## Implementation status
 
-- `data/inventory.json` is the canonical six-record mock inventory used by the
-  app and tests.
+- `data/inventory.json` is the canonical 1,000-record mock inventory used by
+  the app and tests. The first six curated records preserve the original demo
+  conversations; the remaining 994 records are deterministic and synthetic.
+- Generated records are intentionally auction-style rather than live listings:
+  their descriptions include mileage, condition context, modification notes,
+  documentation guidance, and synthetic service history. They do not copy
+  listing text, VINs, images, or auction outcomes from Cars & Bids or Bring a
+  Trailer.
 - Recorded NHTSA vPIC, NHTSA recall, and EPA fixtures provide offline tests for
   the enrichment adapter contract.
 - Curated Car and Driver and MotorTrend links are validated with Pydantic and

@@ -49,7 +49,14 @@ class InventoryRepository:
             searchable = " ".join(
                 [vehicle.make, vehicle.model, vehicle.body_style, vehicle.description, *vehicle.tags]
             ).lower()
-            score += sum(1 for term in query_terms if term in searchable)
+            query_matches = sum(1 for term in query_terms if term in searchable)
+            # A query such as "BMW Z4" is an identity hint, not a request to
+            # rank every BMW above unrelated but affordable alternatives. Only
+            # award lexical relevance when the complete query is represented.
+            # This keeps unavailable exact lookups useful as a source of broad,
+            # grounded alternatives as the inventory grows.
+            if query_matches == len(query_terms):
+                score += query_matches
             scored.append((score, vehicle))
 
         scored.sort(key=lambda item: (-item[0], item[1].price, -item[1].year))
@@ -59,7 +66,11 @@ class InventoryRepository:
     def _terms(query: str | None) -> list[str]:
         if not query:
             return []
-        return [term for term in query.lower().split() if len(term) > 2]
+        return [
+            term
+            for term in query.lower().split()
+            if len(term) > 2 or any(character.isdigit() for character in term)
+        ]
 
     @staticmethod
     def _preference_score(vehicle: Vehicle, preference: str | None, value: str, points: int) -> int:

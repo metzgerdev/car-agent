@@ -6,7 +6,7 @@ from car_agent.data_pipeline import (
     InventoryValidationError,
     load_inventory_fixture,
 )
-from car_agent.repositories import KnowledgeRepository
+from car_agent.repositories import InventoryRepository, KnowledgeRepository
 
 
 def _record(**overrides):
@@ -104,3 +104,23 @@ def test_phase2_knowledge_retrieval_is_model_specific() -> None:
     assert facts
     assert all(fact.vehicle_id == "honda-s2000-2004" for fact in facts)
     assert all(fact.source for fact in facts)
+
+
+def test_phase2_checked_in_inventory_has_1000_typed_records() -> None:
+    vehicles = InventoryRepository().all()
+
+    assert len(vehicles) == 1_000
+    assert len({vehicle.id for vehicle in vehicles}) == 1_000
+    assert [vehicle.id for vehicle in vehicles[:6]] == [
+        "mazda-rx7-1992",
+        "honda-s2000-2004",
+        "bmw-z4-m-2008",
+        "porsche-911-1999",
+        "nissan-gt-r-2012",
+        "porsche-718-2018",
+    ]
+    generated = vehicles[6:]
+    assert all(vehicle.id.startswith("mock-") for vehicle in generated)
+    assert all(vehicle.provenance.source_type == "illustrative_fixture" for vehicle in vehicles)
+    assert all(vehicle.service_history for vehicle in vehicles)
+    assert all(record.source == "synthetic_demo" for vehicle in generated for record in vehicle.service_history)

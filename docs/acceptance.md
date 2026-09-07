@@ -127,6 +127,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | implemented |
 | P2-T6 | Run official-source adapters against recorded fixtures | NHTSA vPIC, NHTSA recall, and EPA payloads validate with Pydantic and normalize into provenance-backed `VehicleFact` records with source URL and retrieval timestamp | implemented |
 | P2-T7 | Load the checked-in mock inventory | `data/inventory.json` validates into canonical `Vehicle` records with `illustrative_fixture` provenance, repository loading and agent search work | implemented |
+| P2-T8 | Validate the generated inventory scale | The deterministic generator preserves the six curated records and produces 994 additional typed records, for 1,000 unique IDs with synthetic service history | implemented |
 
 ## Phase 3 — Sales behavior
 
