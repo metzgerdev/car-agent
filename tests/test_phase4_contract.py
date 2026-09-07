@@ -101,7 +101,7 @@ def test_p4_t18_inventory_gallery_returns_typed_featured_listings() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["total"] == 100
+    assert payload["total"] == 50
     assert len(payload["vehicles"]) == 8
     assert payload["vehicles"][0]["name"] == "1992 Mazda RX-7"
     assert payload["vehicles"][0]["tags"]
@@ -119,8 +119,10 @@ def test_p4_t31_inventory_gallery_can_request_the_full_paginated_dataset() -> No
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["total"] == 100
-    assert len(payload["vehicles"]) == 100
+    assert payload["total"] == 50
+    assert len(payload["vehicles"]) == 50
+    assert all(vehicle["image_url"] for vehicle in payload["vehicles"])
+    assert all(vehicle["image_source_url"] for vehicle in payload["vehicles"])
 
 
 def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:

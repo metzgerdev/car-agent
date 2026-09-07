@@ -1,7 +1,7 @@
 # Multi-source data plan
 
 This project is a portfolio demonstration of AI engineering. The inventory is
-deliberately a checked-in mock fixture with 100 deterministic records; the
+deliberately a checked-in mock fixture with 50 deterministic records; the
 goal is to show typed boundaries, provenance, source separation, and agent
 grounding without requiring live marketplace ingestion.
 
@@ -10,20 +10,21 @@ grounding without requiring live marketplace ingestion.
 | Source | Role in the demo | Boundary model | Normalized output |
 | --- | --- | --- | --- |
 | Checked-in mock inventory (`data/inventory.json`) | Canonical listing facts: price, mileage, description, configuration, provenance, and synthetic service history | `Vehicle` through `normalize_inventory_record` | Validated `Vehicle` records |
-| Deterministic inventory generator (`scripts/generate_mock_inventory.py`) | Reproducible synthetic auction-style records inspired by common enthusiast-listing fields; preserves the six curated demo vehicles | Generator output validated by `normalize_inventory_record` | 94 generated `Vehicle` records with local provenance |
+| Deterministic inventory generator (`scripts/generate_mock_inventory.py`) | Reproducible synthetic auction-style records inspired by common enthusiast-listing fields; preserves the six curated demo vehicles and maps every model family to a real reference photo | Generator output validated by `normalize_inventory_record` | 44 generated `Vehicle` records with local provenance and model-reference photo metadata |
 | [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/) | VIN decoding and vehicle identity/specification normalization | `NHTSAVPICResponse` / `NHTSAVPICResult` | Provenance-backed `VehicleFact(topic="identity")` |
 | [NHTSA recalls](https://www.nhtsa.gov/nhtsa-datasets-and-apis) | Safety recall and campaign context | `NHTSARecallResponse` / `NHTSARecallRecord` | Provenance-backed `VehicleFact(topic="safety_recall")` |
 | [EPA FuelEconomy.gov](https://www.fueleconomy.gov/feg/ws/) | Fuel type, MPG, estimated fuel cost, emissions, drivetrain, and related configuration data | `EPAFuelEconomyVehicle` | Provenance-backed efficiency, ownership, emissions, and specification facts |
 | Local knowledge fixture | Curated ownership and driving notes for the sales conversation | Existing `VehicleFact` records | Model-specific retrieved facts |
 | Synthetic service-history fixture | Listing-level maintenance events used to demonstrate a second inventory enrichment path | `ServiceRecord` | Dedicated `retrieve_service_history` tool output, explicitly marked `synthetic_demo` |
 | [Car and Driver](https://www.caranddriver.com/) / [MotorTrend](https://www.motortrend.com/) | Editorial context for a matched model: a link plus a short paraphrased summary | `MagazineReview` | Chat/API review context kept separate from canonical vehicle facts |
-| [Wikimedia Commons](https://commons.wikimedia.org/) | Real model-reference photos for the six curated gallery vehicles, with source-page and license metadata | Optional image fields on `Vehicle` | UI photo URL plus photographer, source page, and license credit |
+| [Wikimedia Commons](https://commons.wikimedia.org/) | Real model-reference photos for every inventory model family, with source-page and license metadata | Optional image fields on `Vehicle` | UI photo URL plus photographer, source page, and license credit |
 
 ## Pipeline
 
 1. Run `scripts/generate_mock_inventory.py` when the fixture needs to be
-   regenerated. It preserves the six curated demo vehicles and writes 94
-   synthetic records, for exactly 100 total records.
+   regenerated. It preserves the six curated demo vehicles and writes 44
+   synthetic records, for exactly 50 total records. Every generated model
+   family receives a source-backed Wikimedia Commons reference photo.
 2. Validate the checked-in JSON records with `normalize_inventory_record` and
    load them through `InventoryRepository`.
 3. Use a VIN, when present in an enrichment fixture, to associate NHTSA vPIC
@@ -69,17 +70,17 @@ discloses that limitation before suggesting a pre-purchase inspection.
 
 ## Implementation status
 
-- `data/inventory.json` is the canonical 100-record mock inventory used by the
+- `data/inventory.json` is the canonical 50-record mock inventory used by the
   app and tests. The first six curated records preserve the original demo
-  conversations and carry exact-model reference photos; the remaining 94
-  records are deterministic and synthetic.
+  conversations and carry exact-model reference photos; the remaining 44
+  records are deterministic and synthetic with model-reference photos.
 - Generated records are intentionally auction-style rather than live listings:
   their descriptions include mileage, condition context, modification notes,
   documentation guidance, and synthetic service history. They do not copy
   listing text, VINs, or auction outcomes from Cars & Bids or Bring a Trailer.
-- The six curated photo URLs point to Wikimedia Commons file derivatives. The
-  app displays each source page, photographer, and license; generated listings
-  without a mapped photo use a clearly labeled CSS fallback.
+- All photo URLs point to Wikimedia Commons file derivatives. The app displays
+  each source page, photographer, and license. These are model-reference
+  photos, not photographs of the individual synthetic listing records.
 - Recorded NHTSA vPIC, NHTSA recall, and EPA fixtures provide offline tests for
   the enrichment adapter contract.
 - Curated Car and Driver and MotorTrend links are validated with Pydantic and

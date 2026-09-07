@@ -106,11 +106,11 @@ def test_phase2_knowledge_retrieval_is_model_specific() -> None:
     assert all(fact.source for fact in facts)
 
 
-def test_phase2_checked_in_inventory_has_100_typed_records_and_curated_photos() -> None:
+def test_phase2_checked_in_inventory_has_50_typed_records_and_real_photos() -> None:
     vehicles = InventoryRepository().all()
 
-    assert len(vehicles) == 100
-    assert len({vehicle.id for vehicle in vehicles}) == 100
+    assert len(vehicles) == 50
+    assert len({vehicle.id for vehicle in vehicles}) == 50
     assert [vehicle.id for vehicle in vehicles[:6]] == [
         "mazda-rx7-1992",
         "honda-s2000-2004",
@@ -120,10 +120,9 @@ def test_phase2_checked_in_inventory_has_100_typed_records_and_curated_photos() 
         "porsche-718-2018",
     ]
     generated = vehicles[6:]
-    assert all(vehicle.image_url for vehicle in vehicles[:6])
-    assert all(vehicle.image_source_url for vehicle in vehicles[:6])
-    assert all(vehicle.image_license for vehicle in vehicles[:6])
-    assert all(vehicle.image_url is None for vehicle in generated)
+    assert all(vehicle.image_url for vehicle in vehicles)
+    assert all(vehicle.image_source_url for vehicle in vehicles)
+    assert all(vehicle.image_license for vehicle in vehicles)
     assert all(vehicle.id.startswith("mock-") for vehicle in generated)
     assert all(vehicle.provenance.source_type == "illustrative_fixture" for vehicle in vehicles)
     assert all(vehicle.service_history for vehicle in vehicles)

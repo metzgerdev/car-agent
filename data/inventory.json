@@ -370,7 +370,11 @@
       "auction-style",
       "analog",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Acura%20Integra%20Type%20R%20white.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Acura%20Integra%20Type%20R%20white.jpg",
+    "image_attribution": "Jacob Frey 4A / Wikimedia Commons",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "mock-0002",
@@ -419,7 +423,11 @@
       "auction-style",
       "collector",
       "period-correct"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Alfa%20Romeo%20GTV6%202.5%20%281981%29%2001.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Alfa%20Romeo%20GTV6%202.5%20%281981%29%2001.jpg",
+    "image_attribution": "Huhu Uet / Wikimedia Commons",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "mock-0003",
@@ -468,7 +476,11 @@
       "auction-style",
       "grand-tourer",
       "luxury"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Aston%20Martin%20V8%20Vantage.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Aston%20Martin%20V8%20Vantage.jpg",
+    "image_attribution": "Z\u00f6lle / Wikimedia Commons",
+    "image_license": "CC BY-SA 2.0 BE"
   },
   {
     "id": "mock-0004",
@@ -517,7 +529,11 @@
       "auction-style",
       "practical",
       "performance"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Audi%20RS4%20Avant%20grey%20Free%20Car%20Picture%20-%20Give%20Credit%20Via%20Link%20%28cropped%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Audi%20RS4%20Avant%20grey%20Free%20Car%20Picture%20-%20Give%20Credit%20Via%20Link%20%28cropped%29.jpg",
+    "image_attribution": "Wikimedia Commons / Wikimedia Commons",
+    "image_license": "See source page"
   },
   {
     "id": "mock-0005",
@@ -566,7 +582,11 @@
       "auction-style",
       "collector",
       "period-correct"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/BMW%202002%20Turbo%20%282008-06-28%29%20ret.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:BMW%202002%20Turbo%20%282008-06-28%29%20ret.jpg",
+    "image_attribution": "Lothar Spurzem / Wikimedia Commons",
+    "image_license": "CC BY-SA 2.0 de"
   },
   {
     "id": "mock-0006",
@@ -615,7 +635,11 @@
       "auction-style",
       "analog",
       "manual"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/1996%20BMW%20328is%20%28E36%29%20Coup%C3%A9%20%2828-12-2017%29%2005.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:1996%20BMW%20328is%20%28E36%29%20Coup%C3%A9%20%2828-12-2017%29%2005.jpg",
+    "image_attribution": "Jirapat Chroenkeskij / Wikimedia Commons",
+    "image_license": "CC0"
   },
   {
     "id": "mock-0007",
@@ -664,7 +688,11 @@
       "auction-style",
       "roadster",
       "manual"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/BMW%20Z3%20M%20Roadster%20%2843756108240%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:BMW%20Z3%20M%20Roadster%20%2843756108240%29.jpg",
+    "image_attribution": "FotoSleuth / Wikimedia Commons",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "mock-0008",
@@ -713,7 +741,11 @@
       "auction-style",
       "track",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Corvette%20Z06%2C%20BAS%2024%2C%20Brussels%20%28P1170397-RR%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Corvette%20Z06%2C%20BAS%2024%2C%20Brussels%20%28P1170397-RR%29.jpg",
+    "image_attribution": "Matti Blume / Wikimedia Commons",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "mock-0009",
@@ -762,7 +794,11 @@
       "auction-style",
       "collector",
       "restored"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Yellow%20Datsun%20240Z%20dllu.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Yellow%20Datsun%20240Z%20dllu.jpg",
+    "image_attribution": "Dllu / Wikimedia Commons",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "mock-0010",
@@ -811,7 +847,11 @@
       "auction-style",
       "collector",
       "analog"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dodge%20Viper%20GTS%20%28Bahrain%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Dodge%20Viper%20GTS%20%28Bahrain%29.jpg",
+    "image_attribution": "Mohammed Hamad / Wikimedia Commons",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "mock-0011",
@@ -860,7 +900,11 @@
       "auction-style",
       "track",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/1970%20Ford%20Mustang%20Boss%20302%20%2815863840731%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:1970%20Ford%20Mustang%20Boss%20302%20%2815863840731%29.jpg",
+    "image_attribution": "Wikimedia Commons / Wikimedia Commons",
+    "image_license": "See source page"
   },
   {
     "id": "mock-0012",
@@ -909,7 +953,11 @@
       "auction-style",
       "collector",
       "rare"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ford%20GT.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Ford%20GT.jpg",
+    "image_attribution": "Stefan-Xp / Wikimedia Commons",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "mock-0013",
@@ -958,7 +1006,11 @@
       "auction-style",
       "manual",
       "performance"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Acura%20Integra%20Type%20S%20%28DE5%29%20%28front%20three-quarter%20view%29%20at%20Osaka%20Auto%20Messe%202026.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Acura%20Integra%20Type%20S%20%28DE5%29%20%28front%20three-quarter%20view%29%20at%20Osaka%20Auto%20Messe%202026.jpg",
+    "image_attribution": "Aos.1905 / Wikimedia Commons",
+    "image_license": "See source page"
   },
   {
     "id": "mock-0014",
@@ -1007,7 +1059,11 @@
       "auction-style",
       "collector",
       "analog"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Honda%20NSX%20b.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Honda%20NSX%20b.jpg",
+    "image_attribution": "crash71100 / Wikimedia Commons",
+    "image_license": "CC0"
   },
   {
     "id": "mock-0015",
@@ -1056,7 +1112,11 @@
       "auction-style",
       "collector",
       "restored"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Jaguar%20E-Type%20Series%201%203.8%20Litre%201961.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Jaguar%20E-Type%20Series%201%203.8%20Litre%201961.jpg",
+    "image_attribution": "Wikimedia Commons / Wikimedia Commons",
+    "image_license": "See source page"
   },
   {
     "id": "mock-0016",
@@ -1105,7 +1165,11 @@
       "auction-style",
       "daily",
       "performance"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Lexus%20IS%20F%201002.JPG?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Lexus%20IS%20F%201002.JPG",
+    "image_attribution": "\u6625\u590f\u79cb\u51ac\u594f\u6148 / Wikimedia Commons",
+    "image_license": "Public domain"
   },
   {
     "id": "mock-0017",
@@ -1154,7 +1218,11 @@
       "auction-style",
       "lightweight",
       "track"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Lotus-Elise-1.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Lotus-Elise-1.jpg",
+    "image_attribution": "Matthias v.d. Elbe / Wikimedia Commons",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "mock-0018",
@@ -1203,7 +1271,11 @@
       "auction-style",
       "grand-tourer",
       "luxury"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Maserati%20GranTurismo.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Maserati%20GranTurismo.jpg",
+    "image_attribution": "IFCAR / Wikimedia Commons",
+    "image_license": "Public domain"
   },
   {
     "id": "mock-0019",
@@ -1252,7 +1324,11 @@
       "auction-style",
       "analog",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mazda%20RX-8.JPG?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Mazda%20RX-8.JPG",
+    "image_attribution": "Thomas doerfer / Wikimedia Commons",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "mock-0020",
@@ -1301,7 +1377,11 @@
       "auction-style",
       "performance",
       "rare"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/McLaren%20570S%201.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:McLaren%20570S%201.jpg",
+    "image_attribution": "MPW57 / Wikimedia Commons",
+    "image_license": "CC BY 3.0"
   },
   {
     "id": "mock-0021",
@@ -1350,7 +1430,11 @@
       "auction-style",
       "collector",
       "period-correct"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mercedes-Benz%20190%20E%20%2816400031903%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Mercedes-Benz%20190%20E%20%2816400031903%29.jpg",
+    "image_attribution": "Dennis Elzinga / Wikimedia Commons",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "mock-0022",
@@ -1399,7 +1483,11 @@
       "auction-style",
       "rally",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mitsubishi%20Lancer%20Evolution%20VIII.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Mitsubishi%20Lancer%20Evolution%20VIII.jpg",
+    "image_attribution": "IFCAR / Wikimedia Commons",
+    "image_license": "Public domain"
   },
   {
     "id": "mock-0023",
@@ -1448,7 +1536,11 @@
       "auction-style",
       "analog",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nissan%20300ZX%202960cc%20registered%20August%201993.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Nissan%20300ZX%202960cc%20registered%20August%201993.jpg",
+    "image_attribution": "Charles01 / Wikimedia Commons",
+    "image_license": "See source page"
   },
   {
     "id": "mock-0024",
@@ -1497,7 +1589,11 @@
       "auction-style",
       "track",
       "manual"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nissan%20350Z%20%2849760598682%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Nissan%20350Z%20%2849760598682%29.jpg",
+    "image_attribution": "crash71100 / Wikimedia Commons",
+    "image_license": "CC0"
   },
   {
     "id": "mock-0025",
@@ -1546,7 +1642,11 @@
       "auction-style",
       "muscle",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/2006-Pontiac-GTO.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:2006-Pontiac-GTO.jpg",
+    "image_attribution": "IFCAR / Wikimedia Commons",
+    "image_license": "Public domain"
   },
   {
     "id": "mock-0026",
@@ -1595,7 +1695,11 @@
       "auction-style",
       "rare",
       "collector"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/RenaultClioV6.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:RenaultClioV6.jpg",
+    "image_attribution": "Brian Snelson / Wikimedia Commons",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "mock-0027",
@@ -1644,7 +1748,11 @@
       "auction-style",
       "rally",
       "manual"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Subaru%20Impreza%20WRX%20STi%20%288159289146%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Subaru%20Impreza%20WRX%20STi%20%288159289146%29.jpg",
+    "image_attribution": "Davi Sanchez / Wikimedia Commons",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "mock-0028",
@@ -1693,7 +1801,11 @@
       "auction-style",
       "analog",
       "lightweight"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Toyota%20mr2%20sw20%20left.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Toyota%20mr2%20sw20%20left.jpg",
+    "image_attribution": "Wikimedia Commons / Wikimedia Commons",
+    "image_license": "See source page"
   },
   {
     "id": "mock-0029",
@@ -1742,7 +1854,11 @@
       "auction-style",
       "collector",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/1992%20Toyota%20Supra.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:1992%20Toyota%20Supra.jpg",
+    "image_attribution": "Calreyn88 / Wikimedia Commons",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "mock-0030",
@@ -1791,7 +1907,11 @@
       "auction-style",
       "collector",
       "restored"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/%2776%20Triumph%20TR6%20%28Hudson%29.JPG?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:%2776%20Triumph%20TR6%20%28Hudson%29.JPG",
+    "image_attribution": "Bull-Doser / Wikimedia Commons",
+    "image_license": "See source page"
   },
   {
     "id": "mock-0031",
@@ -1840,7 +1960,11 @@
       "auction-style",
       "practical",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Volkswagen%20Golf%20R32%20-%20Caramulo%20%2850584382056%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Volkswagen%20Golf%20R32%20-%20Caramulo%20%2850584382056%29.jpg",
+    "image_attribution": "Freggs / Wikimedia Commons",
+    "image_license": "CC BY-SA 2.0"
   },
   {
     "id": "mock-0032",
@@ -1889,7 +2013,11 @@
       "auction-style",
       "collector",
       "period-correct"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Volvo%20P1800.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Volvo%20P1800.jpg",
+    "image_attribution": "Lars-G\u00f6ran Lindgren / Wikimedia Commons",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "mock-0033",
@@ -1938,7 +2066,11 @@
       "auction-style",
       "analog",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Acura%20Integra%20Type%20R%20white.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Acura%20Integra%20Type%20R%20white.jpg",
+    "image_attribution": "Jacob Frey 4A / Wikimedia Commons",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "mock-0034",
@@ -1987,7 +2119,11 @@
       "auction-style",
       "collector",
       "period-correct"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Alfa%20Romeo%20GTV6%202.5%20%281981%29%2001.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Alfa%20Romeo%20GTV6%202.5%20%281981%29%2001.jpg",
+    "image_attribution": "Huhu Uet / Wikimedia Commons",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "mock-0035",
@@ -2036,7 +2172,11 @@
       "auction-style",
       "grand-tourer",
       "luxury"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Aston%20Martin%20V8%20Vantage.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Aston%20Martin%20V8%20Vantage.jpg",
+    "image_attribution": "Z\u00f6lle / Wikimedia Commons",
+    "image_license": "CC BY-SA 2.0 BE"
   },
   {
     "id": "mock-0036",
@@ -2085,7 +2225,11 @@
       "auction-style",
       "practical",
       "performance"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Audi%20RS4%20Avant%20grey%20Free%20Car%20Picture%20-%20Give%20Credit%20Via%20Link%20%28cropped%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Audi%20RS4%20Avant%20grey%20Free%20Car%20Picture%20-%20Give%20Credit%20Via%20Link%20%28cropped%29.jpg",
+    "image_attribution": "Wikimedia Commons / Wikimedia Commons",
+    "image_license": "See source page"
   },
   {
     "id": "mock-0037",
@@ -2134,7 +2278,11 @@
       "auction-style",
       "collector",
       "period-correct"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/BMW%202002%20Turbo%20%282008-06-28%29%20ret.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:BMW%202002%20Turbo%20%282008-06-28%29%20ret.jpg",
+    "image_attribution": "Lothar Spurzem / Wikimedia Commons",
+    "image_license": "CC BY-SA 2.0 de"
   },
   {
     "id": "mock-0038",
@@ -2183,7 +2331,11 @@
       "auction-style",
       "analog",
       "manual"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/1996%20BMW%20328is%20%28E36%29%20Coup%C3%A9%20%2828-12-2017%29%2005.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:1996%20BMW%20328is%20%28E36%29%20Coup%C3%A9%20%2828-12-2017%29%2005.jpg",
+    "image_attribution": "Jirapat Chroenkeskij / Wikimedia Commons",
+    "image_license": "CC0"
   },
   {
     "id": "mock-0039",
@@ -2232,7 +2384,11 @@
       "auction-style",
       "roadster",
       "manual"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/BMW%20Z3%20M%20Roadster%20%2843756108240%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:BMW%20Z3%20M%20Roadster%20%2843756108240%29.jpg",
+    "image_attribution": "FotoSleuth / Wikimedia Commons",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "mock-0040",
@@ -2281,7 +2437,11 @@
       "auction-style",
       "track",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Corvette%20Z06%2C%20BAS%2024%2C%20Brussels%20%28P1170397-RR%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Corvette%20Z06%2C%20BAS%2024%2C%20Brussels%20%28P1170397-RR%29.jpg",
+    "image_attribution": "Matti Blume / Wikimedia Commons",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "mock-0041",
@@ -2330,7 +2490,11 @@
       "auction-style",
       "collector",
       "restored"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Yellow%20Datsun%20240Z%20dllu.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Yellow%20Datsun%20240Z%20dllu.jpg",
+    "image_attribution": "Dllu / Wikimedia Commons",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "mock-0042",
@@ -2379,7 +2543,11 @@
       "auction-style",
       "collector",
       "analog"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dodge%20Viper%20GTS%20%28Bahrain%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Dodge%20Viper%20GTS%20%28Bahrain%29.jpg",
+    "image_attribution": "Mohammed Hamad / Wikimedia Commons",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "mock-0043",
@@ -2428,7 +2596,11 @@
       "auction-style",
       "track",
       "documented"
-    ]
+    ],
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/1970%20Ford%20Mustang%20Boss%20302%20%2815863840731%29.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:1970%20Ford%20Mustang%20Boss%20302%20%2815863840731%29.jpg",
+    "image_attribution": "Wikimedia Commons / Wikimedia Commons",
+    "image_license": "See source page"
   },
   {
     "id": "mock-0044",
@@ -2477,2456 +2649,10 @@
       "auction-style",
       "collector",
       "rare"
-    ]
-  },
-  {
-    "id": "mock-0045",
-    "make": "Honda",
-    "model": "Integra Type S",
-    "year": 2012,
-    "price": 65612,
-    "mileage": 64757,
-    "body_style": "hatchback",
-    "transmission": "6-speed manual",
-    "drivetrain": "FWD",
-    "horsepower": 319,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2012 Honda Integra Type S with 64,757 miles. Modification summary: largely stock. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-05",
-        "mileage": 37559,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-05",
-        "mileage": 51158,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-05",
-        "mileage": 64757,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
     ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0045",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0045",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "manual",
-      "performance"
-    ]
-  },
-  {
-    "id": "mock-0046",
-    "make": "Honda",
-    "model": "NSX",
-    "year": 1992,
-    "price": 144785,
-    "mileage": 72676,
-    "body_style": "coupe",
-    "transmission": "5-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 302,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1992 Honda NSX with 72,676 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-06",
-        "mileage": 42152,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-06",
-        "mileage": 57414,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-06",
-        "mileage": 72676,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0046",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0046",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "analog"
-    ]
-  },
-  {
-    "id": "mock-0047",
-    "make": "Jaguar",
-    "model": "E-Type",
-    "year": 2003,
-    "price": 165958,
-    "mileage": 80595,
-    "body_style": "convertible",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 259,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2003 Jaguar E-Type with 80,595 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-07",
-        "mileage": 46745,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-07",
-        "mileage": 63670,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-07",
-        "mileage": 80595,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0047",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0047",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "restored"
-    ]
-  },
-  {
-    "id": "mock-0048",
-    "make": "Lexus",
-    "model": "IS F",
-    "year": 2014,
-    "price": 81131,
-    "mileage": 88514,
-    "body_style": "sedan",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 423,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2014 Lexus IS F with 88,514 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-08",
-        "mileage": 51338,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-08",
-        "mileage": 69926,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-08",
-        "mileage": 88514,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0048",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0048",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "daily",
-      "performance"
-    ]
-  },
-  {
-    "id": "mock-0049",
-    "make": "Lotus",
-    "model": "Elise",
-    "year": 1994,
-    "price": 62304,
-    "mileage": 96433,
-    "body_style": "convertible",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 179,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1994 Lotus Elise with 96,433 miles. Modification summary: largely stock. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-09",
-        "mileage": 55931,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-09",
-        "mileage": 76182,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-09",
-        "mileage": 96433,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0049",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0049",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "lightweight",
-      "track"
-    ]
-  },
-  {
-    "id": "mock-0050",
-    "make": "Maserati",
-    "model": "GranTurismo",
-    "year": 2005,
-    "price": 55477,
-    "mileage": 104352,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 435,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2005 Maserati GranTurismo with 104,352 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-10",
-        "mileage": 60524,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-10",
-        "mileage": 82438,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-10",
-        "mileage": 104352,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0050",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0050",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "grand-tourer",
-      "luxury"
-    ]
-  },
-  {
-    "id": "mock-0051",
-    "make": "Mazda",
-    "model": "RX-8 R3",
-    "year": 2016,
-    "price": 52000,
-    "mileage": 112271,
-    "body_style": "coupe",
-    "transmission": "5-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 247,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2016 Mazda RX-8 R3 with 112,271 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-11",
-        "mileage": 65117,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-11",
-        "mileage": 88694,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-11",
-        "mileage": 112271,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0051",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0051",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "analog",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0052",
-    "make": "McLaren",
-    "model": "570S",
-    "year": 1996,
-    "price": 145823,
-    "mileage": 18190,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 559,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1996 McLaren 570S with 18,190 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-12",
-        "mileage": 10550,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-12",
-        "mileage": 14370,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-12",
-        "mileage": 18190,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0052",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0052",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "performance",
-      "rare"
-    ]
-  },
-  {
-    "id": "mock-0053",
-    "make": "Mercedes-Benz",
-    "model": "190E 2.3-16",
-    "year": 2007,
-    "price": 71996,
-    "mileage": 26109,
-    "body_style": "sedan",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 195,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2007 Mercedes-Benz 190E 2.3-16 with 26,109 miles. Modification summary: largely stock. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-13",
-        "mileage": 15143,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-13",
-        "mileage": 20626,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-13",
-        "mileage": 26109,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0053",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0053",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "period-correct"
-    ]
-  },
-  {
-    "id": "mock-0054",
-    "make": "Mitsubishi",
-    "model": "Lancer Evolution VIII",
-    "year": 2018,
-    "price": 68169,
-    "mileage": 34028,
-    "body_style": "sedan",
-    "transmission": "6-speed manual",
-    "drivetrain": "AWD",
-    "horsepower": 263,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2018 Mitsubishi Lancer Evolution VIII with 34,028 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-14",
-        "mileage": 19736,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-14",
-        "mileage": 26882,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-14",
-        "mileage": 34028,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0054",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0054",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "rally",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0055",
-    "make": "Nissan",
-    "model": "300ZX Twin Turbo",
-    "year": 1998,
-    "price": 66342,
-    "mileage": 41947,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 305,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1998 Nissan 300ZX Twin Turbo with 41,947 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-15",
-        "mileage": 24329,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-15",
-        "mileage": 33138,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-15",
-        "mileage": 41947,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0055",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0055",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "analog",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0056",
-    "make": "Nissan",
-    "model": "350Z NISMO",
-    "year": 2009,
-    "price": 65515,
-    "mileage": 49866,
-    "body_style": "coupe",
-    "transmission": "5-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 337,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2009 Nissan 350Z NISMO with 49,866 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-16",
-        "mileage": 28922,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-16",
-        "mileage": 39394,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-16",
-        "mileage": 49866,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0056",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0056",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "track",
-      "manual"
-    ]
-  },
-  {
-    "id": "mock-0057",
-    "make": "Pontiac",
-    "model": "GTO",
-    "year": 2020,
-    "price": 69688,
-    "mileage": 57785,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 400,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2020 Pontiac GTO with 57,785 miles. Modification summary: largely stock. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2021-04-17",
-        "mileage": 33515,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-08-17",
-        "mileage": 45650,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2026-11-17",
-        "mileage": 57785,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0057",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0057",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "muscle",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0058",
-    "make": "Renault",
-    "model": "Clio V6",
-    "year": 2000,
-    "price": 109861,
-    "mileage": 65704,
-    "body_style": "hatchback",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 268,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2000 Renault Clio V6 with 65,704 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-18",
-        "mileage": 38108,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-18",
-        "mileage": 51906,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-18",
-        "mileage": 65704,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0058",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0058",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "rare",
-      "collector"
-    ]
-  },
-  {
-    "id": "mock-0059",
-    "make": "Subaru",
-    "model": "Impreza WRX STI",
-    "year": 2011,
-    "price": 82034,
-    "mileage": 73623,
-    "body_style": "sedan",
-    "transmission": "6-speed manual",
-    "drivetrain": "AWD",
-    "horsepower": 300,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2011 Subaru Impreza WRX STI with 73,623 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-19",
-        "mileage": 42701,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-19",
-        "mileage": 58162,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-19",
-        "mileage": 73623,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0059",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0059",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "rally",
-      "manual"
-    ]
-  },
-  {
-    "id": "mock-0060",
-    "make": "Toyota",
-    "model": "MR2 Turbo",
-    "year": 1991,
-    "price": 81207,
-    "mileage": 81542,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 208,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1991 Toyota MR2 Turbo with 81,542 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-20",
-        "mileage": 47294,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-20",
-        "mileage": 64418,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-20",
-        "mileage": 81542,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0060",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0060",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "analog",
-      "lightweight"
-    ]
-  },
-  {
-    "id": "mock-0061",
-    "make": "Toyota",
-    "model": "Supra Turbo",
-    "year": 2002,
-    "price": 94380,
-    "mileage": 89461,
-    "body_style": "coupe",
-    "transmission": "5-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 310,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2002 Toyota Supra Turbo with 89,461 miles. Modification summary: largely stock. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-01",
-        "mileage": 51887,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-01",
-        "mileage": 70674,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-01",
-        "mileage": 89461,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0061",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0061",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0062",
-    "make": "Triumph",
-    "model": "TR6",
-    "year": 2013,
-    "price": 52000,
-    "mileage": 97380,
-    "body_style": "convertible",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 107,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2013 Triumph TR6 with 97,380 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-02",
-        "mileage": 56480,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-02",
-        "mileage": 76930,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-02",
-        "mileage": 97380,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0062",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0062",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "restored"
-    ]
-  },
-  {
-    "id": "mock-0063",
-    "make": "Volkswagen",
-    "model": "Golf R32",
-    "year": 1993,
-    "price": 52000,
-    "mileage": 105299,
-    "body_style": "hatchback",
-    "transmission": "6-speed manual",
-    "drivetrain": "AWD",
-    "horsepower": 225,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1993 Volkswagen Golf R32 with 105,299 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-03",
-        "mileage": 61073,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-03",
-        "mileage": 83186,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-03",
-        "mileage": 105299,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0063",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0063",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "practical",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0064",
-    "make": "Volvo",
-    "model": "P1800",
-    "year": 2004,
-    "price": 70899,
-    "mileage": 113218,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 113,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2004 Volvo P1800 with 113,218 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-04",
-        "mileage": 65666,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-04",
-        "mileage": 89442,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-04",
-        "mileage": 113218,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0064",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0064",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "period-correct"
-    ]
-  },
-  {
-    "id": "mock-0065",
-    "make": "Acura",
-    "model": "Integra Type R",
-    "year": 2015,
-    "price": 59072,
-    "mileage": 19137,
-    "body_style": "hatchback",
-    "transmission": "6-speed manual",
-    "drivetrain": "FWD",
-    "horsepower": 206,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2015 Acura Integra Type R with 19,137 miles. Modification summary: largely stock. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-05",
-        "mileage": 11099,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-05",
-        "mileage": 15118,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-05",
-        "mileage": 19137,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0065",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0065",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "analog",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0066",
-    "make": "Alfa Romeo",
-    "model": "GTV6",
-    "year": 1995,
-    "price": 58245,
-    "mileage": 27056,
-    "body_style": "coupe",
-    "transmission": "5-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 153,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1995 Alfa Romeo GTV6 with 27,056 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-06",
-        "mileage": 15692,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-06",
-        "mileage": 21374,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-06",
-        "mileage": 27056,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0066",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0066",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "period-correct"
-    ]
-  },
-  {
-    "id": "mock-0067",
-    "make": "Aston Martin",
-    "model": "V8 Vantage",
-    "year": 2006,
-    "price": 99418,
-    "mileage": 34975,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 386,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2006 Aston Martin V8 Vantage with 34,975 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-07",
-        "mileage": 20285,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-07",
-        "mileage": 27630,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-07",
-        "mileage": 34975,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0067",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0067",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "grand-tourer",
-      "luxury"
-    ]
-  },
-  {
-    "id": "mock-0068",
-    "make": "Audi",
-    "model": "RS 4",
-    "year": 2017,
-    "price": 72591,
-    "mileage": 42894,
-    "body_style": "wagon",
-    "transmission": "6-speed manual",
-    "drivetrain": "AWD",
-    "horsepower": 408,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2017 Audi RS 4 with 42,894 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-08",
-        "mileage": 24878,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-08",
-        "mileage": 33886,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-08",
-        "mileage": 42894,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0068",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0068",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "practical",
-      "performance"
-    ]
-  },
-  {
-    "id": "mock-0069",
-    "make": "BMW",
-    "model": "2002",
-    "year": 1997,
-    "price": 79764,
-    "mileage": 50813,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 131,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1997 BMW 2002 with 50,813 miles. Modification summary: largely stock. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-09",
-        "mileage": 29471,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-09",
-        "mileage": 40142,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-09",
-        "mileage": 50813,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0069",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0069",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "period-correct"
-    ]
-  },
-  {
-    "id": "mock-0070",
-    "make": "BMW",
-    "model": "E36 328is",
-    "year": 2008,
-    "price": 73937,
-    "mileage": 58732,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 207,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2008 BMW E36 328is with 58,732 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-10",
-        "mileage": 34064,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-10",
-        "mileage": 46398,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-10",
-        "mileage": 58732,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0070",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0070",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "analog",
-      "manual"
-    ]
-  },
-  {
-    "id": "mock-0071",
-    "make": "BMW",
-    "model": "Z3 M Roadster",
-    "year": 2019,
-    "price": 92110,
-    "mileage": 66651,
-    "body_style": "convertible",
-    "transmission": "5-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 236,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2019 BMW Z3 M Roadster with 66,651 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2020-04-11",
-        "mileage": 38657,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-08-11",
-        "mileage": 52654,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2025-11-11",
-        "mileage": 66651,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0071",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0071",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "roadster",
-      "manual"
-    ]
-  },
-  {
-    "id": "mock-0072",
-    "make": "Chevrolet",
-    "model": "Corvette Z06",
-    "year": 1999,
-    "price": 84283,
-    "mileage": 74570,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 394,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1999 Chevrolet Corvette Z06 with 74,570 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-12",
-        "mileage": 43250,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-12",
-        "mileage": 58910,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-12",
-        "mileage": 74570,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0072",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0072",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "track",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0073",
-    "make": "Datsun",
-    "model": "240Z",
-    "year": 2010,
-    "price": 64456,
-    "mileage": 82489,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 141,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2010 Datsun 240Z with 82,489 miles. Modification summary: largely stock. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-13",
-        "mileage": 47843,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-13",
-        "mileage": 65166,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-13",
-        "mileage": 82489,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0073",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0073",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "restored"
-    ]
-  },
-  {
-    "id": "mock-0074",
-    "make": "Dodge",
-    "model": "Viper GTS",
-    "year": 1990,
-    "price": 109629,
-    "mileage": 90408,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 454,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1990 Dodge Viper GTS with 90,408 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-14",
-        "mileage": 52436,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-14",
-        "mileage": 71422,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-14",
-        "mileage": 90408,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0074",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0074",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "analog"
-    ]
-  },
-  {
-    "id": "mock-0075",
-    "make": "Ford",
-    "model": "Mustang Boss 302",
-    "year": 2001,
-    "price": 63802,
-    "mileage": 98327,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 430,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2001 Ford Mustang Boss 302 with 98,327 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-15",
-        "mileage": 57029,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-15",
-        "mileage": 77678,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-15",
-        "mileage": 98327,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0075",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0075",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "track",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0076",
-    "make": "Ford",
-    "model": "GT",
-    "year": 2012,
-    "price": 217975,
-    "mileage": 106246,
-    "body_style": "coupe",
-    "transmission": "5-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 549,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2012 Ford GT with 106,246 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-16",
-        "mileage": 61622,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-16",
-        "mileage": 83934,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-16",
-        "mileage": 106246,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0076",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0076",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "rare"
-    ]
-  },
-  {
-    "id": "mock-0077",
-    "make": "Honda",
-    "model": "Integra Type S",
-    "year": 1992,
-    "price": 53148,
-    "mileage": 114165,
-    "body_style": "hatchback",
-    "transmission": "6-speed manual",
-    "drivetrain": "FWD",
-    "horsepower": 332,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1992 Honda Integra Type S with 114,165 miles. Modification summary: largely stock. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-17",
-        "mileage": 66215,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-17",
-        "mileage": 90190,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-17",
-        "mileage": 114165,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0077",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0077",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "manual",
-      "performance"
-    ]
-  },
-  {
-    "id": "mock-0078",
-    "make": "Honda",
-    "model": "NSX",
-    "year": 2003,
-    "price": 132321,
-    "mileage": 20084,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 284,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2003 Honda NSX with 20,084 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-18",
-        "mileage": 11648,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-18",
-        "mileage": 15866,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-18",
-        "mileage": 20084,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0078",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0078",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "analog"
-    ]
-  },
-  {
-    "id": "mock-0079",
-    "make": "Jaguar",
-    "model": "E-Type",
-    "year": 2014,
-    "price": 153494,
-    "mileage": 28003,
-    "body_style": "convertible",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 272,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2014 Jaguar E-Type with 28,003 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-19",
-        "mileage": 16241,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-19",
-        "mileage": 22122,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-19",
-        "mileage": 28003,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0079",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0079",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "restored"
-    ]
-  },
-  {
-    "id": "mock-0080",
-    "make": "Lexus",
-    "model": "IS F",
-    "year": 1994,
-    "price": 68667,
-    "mileage": 35922,
-    "body_style": "sedan",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 405,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1994 Lexus IS F with 35,922 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-20",
-        "mileage": 20834,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-20",
-        "mileage": 28378,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-20",
-        "mileage": 35922,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0080",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0080",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "daily",
-      "performance"
-    ]
-  },
-  {
-    "id": "mock-0081",
-    "make": "Lotus",
-    "model": "Elise",
-    "year": 2005,
-    "price": 87840,
-    "mileage": 43841,
-    "body_style": "convertible",
-    "transmission": "5-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 192,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2005 Lotus Elise with 43,841 miles. Modification summary: largely stock. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-01",
-        "mileage": 25427,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-01",
-        "mileage": 34634,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-01",
-        "mileage": 43841,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0081",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0081",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "lightweight",
-      "track"
-    ]
-  },
-  {
-    "id": "mock-0082",
-    "make": "Maserati",
-    "model": "GranTurismo",
-    "year": 2016,
-    "price": 81013,
-    "mileage": 51760,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 448,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2016 Maserati GranTurismo with 51,760 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-02",
-        "mileage": 30020,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-02",
-        "mileage": 40890,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-02",
-        "mileage": 51760,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0082",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0082",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "grand-tourer",
-      "luxury"
-    ]
-  },
-  {
-    "id": "mock-0083",
-    "make": "Mazda",
-    "model": "RX-8 R3",
-    "year": 1996,
-    "price": 73186,
-    "mileage": 59679,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 229,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1996 Mazda RX-8 R3 with 59,679 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-03",
-        "mileage": 34613,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-03",
-        "mileage": 47146,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-03",
-        "mileage": 59679,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0083",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0083",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "analog",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0084",
-    "make": "McLaren",
-    "model": "570S",
-    "year": 2007,
-    "price": 171359,
-    "mileage": 67598,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 572,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2007 McLaren 570S with 67,598 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-04",
-        "mileage": 39206,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-04",
-        "mileage": 53402,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-04",
-        "mileage": 67598,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0084",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0084",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "performance",
-      "rare"
-    ]
-  },
-  {
-    "id": "mock-0085",
-    "make": "Mercedes-Benz",
-    "model": "190E 2.3-16",
-    "year": 2018,
-    "price": 59532,
-    "mileage": 75517,
-    "body_style": "sedan",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 177,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2018 Mercedes-Benz 190E 2.3-16 with 75,517 miles. Modification summary: largely stock. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-05",
-        "mileage": 43799,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-05",
-        "mileage": 59658,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-05",
-        "mileage": 75517,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0085",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0085",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "period-correct"
-    ]
-  },
-  {
-    "id": "mock-0086",
-    "make": "Mitsubishi",
-    "model": "Lancer Evolution VIII",
-    "year": 1998,
-    "price": 55705,
-    "mileage": 83436,
-    "body_style": "sedan",
-    "transmission": "5-speed manual",
-    "drivetrain": "AWD",
-    "horsepower": 276,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1998 Mitsubishi Lancer Evolution VIII with 83,436 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-06",
-        "mileage": 48392,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-06",
-        "mileage": 65914,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-06",
-        "mileage": 83436,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0086",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0086",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "rally",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0087",
-    "make": "Nissan",
-    "model": "300ZX Twin Turbo",
-    "year": 2009,
-    "price": 53878,
-    "mileage": 91355,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 287,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2009 Nissan 300ZX Twin Turbo with 91,355 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-07",
-        "mileage": 52985,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-07",
-        "mileage": 72170,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-07",
-        "mileage": 91355,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0087",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0087",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "analog",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0088",
-    "make": "Nissan",
-    "model": "350Z NISMO",
-    "year": 2020,
-    "price": 53051,
-    "mileage": 99274,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 350,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2020 Nissan 350Z NISMO with 99,274 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2021-04-08",
-        "mileage": 57578,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-08-08",
-        "mileage": 78426,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2026-11-08",
-        "mileage": 99274,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0088",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0088",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "track",
-      "manual"
-    ]
-  },
-  {
-    "id": "mock-0089",
-    "make": "Pontiac",
-    "model": "GTO",
-    "year": 2000,
-    "price": 57224,
-    "mileage": 107193,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 413,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2000 Pontiac GTO with 107,193 miles. Modification summary: largely stock. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-09",
-        "mileage": 62171,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-09",
-        "mileage": 84682,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-09",
-        "mileage": 107193,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0089",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0089",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "muscle",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0090",
-    "make": "Renault",
-    "model": "Clio V6",
-    "year": 2011,
-    "price": 97397,
-    "mileage": 115112,
-    "body_style": "hatchback",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 250,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2011 Renault Clio V6 with 115,112 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-10",
-        "mileage": 66764,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-10",
-        "mileage": 90938,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-10",
-        "mileage": 115112,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0090",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0090",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "rare",
-      "collector"
-    ]
-  },
-  {
-    "id": "mock-0091",
-    "make": "Subaru",
-    "model": "Impreza WRX STI",
-    "year": 1991,
-    "price": 69570,
-    "mileage": 21031,
-    "body_style": "sedan",
-    "transmission": "5-speed manual",
-    "drivetrain": "AWD",
-    "horsepower": 313,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1991 Subaru Impreza WRX STI with 21,031 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2018-04-11",
-        "mileage": 12197,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-08-11",
-        "mileage": 16614,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2023-11-11",
-        "mileage": 21031,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0091",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0091",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "rally",
-      "manual"
-    ]
-  },
-  {
-    "id": "mock-0092",
-    "make": "Toyota",
-    "model": "MR2 Turbo",
-    "year": 2002,
-    "price": 68743,
-    "mileage": 28950,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 190,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2002 Toyota MR2 Turbo with 28,950 miles. Modification summary: period-correct upgrades. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2019-04-12",
-        "mileage": 16791,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-08-12",
-        "mileage": 22870,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2024-11-12",
-        "mileage": 28950,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0092",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0092",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "analog",
-      "lightweight"
-    ]
-  },
-  {
-    "id": "mock-0093",
-    "make": "Toyota",
-    "model": "Supra Turbo",
-    "year": 2013,
-    "price": 119916,
-    "mileage": 36869,
-    "body_style": "coupe",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 323,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 2013 Toyota Supra Turbo with 36,869 miles. Modification summary: largely stock. Condition note: presented with a clean, driver-focused condition profile. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2016-04-13",
-        "mileage": 21384,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2019-08-13",
-        "mileage": 29126,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2021-11-13",
-        "mileage": 36869,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0093",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0093",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "documented"
-    ]
-  },
-  {
-    "id": "mock-0094",
-    "make": "Triumph",
-    "model": "TR6",
-    "year": 1993,
-    "price": 74089,
-    "mileage": 44788,
-    "body_style": "convertible",
-    "transmission": "6-speed manual",
-    "drivetrain": "RWD",
-    "horsepower": 89,
-    "description": "Synthetic auction-style listing for an enthusiast-owned 1993 Triumph TR6 with 44,788 miles. Modification summary: period-correct upgrades. Condition note: cosmetic wear is called out for inspection. Seller documentation and an independent inspection are recommended.",
-    "service_history": [
-      {
-        "date": "2017-04-14",
-        "mileage": 25977,
-        "service_type": "Inspection and fluid service",
-        "details": "Synthetic demo record: fluids, filters, and belts inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2020-08-14",
-        "mileage": 35382,
-        "service_type": "Brake and suspension inspection",
-        "details": "Synthetic demo record: brakes, tires, and suspension inspected.",
-        "source": "synthetic_demo"
-      },
-      {
-        "date": "2022-11-14",
-        "mileage": 44788,
-        "service_type": "Pre-sale service",
-        "details": "Synthetic demo record: annual service and pre-sale inspection completed.",
-        "source": "synthetic_demo"
-      }
-    ],
-    "provenance": {
-      "source_url": "local://generated/mock-inventory/mock-0094",
-      "source_type": "illustrative_fixture",
-      "retrieved_at": "2026-09-07T00:00:00Z",
-      "source_record_id": "mock-0094",
-      "license": "internal-demo"
-    },
-    "tags": [
-      "synthetic",
-      "auction-style",
-      "collector",
-      "restored"
-    ]
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ford%20GT.jpg?width=1200",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File:Ford%20GT.jpg",
+    "image_attribution": "Stefan-Xp / Wikimedia Commons",
+    "image_license": "CC BY-SA 3.0"
   }
 ]
