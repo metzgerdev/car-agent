@@ -67,6 +67,8 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("trace-purpose" in javascript for javascript in javascript_assets)
     assert any("listing-photo" in javascript for javascript in javascript_assets)
     assert any("image-credit" in javascript for javascript in javascript_assets)
+    assert all("New conversation" not in javascript for javascript in javascript_assets)
+    assert all("Try the guided flow" not in javascript for javascript in javascript_assets)
     assert all("Guide the shopper" not in javascript for javascript in javascript_assets)
     assert all("Shopper profile" not in javascript for javascript in javascript_assets)
     assert '"/voice"' not in vite_config_source

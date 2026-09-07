@@ -507,35 +507,9 @@ function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
   );
 }
 
-function AdvisorWorkspace({
-  dashboard,
-  onReset,
-  connectionStatus,
-}: {
-  dashboard: Dashboard;
-  onReset: () => void;
-  connectionStatus: "checking" | "connected" | "offline";
-}) {
+function AdvisorWorkspace({ dashboard }: { dashboard: Dashboard }) {
   return (
     <main className="shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">AI engineering demo</p>
-          <h1>Classic Car Advisor</h1>
-          <p className="subtitle">Find a car, inspect the evidence, and request a test drive.</p>
-        </div>
-        <div className="topbar-actions">
-          <span className={`status-pill ${connectionStatus}`}>{connectionStatus === "checking" ? "Checking API…" : connectionStatus === "connected" ? "API connected" : "API unavailable"}</span>
-          <button className="button button-secondary" type="button" onClick={onReset}>New conversation</button>
-        </div>
-      </header>
-      <section className="demo-banner" aria-label="Demo instructions">
-        <div>
-          <strong>Try the guided flow</strong>
-          <span>Start with the Porsche prompt, then add preferences, ask about maintenance, and schedule a drive.</span>
-        </div>
-        <button className="text-button" type="button" onClick={onReset}>Start over</button>
-      </section>
       <InventoryGallery />
       <div className="workspace">
         <section className="conversation-card panel" aria-label="Conversation">
@@ -555,8 +529,6 @@ function RuntimeShell({
   onResponseDelta,
   onResponse,
   dashboard,
-  onReset,
-  connectionStatus,
   onTrace,
   onStreamFinished,
 }: {
@@ -567,8 +539,6 @@ function RuntimeShell({
   onTrace: (event: TraceStreamEvent) => void;
   onStreamFinished: () => void;
   dashboard: Dashboard;
-  onReset: () => void;
-  connectionStatus: "checking" | "connected" | "offline";
 }) {
   const adapter = useMemo(
     () => createChatAdapter(conversationId, onStreamStarted, onResponseDelta, onResponse, onTrace, onStreamFinished),
@@ -577,33 +547,14 @@ function RuntimeShell({
   const runtime = useLocalRuntime(adapter);
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <AdvisorWorkspace
-        dashboard={dashboard}
-        onReset={onReset}
-        connectionStatus={connectionStatus}
-      />
+      <AdvisorWorkspace dashboard={dashboard} />
     </AssistantRuntimeProvider>
   );
 }
 
 function App() {
-  const [conversationId, setConversationId] = useState(newConversationId);
+  const [conversationId] = useState(newConversationId);
   const [dashboard, setDashboard] = useState<Dashboard>(EMPTY_DASHBOARD);
-  const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "offline">("checking");
-
-  useEffect(() => {
-    fetch("/health")
-      .then((response) => {
-        if (!response.ok) throw new Error("health check failed");
-        setConnectionStatus("connected");
-      })
-      .catch(() => setConnectionStatus("offline"));
-  }, []);
-
-  const reset = () => {
-    setConversationId(newConversationId());
-    setDashboard(EMPTY_DASHBOARD);
-  };
   const handleStreamStarted = useCallback(() => {
     setDashboard((current) => ({ ...current, activeTrace: [], turnTraceCount: 0, isProcessing: true }));
   }, []);
@@ -660,8 +611,6 @@ function App() {
       onTrace={handleTrace}
       onStreamFinished={handleStreamFinished}
       dashboard={dashboard}
-      onReset={reset}
-      connectionStatus={connectionStatus}
     />
   );
 }

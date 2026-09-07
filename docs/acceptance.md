@@ -172,6 +172,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T5 | Use the text-only browser composer | The assistant-ui composer sends a plain text message through `/chat`; no voice controls, voice endpoints, modality fields, or ElevenLabs dependency are present | implemented |
 | P4-T16 | Arrange a test drive in live mode | Scheduling uses the deterministic side-effect safety route, validates required details, emits `schedule_test_drive` in the streamed Tool Trace, and never confirms a booking without a successful tool result | implemented |
 | P4-T18 | Browse featured inventory | The dark UI loads a typed featured slice from `/inventory`, renders the six curated cards with exact-model source photos and credit metadata, keeps a labeled fallback for unmapped generated records, opens a detail gallery modal, and keeps the right rail dedicated to Tool Trace | implemented |
+| P4-T19 | Use the focused demo shell | The browser contains only the featured gallery, chat surface, and Tool Trace panel; the title/status header and instructional banner are absent | implemented |
 
 ## Completion rule
 
