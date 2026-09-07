@@ -155,6 +155,39 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert events[-1][0] == "done"
 
 
+def test_p4_t10_bare_known_model_streams_grounding_trace() -> None:
+    client, _ = _offline_client()
+
+    with client.stream(
+        "POST",
+        "/chat",
+        headers={"Accept": "text/event-stream"},
+        json={"conversation_id": "streaming-bare-model", "message": "honda s2000"},
+    ) as response:
+        lines = list(response.iter_lines())
+
+    events: list[tuple[str, dict]] = []
+    event_name: str | None = None
+    data_lines: list[str] = []
+    for line in lines:
+        if line.startswith("event: "):
+            event_name = line.removeprefix("event: ")
+        elif line.startswith("data: "):
+            data_lines.append(line.removeprefix("data: "))
+        elif not line and event_name:
+            events.append((event_name, json.loads("\n".join(data_lines))))
+            event_name = None
+            data_lines = []
+
+    trace_events = [payload for name, payload in events if name == "trace"]
+    completed = [payload for payload in trace_events if payload["status"] == "complete"]
+    response_payload = next(payload for name, payload in events if name == "response")
+
+    assert response.status_code == 200
+    assert [payload["name"] for payload in completed] == ["search_inventory", "get_vehicle"]
+    assert [call["name"] for call in response_payload["trace"]] == ["search_inventory", "get_vehicle"]
+
+
 def test_p4_t17_trace_metadata_explains_tool_purpose_and_outcome() -> None:
     agent = CrewAISalesAgent(use_live_model=False)
 

@@ -313,6 +313,16 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
+        # A bare known make/model such as "Honda S2000" is still an inventory
+        # lookup. Keep it grounded and traceable instead of allowing the model
+        # to answer from memory without emitting a tool call.
+        if self.deterministic_agent._is_model_reference_request(user_message):
+            return self._respond_deterministic(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
         # Scheduling is a side effect, so it must go through the deterministic
         # validation path. This prevents the live model from claiming that a
         # drive was booked without actually calling schedule_test_drive.
