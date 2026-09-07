@@ -169,6 +169,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T14 | Stream an offline deterministic answer | A deterministic turn emits multiple `response_delta` events whose concatenation equals the final response, before the final typed response event and `done` marker | implemented |
 | P4-T5 | Use the text-only browser composer | The assistant-ui composer sends a plain text message through `/chat`; no voice controls, voice endpoints, modality fields, or ElevenLabs dependency are present | implemented |
 | P4-T16 | Arrange a test drive in live mode | Scheduling uses the deterministic side-effect safety route, validates required details, emits `schedule_test_drive` in the streamed Tool Trace, and never confirms a booking without a successful tool result | implemented |
+| P4-T18 | Browse featured inventory | The dark UI loads a typed featured slice from `/inventory`, renders auction-style listing cards with synthetic gallery visuals, opens a detail gallery modal, and keeps the right rail dedicated to Tool Trace | implemented |
 
 ## Completion rule
 

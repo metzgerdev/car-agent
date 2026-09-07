@@ -25,6 +25,27 @@ type ChatPayload = {
   trace: ToolCall[];
 };
 
+type InventoryVehicle = {
+  id: string;
+  name: string;
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  mileage: number;
+  body_style: string;
+  transmission: string;
+  drivetrain: string;
+  horsepower: number;
+  description: string;
+  tags: string[];
+};
+
+type InventoryPayload = {
+  total: number;
+  vehicles: InventoryVehicle[];
+};
+
 type TraceStreamEvent = {
   trace_id: string;
   status: "running" | "complete";
@@ -210,6 +231,214 @@ function formatDuration(durationMs: number | null | undefined): string {
   return durationMs < 1 ? "<1 ms" : `${Math.round(durationMs)} ms`;
 }
 
+function formatPrice(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+const galleryTones = ["copper", "teal", "violet", "gold", "blue", "rose"];
+const galleryShots = ["Front three-quarter", "Driver-side profile", "Documentation bay"];
+
+function ListingVisual({
+  vehicle,
+  shot = 0,
+  large = false,
+}: {
+  vehicle: InventoryVehicle;
+  shot?: number;
+  large?: boolean;
+}) {
+  const tone = galleryTones[(vehicle.year + shot) % galleryTones.length];
+  return (
+    <div
+      className={`listing-visual tone-${tone}${large ? " listing-visual-large" : ""}`}
+      role="img"
+      aria-label={`${galleryShots[shot % galleryShots.length]} synthetic gallery image for ${vehicle.name}`}
+    >
+      <div className="visual-skyline" />
+      <div className="visual-sun" />
+      <div className="visual-car">
+        <div className="visual-window" />
+        <span className="visual-wheel visual-wheel-front" />
+        <span className="visual-wheel visual-wheel-rear" />
+      </div>
+      <div className="visual-topline">
+        <span>CLASSIC CAR ADVISOR</span>
+        <span>LOT {vehicle.id.slice(-4).toUpperCase()}</span>
+      </div>
+      <div className="visual-bottomline">
+        <strong>{vehicle.year} {vehicle.make}</strong>
+        <span>{galleryShots[shot % galleryShots.length]}</span>
+      </div>
+      <span className="visual-synthetic">SYNTHETIC PHOTO</span>
+    </div>
+  );
+}
+
+function InventoryGallery() {
+  const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
+  const [total, setTotal] = useState(0);
+  const [query, setQuery] = useState("");
+  const [selectedVehicle, setSelectedVehicle] = useState<InventoryVehicle | null>(null);
+  const [activeShot, setActiveShot] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/inventory?limit=12")
+      .then((response) => {
+        if (!response.ok) throw new Error("inventory request failed");
+        return response.json() as Promise<InventoryPayload>;
+      })
+      .then((payload) => {
+        if (!active) return;
+        setInventory(payload.vehicles);
+        setTotal(payload.total);
+      })
+      .catch(() => {
+        if (active) setError(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedVehicle) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedVehicle(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedVehicle]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleVehicles = inventory.filter((vehicle) => {
+    if (!normalizedQuery) return true;
+    return `${vehicle.name} ${vehicle.body_style} ${vehicle.tags.join(" ")}`
+      .toLowerCase()
+      .includes(normalizedQuery);
+  });
+
+  const selectVehicle = (vehicle: InventoryVehicle) => {
+    setSelectedVehicle(vehicle);
+    setActiveShot(0);
+  };
+
+  return (
+    <>
+      <section className="inventory-gallery panel" aria-label="Featured inventory gallery">
+        <div className="gallery-heading">
+          <div>
+            <p className="eyebrow">Featured inventory</p>
+            <h2>Enthusiast cars worth a closer look</h2>
+            <p className="gallery-subtitle">
+              {total ? `${total.toLocaleString()} synthetic listings` : "Loading synthetic listings"} · auction-style presentation
+            </p>
+          </div>
+          <label className="gallery-search">
+            <span className="sr-only">Filter featured inventory</span>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter make, model, or tag"
+              type="search"
+            />
+          </label>
+        </div>
+        {loading ? <p className="gallery-state">Loading featured inventory…</p> : null}
+        {error ? <p className="gallery-state gallery-error">Featured inventory is unavailable. The chat remains available.</p> : null}
+        {!loading && !error && !visibleVehicles.length ? <p className="gallery-state">No featured listings match that filter.</p> : null}
+        <div className="gallery-grid">
+          {visibleVehicles.slice(0, 6).map((vehicle, index) => (
+            <article className="inventory-card" key={vehicle.id}>
+              <button className="inventory-card-hit" type="button" onClick={() => selectVehicle(vehicle)}>
+                <ListingVisual vehicle={vehicle} shot={index % 2} />
+                <div className="inventory-card-body">
+                  <div className="inventory-card-kicker">
+                    <span>{vehicle.body_style}</span>
+                    <span>{vehicle.transmission}</span>
+                  </div>
+                  <h3>{vehicle.name}</h3>
+                  <div className="inventory-card-price">
+                    <strong>{formatPrice(vehicle.price)}</strong>
+                    <span>{vehicle.mileage.toLocaleString()} mi</span>
+                  </div>
+                  <div className="inventory-tags">
+                    {vehicle.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}
+                  </div>
+                </div>
+              </button>
+            </article>
+          ))}
+        </div>
+        <p className="gallery-footnote">Synthetic gallery visuals · listing details come from the typed mock inventory.</p>
+      </section>
+
+      {selectedVehicle ? (
+        <div
+          className="gallery-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedVehicle(null);
+          }}
+        >
+          <div className="gallery-modal" role="dialog" aria-modal="true" aria-labelledby="gallery-modal-title">
+            <div className="gallery-modal-header">
+              <div>
+                <p className="eyebrow">Listing preview</p>
+                <h2 id="gallery-modal-title">{selectedVehicle.name}</h2>
+              </div>
+              <button className="gallery-close" type="button" onClick={() => setSelectedVehicle(null)} aria-label="Close listing preview">×</button>
+            </div>
+            <div className="gallery-modal-layout">
+              <div className="gallery-modal-photos">
+                <ListingVisual vehicle={selectedVehicle} shot={activeShot} large />
+                <div className="gallery-thumbnails" aria-label="Listing photos">
+                  {galleryShots.map((shot, index) => (
+                    <button
+                      className={`gallery-thumbnail${index === activeShot ? " active" : ""}`}
+                      type="button"
+                      key={shot}
+                      onClick={() => setActiveShot(index)}
+                      aria-label={`Show ${shot.toLowerCase()} image`}
+                    >
+                      <ListingVisual vehicle={selectedVehicle} shot={index} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="gallery-modal-details">
+                <div className="modal-price-row">
+                  <strong>{formatPrice(selectedVehicle.price)}</strong>
+                  <span>{selectedVehicle.mileage.toLocaleString()} miles</span>
+                </div>
+                <p>{selectedVehicle.description}</p>
+                <dl className="listing-specs">
+                  <div><dt>Power</dt><dd>{selectedVehicle.horsepower} hp</dd></div>
+                  <div><dt>Drive</dt><dd>{selectedVehicle.drivetrain}</dd></div>
+                  <div><dt>Body</dt><dd>{selectedVehicle.body_style}</dd></div>
+                  <div><dt>Transmission</dt><dd>{selectedVehicle.transmission}</dd></div>
+                </dl>
+                <button className="button button-secondary gallery-modal-action" type="button" onClick={() => setSelectedVehicle(null)}>
+                  Close listing preview
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
   return (
     <section className="panel evidence-card tool-trace-panel">
@@ -285,6 +514,7 @@ function AdvisorWorkspace({
         </div>
         <button className="text-button" type="button" onClick={onReset}>Start over</button>
       </section>
+      <InventoryGallery />
       <div className="workspace">
         <section className="conversation-card panel" aria-label="Conversation">
         <Thread isProcessing={dashboard.isProcessing} />

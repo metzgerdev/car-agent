@@ -44,6 +44,12 @@ after starting the server. The page has the conversation and a right-side Tool
 Trace panel that exposes redacted agent activity. The composer accepts text
 messages only.
 
+The browser also includes a small auction-style featured inventory gallery.
+It loads a typed slice from `/inventory`, supports local filtering, and opens a
+listing preview with three synthetic gallery views and key vehicle specs. The
+visuals are CSS-generated demo placeholders; they are not copied marketplace
+photos.
+
 The browser frontend is built with [assistant-ui](https://github.com/assistant-ui/assistant-ui)
 and uses its `LocalRuntime` adapter to call the existing FastAPI `/chat`
 endpoint. Its conversation surface is a styled assistant-ui Thread/Composer

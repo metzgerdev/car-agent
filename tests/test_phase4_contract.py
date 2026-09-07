@@ -70,6 +70,21 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert '"/voice"' not in vite_config_source
 
 
+def test_p4_t18_inventory_gallery_returns_typed_featured_listings() -> None:
+    client, _ = _offline_client()
+
+    response = client.get("/inventory?limit=8")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1_000
+    assert len(payload["vehicles"]) == 8
+    assert payload["vehicles"][0]["name"] == "1992 Mazda RX-7"
+    assert payload["vehicles"][0]["tags"]
+    assert "service_history" not in payload["vehicles"][0]
+    assert {"id", "name", "price", "mileage", "body_style", "description"} <= payload["vehicles"][0].keys()
+
+
 def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     client, _ = _offline_client()
 

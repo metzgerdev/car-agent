@@ -8,7 +8,7 @@ from queue import Queue
 from threading import Thread
 from typing import Any, Iterator, Literal
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
@@ -45,6 +45,27 @@ class VehicleReviewsResponse(BaseModel):
     reviews: list[MagazineReview]
 
 
+class InventoryVehicleResponse(BaseModel):
+    id: str
+    name: str
+    make: str
+    model: str
+    year: int
+    price: int
+    mileage: int
+    body_style: str
+    transmission: str
+    drivetrain: str
+    horsepower: int
+    description: str
+    tags: list[str] = Field(default_factory=list)
+
+
+class InventoryResponse(BaseModel):
+    total: int
+    vehicles: list[InventoryVehicleResponse]
+
+
 class ChatResponse(BaseModel):
     message: str
     state: dict[str, Any]
@@ -74,6 +95,16 @@ def create_app(
     @api.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
         return HealthResponse(status="ok")
+
+
+    @api.get("/inventory", response_model=InventoryResponse)
+    def inventory(limit: int = Query(default=12, ge=1, le=24)) -> InventoryResponse:
+        all_vehicles = service.tools.inventory.all()
+        featured = [
+            InventoryVehicleResponse.model_validate(vehicle.to_dict(include_service_history=False))
+            for vehicle in all_vehicles[:limit]
+        ]
+        return InventoryResponse(total=len(all_vehicles), vehicles=featured)
 
 
     @api.post("/chat", response_model=ChatResponse)
