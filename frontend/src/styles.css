@@ -67,6 +67,8 @@ a { color: #65b8a2; }
 .inventory-gallery { padding: 18px; margin-bottom: 16px; }
 .gallery-controls { display: flex; justify-content: flex-end; margin-bottom: 14px; }
 .gallery-title { margin: 0; }
+.gallery-branding { margin-right: auto; }
+.gallery-tagline { margin: 2px 0 0; color: var(--chat-muted); font-size: 0.72rem; }
 .gallery-search input {
   width: 220px;
   padding: 9px 11px;
