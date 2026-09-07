@@ -192,7 +192,7 @@ Run the tests with:
 pytest
 ```
 
-The inventory and knowledge records in `data/` are illustrative demo records. The multi-source plan in [`data/sources.md`](data/sources.md) treats the Craigslist snapshot as demo inventory and NHTSA/EPA payloads as provenance-backed enrichment. Pydantic boundary models and recorded fixtures keep the integration inspectable without requiring live provider calls.
+The inventory and knowledge records in `data/` are illustrative mock records. The multi-source plan in [`data/sources.md`](data/sources.md) treats the checked-in inventory fixture as the canonical inventory and NHTSA/EPA payloads as provenance-backed enrichment. Pydantic boundary models and recorded fixtures keep the integration inspectable without requiring live provider calls.
 
 To normalize an inventory fixture and write it to an idempotent SQLite store:
 
@@ -200,29 +200,25 @@ To normalize an inventory fixture and write it to an idempotent SQLite store:
 car-agent-ingest --input data/inventory.json --output data/inventory.sqlite
 ```
 
-To try the first small Craigslist ingestion sample, provide explicit
-horsepower enrichment for each source row and write canonical records to
-SQLite:
+To validate the mock inventory and optionally write it to an idempotent SQLite
+store:
 
 ```bash
-car-agent-ingest-craigslist \
-  --input data/craigslist_sample.csv \
-  --horsepower-map data/craigslist_sample_horsepower.json \
-  --output data/craigslist_sample.sqlite \
-  --retrieved-at 2026-09-03T00:00:00Z
+car-agent-ingest \
+  --input data/inventory.json \
+  --output data/inventory.sqlite
 ```
 
-The sample contains four source-shaped rows; it is intentionally separate
-from the six-record illustrative JSON fixture. To point the agent at the
-resulting sample database for a demo, set the repository path before starting
-the app:
+The app uses `data/inventory.json` by default. To point the agent at the
+generated SQLite copy instead, set the repository path before starting the
+app:
 
 ```bash
-CAR_AGENT_INVENTORY_PATH=data/craigslist_sample.sqlite uvicorn car_agent.app:app --reload
+CAR_AGENT_INVENTORY_PATH=data/inventory.sqlite uvicorn car_agent.app:app --reload
 ```
 
-The SQLite output is ignored by Git and can be regenerated. The full source
-export is not checked into this repository.
+The SQLite output is ignored by Git and can be regenerated from the mock JSON
+fixture at any time.
 
 To verify Phase 2 interactively, install the notebook extra and open [notebooks/verify_phase2.ipynb](notebooks/verify_phase2.ipynb):
 

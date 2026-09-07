@@ -8,7 +8,6 @@ models used by the sales agent.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -23,83 +22,6 @@ class SourceProvenanceModel(BaseModel):
     retrieved_at: datetime
     source_record_id: str | None = None
     license: str | None = None
-
-
-class CraigslistVehicleRow(BaseModel):
-    """Typed representation of one row from Austin Reese's dataset.
-
-    The source contains nullable marketplace fields, so optionality is kept in
-    this model.  The adapter is responsible for deciding whether a row has
-    enough information to become a canonical inventory record.
-    """
-
-    model_config = ConfigDict(
-        extra="ignore",
-        populate_by_name=True,
-        str_strip_whitespace=True,
-    )
-
-    id: int | str
-    url: str | None = None
-    region: str | None = None
-    region_url: str | None = None
-    price: int | float | None = None
-    year: int | float | None = None
-    manufacturer: str | None = None
-    model: str | None = None
-    condition: str | None = None
-    cylinders: str | None = None
-    fuel: str | None = None
-    odometer: int | float | None = None
-    title_status: str | None = None
-    transmission: str | None = None
-    vin: str | None = Field(default=None, alias="VIN")
-    drive: str | None = None
-    size: str | None = None
-    type: str | None = None
-    paint_color: str | None = None
-    image_url: str | None = None
-    description: str | None = None
-    county: str | None = None
-    state: str | None = None
-    lat: float | None = None
-    long: float | None = None
-    posting_date: datetime | None = None
-
-
-class CraigslistInventoryCandidate(BaseModel):
-    """A Craigslist row mapped toward the canonical inventory shape.
-
-    Horsepower is optional here because the marketplace dataset does not
-    reliably provide it.  Calling ``to_inventory_record`` without an explicit
-    horsepower enrichment fails rather than guessing.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    id: str
-    make: str | None = None
-    model: str | None = None
-    year: int | None = None
-    price: int | None = None
-    mileage: int | None = None
-    body_style: str | None = None
-    transmission: str | None = None
-    drivetrain: str | None = None
-    horsepower: int | None = Field(default=None, gt=0)
-    description: str | None = None
-    tags: list[str] = Field(default_factory=list)
-    provenance: SourceProvenanceModel
-
-    def to_inventory_record(self, *, horsepower: int | None = None) -> dict[str, Any]:
-        resolved_horsepower = horsepower if horsepower is not None else self.horsepower
-        if resolved_horsepower is None:
-            raise ValueError(
-                "horsepower enrichment is required before this source row can become inventory"
-            )
-        record = self.model_dump(mode="json", exclude={"horsepower"})
-        record["horsepower"] = resolved_horsepower
-        return record
 
 
 class NHTSAVPICResult(BaseModel):

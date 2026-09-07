@@ -2,72 +2,16 @@
 
 from __future__ import annotations
 
-import csv
 from datetime import datetime
-from pathlib import Path
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
 from typing import Any
 
 from .models import VehicleFact
 from .source_models import (
-    CraigslistInventoryCandidate,
-    CraigslistVehicleRow,
     EPAFuelEconomyVehicle,
     NHTSARecallResponse,
     NHTSAVPICResponse,
-    SourceProvenanceModel,
 )
-
-
-def iter_craigslist_rows(path: str | Path) -> Iterator[CraigslistVehicleRow]:
-    """Stream a Craigslist CSV as validated Pydantic rows.
-
-    The published file is large, so this intentionally yields one row at a
-    time instead of loading the complete dataset into memory.
-    """
-
-    with Path(path).open(newline="", encoding="utf-8-sig") as handle:
-        reader = csv.DictReader(handle)
-        for raw_row in reader:
-            cleaned_row = {
-                key: (value.strip() if isinstance(value, str) and value.strip() else None)
-                for key, value in raw_row.items()
-            }
-            yield CraigslistVehicleRow.model_validate(cleaned_row)
-
-
-def normalize_craigslist_row(
-    row: CraigslistVehicleRow | Mapping[str, Any],
-    *,
-    retrieved_at: datetime | str,
-) -> CraigslistInventoryCandidate:
-    """Map a raw Craigslist row to a typed, enrichment-ready candidate."""
-
-    source_row = row if isinstance(row, CraigslistVehicleRow) else CraigslistVehicleRow.model_validate(row)
-    if not source_row.url:
-        raise ValueError("Craigslist row requires a listing URL for provenance")
-
-    candidate = CraigslistInventoryCandidate(
-        id=f"craigslist-{source_row.id}",
-        make=_clean_text(source_row.manufacturer),
-        model=_clean_text(source_row.model),
-        year=_whole_number(source_row.year, "year"),
-        price=_whole_number(source_row.price, "price"),
-        mileage=_whole_number(source_row.odometer, "odometer"),
-        body_style=_normalize_category(source_row.type),
-        transmission=_normalize_transmission(source_row.transmission),
-        drivetrain=_normalize_drivetrain(source_row.drive),
-        description=_clean_text(source_row.description),
-        tags=_tags(source_row),
-        provenance=SourceProvenanceModel(
-            source_url=source_row.url,
-            source_type="craigslist_snapshot",
-            retrieved_at=retrieved_at,
-            source_record_id=str(source_row.id),
-            license="CC0: Public Domain",
-        ),
-    )
-    return candidate
 
 
 def nhtsa_vpic_to_facts(
@@ -204,47 +148,6 @@ def _clean_text(value: str | None) -> str | None:
         return None
     cleaned = value.strip()
     return cleaned or None
-
-
-def _whole_number(value: int | float | None, field: str) -> int | None:
-    if value is None:
-        return None
-    if isinstance(value, bool) or int(value) != value:
-        raise ValueError(f"{field} must be a whole number")
-    return int(value)
-
-
-def _normalize_category(value: str | None) -> str | None:
-    cleaned = _clean_text(value)
-    return cleaned.lower() if cleaned else None
-
-
-def _normalize_transmission(value: str | None) -> str | None:
-    cleaned = _normalize_category(value)
-    if cleaned == "automatic":
-        return "automatic"
-    if cleaned == "manual":
-        return "manual"
-    return cleaned
-
-
-def _normalize_drivetrain(value: str | None) -> str | None:
-    cleaned = _normalize_category(value)
-    return {
-        "awd": "AWD",
-        "4wd": "4WD",
-        "fwd": "FWD",
-        "rwd": "RWD",
-    }.get(cleaned or "", cleaned)
-
-
-def _tags(row: CraigslistVehicleRow) -> list[str]:
-    tags = []
-    for value in (row.condition, row.fuel, row.paint_color, row.state):
-        cleaned = _normalize_category(value)
-        if cleaned:
-            tags.append(cleaned)
-    return tags
 
 
 def _with_unit(value: int | None, unit: str) -> str | None:

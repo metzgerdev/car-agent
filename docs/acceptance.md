@@ -3,10 +3,10 @@
 This document is the executable-minded checklist for the phases in [plan.md](../plan.md). Each test case has an ID so implementation, CI output, and the portfolio write-up can refer to the same contract.
 
 The project is a demo of AI engineering rather than a production marketplace.
-The Craigslist inventory source is therefore treated as a static snapshot;
-listing freshness and availability are intentionally outside the acceptance
-gate. Phase 2 measures typed multi-source ingestion, provenance, normalization,
-retrieval grounding, and deterministic verification.
+The inventory is therefore a checked-in mock fixture; listing freshness and
+availability are intentionally outside the acceptance gate. Phase 2 measures
+typed multi-source ingestion, provenance, normalization, retrieval grounding,
+and deterministic verification.
 
 ## Phase status
 
@@ -14,7 +14,7 @@ retrieval grounding, and deterministic verification.
 | --- | --- | --- | --- |
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
-| 2 — Data and knowledge | complete | Pydantic source models, Craigslist streaming normalization, three-row CSV-to-SQLite ingestion, recorded NHTSA/EPA adapters, and notebook verification pass | none |
+| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, JSON-to-SQLite ingestion, recorded NHTSA/EPA adapters, and notebook verification pass | none |
 | 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, context-aware vehicle follow-ups, bounded hybrid LLM context, shared consultative salesperson persona, synthetic service-history retrieval, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass; 73 Python tests pass | Phase 4 API and conversion tests |
 | 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, clean offline demo, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, phase-aware tool purpose/outcome/timing metadata, streamed deterministic and live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review context, suggested-vehicle review context pass, text-only composer, and deterministic side-effect routing for test-drive scheduling; 77 Python tests, 4 frontend trace-history tests, and frontend build pass | none |
 
@@ -33,8 +33,8 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-03 | Phase 0/1 baseline | Python 3.14.7 smoke flow and guided verifier pass | `e5e5c79` | superseded by Python 3.12.13 baseline |
 | 2026-09-03 | Phase 2 local ingestion | Normalization, provenance rejection, idempotent SQLite ingest, and compile checks pass | `282ff33` | Pydantic source adapters |
 | 2026-09-03 | Python 3.12 and notebook verification | Python 3.12.13 environment, 19 tests, and headless Phase 2 notebook pass | `abc390b` | Official NHTSA/EPA adapters |
-| 2026-09-03 | Phase 2 multi-source adapters | 29 tests pass for Pydantic Craigslist rows, streaming CSV validation, NHTSA vPIC/recall fixtures, EPA facts, and provenance-preserving enrichment | `2a3d692` | Phase 3 scenario evaluation |
-| 2026-09-03 | Phase 2 Craigslist sample ingestion | Four source-shaped rows stream through Pydantic normalization, explicit horsepower enrichment, canonical SQLite storage, repository loading, and idempotency checks; 45 tests pass | `a48846a` | none |
+| 2026-09-03 | Phase 2 multi-source adapters | 29 tests pass for typed source contracts, NHTSA vPIC/recall fixtures, EPA facts, and provenance-preserving enrichment | `2a3d692` | Phase 3 scenario evaluation |
+| 2026-09-03 | Phase 2 fixture ingestion | Mock inventory records pass typed normalization, canonical SQLite storage, repository loading, and idempotency checks; 45 tests pass | `a48846a` | none |
 | 2026-09-03 | Phase 3 sales behavior | 35 tests pass; `car-agent-evaluate --strict` reports 20/20 scenarios and zero budget violations | `3770b2c` | Phase 4 API and conversion tests |
 | 2026-09-03 | Phase 4 conversion and polish | 41 tests pass; API, scheduling, redaction, modality, and `car-agent-demo` clean-checkout smoke tests pass | `11bfd1b` | none |
 | 2026-09-03 | Phase 4 browser demo UI | Browser shell, guided prompts, live API health state, shopper profile, and redacted tool-trace panels are served by FastAPI; 42 tests pass | `15146ef` | none |
@@ -56,13 +56,14 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-04 | Phase 3 context-aware vehicle follow-ups | References such as `it`/`that car` resolve to the selected or latest vehicle; clear detail, facts, comparison, alternatives, and scheduling follow-ups use grounded state-aware routes in deterministic and live facades; 64 Python tests pass | `bd19c3b` | none |
 | 2026-09-04 | Phase 3 hybrid conversation context | The backend retains typed full turn records while live CrewAI receives only four recent turns, a bounded older-turn summary, the active vehicle record, and the latest non-sensitive grounding result; 68 Python tests pass | `0513a18` | none |
 | 2026-09-05 | Phase 3 salesperson persona | A shared `CLASSIC_CAR_PERSONA` contract gives CrewAI and the deterministic advisor the same named, consultative voice, with tests covering role/backstory/task guidance, grounded recommendations, and natural next steps; 71 Python tests pass | `2d76669` | none |
-| 2026-09-05 | Phase 3 service-history retrieval | Inventory records carry typed synthetic `ServiceRecord` entries, SQLite/Craigslist normalization preserves or generates them, and both deterministic and CrewAI paths expose `retrieve_service_history`; 73 Python tests plus frontend build pass | `e5767c3` | none |
+| 2026-09-05 | Phase 3 service-history retrieval | Mock inventory records carry typed synthetic `ServiceRecord` entries, SQLite normalization preserves them, and both deterministic and CrewAI paths expose `retrieve_service_history`; 73 Python tests plus frontend build pass | `e5767c3` | none |
 | 2026-09-05 | Phase 4 deterministic answer streaming | Offline policy turns emit multiple `response_delta` events through the same SSE/UI contract as live CrewAI turns, without an artificial delay; 74 Python tests and frontend build pass | `d2cfa9f` | none |
 | 2026-09-06 | Phase 4 test-drive trace safety | Live-mode scheduling now routes through deterministic validation, so a successful confirmation is always paired with a `schedule_test_drive` tool event in the SSE stream; invalid or incomplete requests remain unbooked; 82 Python tests pass | `aae0a97` | none |
 | 2026-09-06 | Phase 4 app simplification | Removed the user-facing agent evaluation mode, its API metadata, browser cockpit, and latency bookkeeping; normal JSON/SSE chat, Tool Trace, and the Phase 3 scenario evaluator remain; 80 Python tests, 4 frontend tests, and frontend build pass | `bc1799b` | none |
 | 2026-09-06 | Phase 4 text-only simplification | Removed ElevenLabs endpoints, voice transport fields, microphone/TTS controls, modality adapters, and the voice dependency; the app now exposes only the text chat/SSE boundary; 76 Python tests, 4 frontend tests, and frontend build pass | `acd8a0f` | none |
 | 2026-09-06 | Phase 4 trace explanation metadata | Tool traces now expose deterministic `phase`, `purpose`, `outcome`, and measured `duration_ms` fields across offline and CrewAI tool paths; SSE progress events and the browser Tool Trace render the human-readable explanation before expandable raw details; 77 Python tests, 4 frontend tests, and frontend build pass | `b540b9a` | none |
 | 2026-09-06 | Phase 4 dead-code cleanup | Removed stale voice proxy configuration, unused frontend review/profile/prompt/modal state and styles, and the unconsumed CrewAI crew cache while retaining the tested review API and synthesis path; 77 Python tests, 4 frontend tests, and frontend build pass | `4269d55` | none |
+| 2026-09-07 | Phase 2 mock-inventory simplification | Removed the Craigslist CSV ingestion path, boundary models, adapter helpers, CLI, sample files, and tests; the checked-in mock JSON inventory remains the canonical source, with NHTSA/EPA enrichment adapters retained; 71 Python tests, 4 frontend tests, and frontend build pass | pending | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -124,7 +125,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P2-T4 | Ask for one model’s ownership notes | Only that model’s sourced facts are returned | implemented |
 | P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | implemented |
 | P2-T6 | Run official-source adapters against recorded fixtures | NHTSA vPIC, NHTSA recall, and EPA payloads validate with Pydantic and normalize into provenance-backed `VehicleFact` records with source URL and retrieval timestamp | implemented |
-| P2-T7 | Ingest the small Craigslist CSV sample | Four source-shaped rows become canonical SQLite inventory records with explicit enrichment, preserved `craigslist_snapshot` provenance, repository loading, agent search, and idempotent re-ingestion | implemented |
+| P2-T7 | Load the checked-in mock inventory | `data/inventory.json` validates into canonical `Vehicle` records with `illustrative_fixture` provenance, repository loading and agent search work, and optional SQLite ingestion remains idempotent | implemented |
 
 ## Phase 3 — Sales behavior
 
