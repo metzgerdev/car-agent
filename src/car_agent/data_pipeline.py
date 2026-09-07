@@ -79,6 +79,10 @@ def normalize_inventory_record(record: dict[str, Any]) -> Vehicle:
         tags=tuple(str(tag).strip() for tag in record.get("tags", []) if str(tag).strip()),
         service_history=service_history,
         provenance=provenance,
+        image_url=_optional_text(record, "image_url", errors),
+        image_source_url=_optional_text(record, "image_source_url", errors),
+        image_attribution=_optional_text(record, "image_attribution", errors),
+        image_license=_optional_text(record, "image_license", errors),
     )
 
 
@@ -183,6 +187,16 @@ def _require_text(record: dict[str, Any], field: str, errors: list[str]) -> None
     value = record.get(field)
     if not isinstance(value, str) or not value.strip():
         errors.append(f"{field} must be a non-empty string")
+
+
+def _optional_text(record: dict[str, Any], field: str, errors: list[str]) -> str | None:
+    value = record.get(field)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        errors.append(f"{field} must be a non-empty string when provided")
+        return None
+    return value.strip()
 
 
 def _require_positive_number(record: dict[str, Any], field: str, errors: list[str]) -> None:

@@ -17,7 +17,7 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = PROJECT_ROOT / "data" / "inventory.json"
-TARGET_COUNT = 1_000
+TARGET_COUNT = 100
 
 CURATED_IDS = (
     "mazda-rx7-1992",
@@ -27,6 +27,45 @@ CURATED_IDS = (
     "nissan-gt-r-2012",
     "porsche-718-2018",
 )
+
+IMAGE_METADATA: dict[str, dict[str, str]] = {
+    "mazda-rx7-1992": {
+        "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/MAZDA_RX-7_FC.jpg?width=1200",
+        "image_source_url": "https://commons.wikimedia.org/wiki/File:MAZDA_RX-7_FC.jpg",
+        "image_attribution": "宮本すぐる / Wikimedia Commons",
+        "image_license": "CC BY-SA 3.0",
+    },
+    "honda-s2000-2004": {
+        "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Honda_S2000_%2827311372048%29.jpg?width=1200",
+        "image_source_url": "https://commons.wikimedia.org/wiki/File:Honda_S2000_(27311372048).jpg",
+        "image_attribution": "Dennis Elzinga / Wikimedia Commons",
+        "image_license": "CC BY 2.0",
+    },
+    "bmw-z4-m-2008": {
+        "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/BMW_Z4_M_Coupe.jpg?width=1200",
+        "image_source_url": "https://commons.wikimedia.org/wiki/File:BMW_Z4_M_Coupe.jpg",
+        "image_attribution": "Ian Muttoo / Wikimedia Commons",
+        "image_license": "CC BY-SA 2.0",
+    },
+    "porsche-911-1999": {
+        "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Porsche_911_996.jpg?width=1200",
+        "image_source_url": "https://commons.wikimedia.org/wiki/File:Porsche_911_996.jpg",
+        "image_attribution": "IFCAR / Wikimedia Commons",
+        "image_license": "Public domain",
+    },
+    "nissan-gt-r-2012": {
+        "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Nissan_GT-R_R35_%2815923829179%29.jpg?width=1200",
+        "image_source_url": "https://commons.wikimedia.org/wiki/File:Nissan_GT-R_R35_(15923829179).jpg",
+        "image_attribution": "Jeremy / Wikimedia Commons",
+        "image_license": "CC BY 2.0",
+    },
+    "porsche-718-2018": {
+        "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/2018_Porsche_718_Cayman.jpg?width=1200",
+        "image_source_url": "https://commons.wikimedia.org/wiki/File:2018_Porsche_718_Cayman.jpg",
+        "image_attribution": "多多123 / Wikimedia Commons",
+        "image_license": "CC BY 4.0",
+    },
+}
 
 # These are model families, not source listings.  They provide enough variety
 # for a useful demo while keeping the generated data reproducible.
@@ -151,7 +190,7 @@ def generate_inventory(output: Path = DEFAULT_OUTPUT, target_count: int = TARGET
     for vehicle_id in CURATED_IDS:
         if vehicle_id not in by_id:
             raise ValueError(f"curated vehicle {vehicle_id!r} is missing from {output}")
-        curated.append(by_id[vehicle_id])
+        curated.append({**by_id[vehicle_id], **IMAGE_METADATA[vehicle_id]})
 
     generated = [generate_record(index) for index in range(target_count - len(curated))]
     records = curated + generated

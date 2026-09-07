@@ -39,6 +39,10 @@ type InventoryVehicle = {
   horsepower: number;
   description: string;
   tags: string[];
+  image_url: string | null;
+  image_source_url: string | null;
+  image_attribution: string | null;
+  image_license: string | null;
 };
 
 type InventoryPayload = {
@@ -254,10 +258,22 @@ function ListingVisual({
   const tone = galleryTones[(vehicle.year + shot) % galleryTones.length];
   return (
     <div
-      className={`listing-visual tone-${tone}${large ? " listing-visual-large" : ""}`}
+      className={`listing-visual tone-${tone}${large ? " listing-visual-large" : ""}${vehicle.image_url ? " has-photo" : ""}`}
       role="img"
-      aria-label={`${galleryShots[shot % galleryShots.length]} synthetic gallery image for ${vehicle.name}`}
+      aria-label={`${vehicle.image_url ? "Reference photo" : galleryShots[shot % galleryShots.length]} for ${vehicle.name}`}
     >
+      {vehicle.image_url ? (
+        <img
+          className="listing-photo"
+          src={vehicle.image_url}
+          alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+          loading={large ? "eager" : "lazy"}
+          onError={(event) => {
+            event.currentTarget.hidden = true;
+            event.currentTarget.parentElement?.classList.add("image-fallback");
+          }}
+        />
+      ) : null}
       <div className="visual-skyline" />
       <div className="visual-sun" />
       <div className="visual-car">
@@ -271,9 +287,9 @@ function ListingVisual({
       </div>
       <div className="visual-bottomline">
         <strong>{vehicle.year} {vehicle.make}</strong>
-        <span>{galleryShots[shot % galleryShots.length]}</span>
+        <span>{vehicle.image_url ? "Reference photo" : galleryShots[shot % galleryShots.length]}</span>
       </div>
-      <span className="visual-synthetic">SYNTHETIC PHOTO</span>
+      <span className="visual-synthetic">{vehicle.image_url ? "SOURCE PHOTO" : "SYNTHETIC PHOTO"}</span>
     </div>
   );
 }
@@ -289,7 +305,7 @@ function InventoryGallery() {
 
   useEffect(() => {
     let active = true;
-    fetch("/inventory?limit=12")
+    fetch("/inventory?limit=6")
       .then((response) => {
         if (!response.ok) throw new Error("inventory request failed");
         return response.json() as Promise<InventoryPayload>;
@@ -340,7 +356,7 @@ function InventoryGallery() {
             <p className="eyebrow">Featured inventory</p>
             <h2>Enthusiast cars worth a closer look</h2>
             <p className="gallery-subtitle">
-              {total ? `${total.toLocaleString()} synthetic listings` : "Loading synthetic listings"} · auction-style presentation
+              {total ? `${total.toLocaleString()} mock listings` : "Loading mock listings"} · auction-style presentation
             </p>
           </div>
           <label className="gallery-search">
@@ -379,7 +395,7 @@ function InventoryGallery() {
             </article>
           ))}
         </div>
-        <p className="gallery-footnote">Synthetic gallery visuals · listing details come from the typed mock inventory.</p>
+        <p className="gallery-footnote">Six curated listings use linked model-reference photos with credit; generated listings use a labeled fallback visual.</p>
       </section>
 
       {selectedVehicle ? (
@@ -402,13 +418,13 @@ function InventoryGallery() {
               <div className="gallery-modal-photos">
                 <ListingVisual vehicle={selectedVehicle} shot={activeShot} large />
                 <div className="gallery-thumbnails" aria-label="Listing photos">
-                  {galleryShots.map((shot, index) => (
+                  {(selectedVehicle.image_url ? ["Reference photo"] : galleryShots).map((shot, index) => (
                     <button
                       className={`gallery-thumbnail${index === activeShot ? " active" : ""}`}
                       type="button"
                       key={shot}
                       onClick={() => setActiveShot(index)}
-                      aria-label={`Show ${shot.toLowerCase()} image`}
+                      aria-label={`Show ${shot.toLowerCase()}`}
                     >
                       <ListingVisual vehicle={selectedVehicle} shot={index} />
                     </button>
@@ -427,6 +443,12 @@ function InventoryGallery() {
                   <div><dt>Body</dt><dd>{selectedVehicle.body_style}</dd></div>
                   <div><dt>Transmission</dt><dd>{selectedVehicle.transmission}</dd></div>
                 </dl>
+                {selectedVehicle.image_source_url ? (
+                  <p className="image-credit">
+                    Photo: <a href={selectedVehicle.image_source_url} target="_blank" rel="noreferrer">{selectedVehicle.image_attribution ?? "Wikimedia Commons"}</a>
+                    {selectedVehicle.image_license ? ` · ${selectedVehicle.image_license}` : ""}
+                  </p>
+                ) : null}
                 <button className="button button-secondary gallery-modal-action" type="button" onClick={() => setSelectedVehicle(null)}>
                   Close listing preview
                 </button>

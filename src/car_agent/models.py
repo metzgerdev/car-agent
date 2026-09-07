@@ -130,6 +130,10 @@ class Vehicle:
     tags: tuple[str, ...] = ()
     service_history: tuple[ServiceRecord, ...] = ()
     provenance: Provenance | None = None
+    image_url: str | None = None
+    image_source_url: str | None = None
+    image_attribution: str | None = None
+    image_license: str | None = None
 
     @property
     def name(self) -> str:

@@ -126,9 +126,12 @@ a { color: #65b8a2; }
 .gallery-error { color: #f6b5a8; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-/* CSS-native synthetic listing visuals keep the gallery local and copyright-safe. */
+/* Real source photos are preferred; CSS visuals remain the explicit fallback. */
 .listing-visual { position: relative; min-height: 118px; overflow: hidden; isolation: isolate; background: #252b31; }
 .listing-visual-large { min-height: 330px; border-radius: 8px; }
+.listing-photo { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; object-fit: cover; background: #252b31; }
+.listing-visual.has-photo::after { background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 32%, rgba(0, 0, 0, 0.42)); }
+.listing-visual.image-fallback .listing-photo { display: none; }
 .listing-visual::after { position: absolute; inset: 0; z-index: 4; background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), transparent 35%, rgba(0, 0, 0, 0.25)); content: ""; pointer-events: none; }
 .tone-copper { background: linear-gradient(145deg, #755149, #1e2930 55%, #11171c); }
 .tone-teal { background: linear-gradient(145deg, #2f6667, #1b2831 55%, #11171c); }
@@ -166,6 +169,8 @@ a { color: #65b8a2; }
 .modal-price-row strong { color: #f4f0e6; font-size: 1.45rem; }
 .modal-price-row span { color: var(--chat-muted); font-size: 0.78rem; }
 .gallery-modal-details > p { margin: 15px 0; color: var(--chat-muted); font-size: 0.84rem; }
+.image-credit { font-size: 0.7rem !important; }
+.image-credit a { color: #73cdb6; }
 .listing-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 0; }
 .listing-specs div { padding: 9px; background: rgba(255, 255, 255, 0.045); border-radius: 6px; }
 .listing-specs dt { color: var(--chat-subtle); font-size: 0.62rem; text-transform: uppercase; }

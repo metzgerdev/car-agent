@@ -59,6 +59,10 @@ class InventoryVehicleResponse(BaseModel):
     horsepower: int
     description: str
     tags: list[str] = Field(default_factory=list)
+    image_url: str | None = None
+    image_source_url: str | None = None
+    image_attribution: str | None = None
+    image_license: str | None = None
 
 
 class InventoryResponse(BaseModel):

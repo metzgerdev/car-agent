@@ -65,6 +65,8 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert all(".aui-styled-send:disabled{cursor:wait" not in css.replace(" ", "") for css in css_assets)
     assert any("Tool Trace" in javascript for javascript in javascript_assets)
     assert any("trace-purpose" in javascript for javascript in javascript_assets)
+    assert any("listing-photo" in javascript for javascript in javascript_assets)
+    assert any("image-credit" in javascript for javascript in javascript_assets)
     assert all("Guide the shopper" not in javascript for javascript in javascript_assets)
     assert all("Shopper profile" not in javascript for javascript in javascript_assets)
     assert '"/voice"' not in vite_config_source
@@ -77,12 +79,15 @@ def test_p4_t18_inventory_gallery_returns_typed_featured_listings() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["total"] == 1_000
+    assert payload["total"] == 100
     assert len(payload["vehicles"]) == 8
     assert payload["vehicles"][0]["name"] == "1992 Mazda RX-7"
     assert payload["vehicles"][0]["tags"]
     assert "service_history" not in payload["vehicles"][0]
     assert {"id", "name", "price", "mileage", "body_style", "description"} <= payload["vehicles"][0].keys()
+    assert payload["vehicles"][0]["image_url"].startswith("https://commons.wikimedia.org/")
+    assert payload["vehicles"][0]["image_source_url"].startswith("https://commons.wikimedia.org/wiki/File:")
+    assert payload["vehicles"][0]["image_license"] == "CC BY-SA 3.0"
 
 
 def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:

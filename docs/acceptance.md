@@ -14,7 +14,7 @@ and deterministic verification.
 | --- | --- | --- | --- |
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
-| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, recorded NHTSA/EPA adapters, deterministic 1,000-record fixture generation, and notebook verification pass; 72 Python tests pass | none |
+| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, recorded NHTSA/EPA adapters, deterministic 100-record fixture generation, and notebook verification pass; 72 Python tests pass | none |
 | 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, context-aware vehicle follow-ups, bounded hybrid LLM context, shared consultative salesperson persona, synthetic service-history retrieval, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass; 73 Python tests pass | Phase 4 API and conversion tests |
 | 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, clean offline demo, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, phase-aware tool purpose/outcome/timing metadata, streamed deterministic and live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review context, suggested-vehicle review context pass, text-only composer, and deterministic side-effect routing for test-drive scheduling; 77 Python tests, 4 frontend trace-history tests, and frontend build pass | none |
 
@@ -131,7 +131,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | implemented |
 | P2-T6 | Run official-source adapters against recorded fixtures | NHTSA vPIC, NHTSA recall, and EPA payloads validate with Pydantic and normalize into provenance-backed `VehicleFact` records with source URL and retrieval timestamp | implemented |
 | P2-T7 | Load the checked-in mock inventory | `data/inventory.json` validates into canonical `Vehicle` records with `illustrative_fixture` provenance, repository loading and agent search work | implemented |
-| P2-T8 | Validate the generated inventory scale | The deterministic generator preserves the six curated records and produces 994 additional typed records, for 1,000 unique IDs with synthetic service history | implemented |
+| P2-T8 | Validate the generated inventory scale | The deterministic generator preserves the six curated records and produces 94 additional typed records, for 100 unique IDs with synthetic service history; curated records carry typed photo attribution metadata | implemented |
 
 ## Phase 3 — Sales behavior
 
@@ -170,7 +170,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T14 | Stream an offline deterministic answer | A deterministic turn emits multiple `response_delta` events whose concatenation equals the final response, before the final typed response event and `done` marker | implemented |
 | P4-T5 | Use the text-only browser composer | The assistant-ui composer sends a plain text message through `/chat`; no voice controls, voice endpoints, modality fields, or ElevenLabs dependency are present | implemented |
 | P4-T16 | Arrange a test drive in live mode | Scheduling uses the deterministic side-effect safety route, validates required details, emits `schedule_test_drive` in the streamed Tool Trace, and never confirms a booking without a successful tool result | implemented |
-| P4-T18 | Browse featured inventory | The dark UI loads a typed featured slice from `/inventory`, renders auction-style listing cards with synthetic gallery visuals, opens a detail gallery modal, and keeps the right rail dedicated to Tool Trace | implemented |
+| P4-T18 | Browse featured inventory | The dark UI loads a typed featured slice from `/inventory`, renders the six curated cards with exact-model source photos and credit metadata, keeps a labeled fallback for unmapped generated records, opens a detail gallery modal, and keeps the right rail dedicated to Tool Trace | implemented |
 
 ## Completion rule
 
