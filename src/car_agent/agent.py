@@ -682,6 +682,11 @@ class DemoSalesAgent:
             for phrase in (
                 "magazine review",
                 "magazine reviews",
+                "press review",
+                "press reviews",
+                "automotive press",
+                "car reviews",
+                "auto reviews",
                 "car and driver",
                 "motortrend",
                 "motor trend",

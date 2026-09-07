@@ -125,6 +125,17 @@ def test_phase3_agent_summarizes_reviews_for_the_last_vehicle() -> None:
     assert "https://" in response.message
 
 
+def test_phase3_agent_treats_press_reviews_as_a_magazine_review_request() -> None:
+    agent = DemoSalesAgent()
+    agent.respond("phase3-press-reviews", "2008 BMW Z4")
+
+    response = agent.respond("phase3-press-reviews", "What are the press reviews of the car?")
+
+    assert [call.name for call in response.trace] == ["retrieve_magazine_reviews"]
+    assert "MotorTrend" in response.message
+    assert "condition report" in response.message
+
+
 def test_phase3_agent_retrieves_service_history_for_the_explicit_vehicle() -> None:
     response = DemoSalesAgent().respond(
         "phase3-service-history",
