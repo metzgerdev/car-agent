@@ -46,7 +46,6 @@ type InventoryVehicle = {
 };
 
 type InventoryPayload = {
-  total: number;
   vehicles: InventoryVehicle[];
 };
 
@@ -299,7 +298,6 @@ function ListingVisual({
 
 function InventoryGallery() {
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
-  const [total, setTotal] = useState(0);
   const [query, setQuery] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState<InventoryVehicle | null>(null);
   const [activeShot, setActiveShot] = useState(0);
@@ -316,7 +314,6 @@ function InventoryGallery() {
       .then((payload) => {
         if (!active) return;
         setInventory(payload.vehicles);
-        setTotal(payload.total);
       })
       .catch(() => {
         if (active) setError(true);
@@ -354,14 +351,7 @@ function InventoryGallery() {
   return (
     <>
       <section className="inventory-gallery panel" aria-label="Featured inventory gallery">
-        <div className="gallery-heading">
-          <div>
-            <p className="eyebrow">Featured inventory</p>
-            <h2>Enthusiast cars worth a closer look</h2>
-            <p className="gallery-subtitle">
-              {total ? `${total.toLocaleString()} mock listings` : "Loading mock listings"} · auction-style presentation
-            </p>
-          </div>
+        <div className="gallery-controls">
           <label className="gallery-search">
             <span className="sr-only">Filter featured inventory</span>
             <input
@@ -398,7 +388,6 @@ function InventoryGallery() {
             </article>
           ))}
         </div>
-        <p className="gallery-footnote">Six curated listings use linked model-reference photos with credit; generated listings use a labeled fallback visual.</p>
       </section>
 
       {selectedVehicle ? (

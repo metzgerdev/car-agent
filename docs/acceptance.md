@@ -179,6 +179,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T19 | Use the focused demo shell | The browser contains only the featured gallery, chat surface, and Tool Trace panel; the title/status header and instructional banner are absent | implemented |
 | P4-T20 | Inspect a long tool trace | On desktop, the Tool Trace panel extends to the conversation height and its history scrolls internally; mobile retains the stacked responsive layout | implemented |
 | P4-T21 | View a curated source photo | A mapped real vehicle photo renders cleanly without in-image text, gradients, lot labels, or synthetic badges; attribution remains outside the photo in the listing details | implemented |
+| P4-T22 | Use the minimal gallery surface | The gallery opens directly to the listing cards and filter control without explanatory title, count, presentation, or fallback-copy labels | implemented |
 
 ## Completion rule
 
