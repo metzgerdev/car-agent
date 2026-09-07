@@ -177,6 +177,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T18 | Browse featured inventory | The dark UI loads a typed featured slice from `/inventory`, renders the six curated cards with exact-model source photos and credit metadata, keeps a labeled fallback for unmapped generated records, opens a detail gallery modal, and keeps the right rail dedicated to Tool Trace | implemented |
 | P4-T19 | Use the focused demo shell | The browser contains only the featured gallery, chat surface, and Tool Trace panel; the title/status header and instructional banner are absent | implemented |
 | P4-T20 | Inspect a long tool trace | On desktop, the Tool Trace panel extends to the conversation height and its history scrolls internally; mobile retains the stacked responsive layout | implemented |
+| P4-T21 | View a curated source photo | A mapped real vehicle photo renders cleanly without in-image text, gradients, lot labels, or synthetic badges; attribution remains outside the photo in the listing details | implemented |
 
 ## Completion rule
 

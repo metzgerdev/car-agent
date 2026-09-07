@@ -273,23 +273,26 @@ function ListingVisual({
             event.currentTarget.parentElement?.classList.add("image-fallback");
           }}
         />
-      ) : null}
-      <div className="visual-skyline" />
-      <div className="visual-sun" />
-      <div className="visual-car">
-        <div className="visual-window" />
-        <span className="visual-wheel visual-wheel-front" />
-        <span className="visual-wheel visual-wheel-rear" />
-      </div>
-      <div className="visual-topline">
-        <span>CLASSIC CAR ADVISOR</span>
-        <span>LOT {vehicle.id.slice(-4).toUpperCase()}</span>
-      </div>
-      <div className="visual-bottomline">
-        <strong>{vehicle.year} {vehicle.make}</strong>
-        <span>{vehicle.image_url ? "Reference photo" : galleryShots[shot % galleryShots.length]}</span>
-      </div>
-      <span className="visual-synthetic">{vehicle.image_url ? "SOURCE PHOTO" : "SYNTHETIC PHOTO"}</span>
+      ) : (
+        <>
+          <div className="visual-skyline" />
+          <div className="visual-sun" />
+          <div className="visual-car">
+            <div className="visual-window" />
+            <span className="visual-wheel visual-wheel-front" />
+            <span className="visual-wheel visual-wheel-rear" />
+          </div>
+          <div className="visual-topline">
+            <span>CLASSIC CAR ADVISOR</span>
+            <span>LOT {vehicle.id.slice(-4).toUpperCase()}</span>
+          </div>
+          <div className="visual-bottomline">
+            <strong>{vehicle.year} {vehicle.make}</strong>
+            <span>{galleryShots[shot % galleryShots.length]}</span>
+          </div>
+          <span className="visual-synthetic">SYNTHETIC PHOTO</span>
+        </>
+      )}
     </div>
   );
 }
