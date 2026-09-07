@@ -270,6 +270,18 @@ class DemoSalesAgent:
             state.stage = "recommending"
             return AgentResponse(self._vehicle_message({"found": True, "vehicle": vehicle}), state, trace)
 
+        if result.get("status") == "family_match" and result.get("vehicle"):
+            vehicle = result["vehicle"]
+            state.preferences.selected_vehicle_id = vehicle["id"]
+            state.last_vehicle_ids = [vehicle["id"]]
+            state.stage = "recommending"
+            return AgentResponse(
+                f"I found the {vehicle['name']} in inventory. Your request names the {query.make} {query.model} model family; this listing includes the full trim name.\n"
+                f"{self._vehicle_message({'found': True, 'vehicle': vehicle})}",
+                state,
+                trace,
+            )
+
         if result.get("status") == "ambiguous":
             matches = result.get("matches", [])
             state.last_vehicle_ids = [vehicle["id"] for vehicle in matches if vehicle.get("id")]

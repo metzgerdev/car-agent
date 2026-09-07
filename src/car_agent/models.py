@@ -63,8 +63,9 @@ def trace_outcome(name: str, result: dict[str, Any]) -> str:
         status = result.get("status", "completed")
         return {
             "matched": "Found an exact inventory match.",
+            "family_match": "Found a same-year inventory listing in the requested model family.",
             "not_found": "No exact inventory match found.",
-            "ambiguous": "Found multiple exact inventory matches.",
+            "ambiguous": "Found multiple inventory matches for the requested identity.",
         }.get(status, f"Exact lookup completed with status: {status}.")
     if name == "get_vehicle":
         return "Loaded the vehicle listing." if result.get("found") else "Vehicle listing was not found."

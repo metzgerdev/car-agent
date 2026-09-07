@@ -38,14 +38,28 @@ def test_phase3_exact_lookup_returns_authoritative_match_status() -> None:
     tools = SalesTools()
 
     found = tools.lookup_vehicle_exact({"year": 2008, "make": "bmw", "model": "z4-m coupe"})
+    family = tools.lookup_vehicle_exact({"year": 2008, "make": "BMW", "model": "Z4"})
     missing = tools.lookup_vehicle_exact({"year": 2011, "make": "BMW", "model": "M3"})
 
     assert found["exact_match"] is True
     assert found["status"] == "matched"
     assert found["vehicle_id"] == "bmw-z4-m-2008"
+    assert family["exact_match"] is False
+    assert family["status"] == "family_match"
+    assert family["vehicle_id"] == "bmw-z4-m-2008"
+    assert family["family_matches"][0]["name"] == "2008 BMW Z4 M Coupe"
     assert missing["exact_match"] is False
     assert missing["status"] == "not_found"
     assert missing["vehicle"] is None
+
+
+def test_phase3_partial_model_identity_returns_family_match_to_shopper() -> None:
+    response = DemoSalesAgent().respond("phase3-family-match", "2008 BMW Z4")
+
+    assert [call.name for call in response.trace] == ["lookup_vehicle_exact"]
+    assert response.trace[0].result["status"] == "family_match"
+    assert "found the 2008 BMW Z4 M Coupe" in response.message
+    assert "I don’t have" not in response.message
 
 
 def test_phase3_unavailable_exact_request_searches_only_after_lookup() -> None:

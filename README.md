@@ -27,10 +27,13 @@ The response includes the assistant message, current qualification state, and th
 
 For an explicit availability question, the `lookup_vehicle_exact` tool checks the
 year, make, and complete model against the current inventory. Its typed result
-includes `exact_match` plus a `matched`, `not_found`, or `ambiguous` status. A
-negative result is not treated as proof that the vehicle never existed; it means
-only that the current inventory snapshot has no exact match. The agent may then
-call `search_inventory` to offer grounded alternatives.
+includes `exact_match` plus a `matched`, `family_match`, `not_found`, or
+`ambiguous` status. A `family_match` handles a compact model-family request such
+as `2008 BMW Z4` when the unique listing is `2008 BMW Z4 M Coupe`; it keeps
+`exact_match: false` and names the full trim rather than misrepresenting it as
+an exact match. A `not_found` result means only that the current inventory
+snapshot has no exact or same-year family match. The agent may then call
+`search_inventory` to offer grounded alternatives.
 
 A compact identity response such as `2001 BMW M3` follows the same exact lookup
 path, so the live model cannot end the turn with a progress message before

@@ -24,11 +24,12 @@ class ExactVehicleQuery(BaseModel):
 
 
 class ExactVehicleLookupResult(BaseModel):
-    """Inspectable result that distinguishes absence from a fuzzy match."""
+    """Inspectable result that distinguishes exact and family-level matches."""
 
     exact_match: bool
-    status: Literal["matched", "not_found", "ambiguous"]
+    status: Literal["matched", "family_match", "not_found", "ambiguous"]
     query: ExactVehicleQuery
     vehicle_id: str | None = None
     vehicle: dict[str, Any] | None = None
     matches: list[dict[str, Any]] = Field(default_factory=list)
+    family_matches: list[dict[str, Any]] = Field(default_factory=list)

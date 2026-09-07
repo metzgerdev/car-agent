@@ -37,7 +37,7 @@ class SalesTools:
         }
 
     def lookup_vehicle_exact(self, query: dict[str, Any]) -> dict[str, Any]:
-        """Check exact year/make/model availability without fuzzy matching."""
+        """Check exact availability, then same-year model-family matches."""
 
         parsed_query = ExactVehicleQuery.model_validate(query)
         normalized_make = _normalize_identity(parsed_query.make)
@@ -66,11 +66,39 @@ class SalesTools:
                 matches=match_dicts,
             )
         else:
-            result = ExactVehicleLookupResult(
-                exact_match=False,
-                status="not_found",
-                query=parsed_query,
-            )
+            family_matches = [
+                vehicle
+                for vehicle in self.inventory.all()
+                if vehicle.year == parsed_query.year
+                and _normalize_identity(vehicle.make) == normalized_make
+                and _is_model_family_match(normalized_model, _normalize_identity(vehicle.model))
+            ]
+            family_match_dicts = [
+                vehicle.to_dict(include_service_history=False) for vehicle in family_matches
+            ]
+            if len(family_matches) == 1:
+                result = ExactVehicleLookupResult(
+                    exact_match=False,
+                    status="family_match",
+                    query=parsed_query,
+                    vehicle_id=family_matches[0].id,
+                    vehicle=family_match_dicts[0],
+                    family_matches=family_match_dicts,
+                )
+            elif len(family_matches) > 1:
+                result = ExactVehicleLookupResult(
+                    exact_match=False,
+                    status="ambiguous",
+                    query=parsed_query,
+                    matches=family_match_dicts,
+                    family_matches=family_match_dicts,
+                )
+            else:
+                result = ExactVehicleLookupResult(
+                    exact_match=False,
+                    status="not_found",
+                    query=parsed_query,
+                )
         return result.model_dump(mode="python")
 
     def get_vehicle(self, vehicle_id: str) -> dict[str, Any]:
@@ -153,3 +181,9 @@ class SalesTools:
 
 def _normalize_identity(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.casefold())
+
+
+def _is_model_family_match(requested_model: str, inventory_model: str) -> bool:
+    """Match a specific model prefix without treating it as an exact trim."""
+
+    return len(requested_model) >= 2 and inventory_model.startswith(requested_model)
