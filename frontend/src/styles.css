@@ -183,6 +183,20 @@ a { color: #65b8a2; }
   letter-spacing: -0.04em;
 }
 .aui-welcome-tagline { margin: 0 auto; color: var(--chat-muted); font-size: 0.72rem; }
+.aui-starter-prompts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 20px auto 0; }
+.aui-starter-prompt {
+  padding: 8px 12px;
+  color: var(--chat-text);
+  background: #222;
+  border: 1px solid var(--chat-border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+.aui-starter-prompt:hover { background: #2a2a2a; border-color: rgba(115, 205, 182, 0.58); transform: translateY(-1px); }
+.aui-starter-prompt:disabled { cursor: not-allowed; opacity: 0.5; transform: none; }
 .aui-styled-message {
   display: grid;
   width: min(100%, var(--thread-max-width));

@@ -30,6 +30,7 @@ export function Thread({ isProcessing }: ThreadProps) {
             <div className="aui-thread-welcome">
               <div className="aui-welcome-mark" aria-hidden="true">GP</div>
               <p className="aui-welcome-tagline">Specializing in classic/modern-classic enthusiast sports cars</p>
+              <StarterPrompts />
             </div>
           </AuiIf>
 
@@ -44,6 +45,37 @@ export function Thread({ isProcessing }: ThreadProps) {
         </div>
       </ThreadPrimitive.Viewport>
     </ThreadPrimitive.Root>
+  );
+}
+
+function StarterPrompts() {
+  const { setText, send, canSend } = unstable_useComposerInput();
+  const prompts = [
+    "Find a weekend sports car",
+    "Show me classic BMWs",
+    "Tell me about the Honda S2000",
+  ];
+
+  const sendPrompt = useCallback((prompt: string) => {
+    if (!canSend) return;
+    setText(prompt);
+    send();
+  }, [canSend, send, setText]);
+
+  return (
+    <div className="aui-starter-prompts" aria-label="Starter prompts">
+      {prompts.map((prompt) => (
+        <button
+          key={prompt}
+          className="aui-starter-prompt"
+          type="button"
+          onClick={() => sendPrompt(prompt)}
+          disabled={!canSend}
+        >
+          {prompt}
+        </button>
+      ))}
+    </div>
   );
 }
 
