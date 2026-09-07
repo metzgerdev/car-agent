@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 
-from .data_pipeline import SQLiteInventoryStore, load_inventory_fixture
+from .data_pipeline import load_inventory_fixture
 from .models import ShopperPreferences, Vehicle, VehicleFact
 from .review_models import MagazineReview
 
@@ -17,16 +16,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class InventoryRepository:
     def __init__(self, path: str | Path | None = None) -> None:
-        configured_path = path or os.getenv("CAR_AGENT_INVENTORY_PATH")
-        inventory_path = Path(configured_path) if configured_path else PROJECT_ROOT / "data" / "inventory.json"
-        if inventory_path.suffix.lower() in {".sqlite", ".db"}:
-            store = SQLiteInventoryStore(inventory_path)
-            try:
-                self._vehicles = store.all()
-            finally:
-                store.close()
-        else:
-            self._vehicles = load_inventory_fixture(inventory_path)
+        inventory_path = Path(path) if path else PROJECT_ROOT / "data" / "inventory.json"
+        self._vehicles = load_inventory_fixture(inventory_path)
 
     def all(self) -> list[Vehicle]:
         return list(self._vehicles)

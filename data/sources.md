@@ -21,17 +21,14 @@ marketplace ingestion.
 
 1. Validate the checked-in JSON records with `normalize_inventory_record` and
    load them through `InventoryRepository`.
-2. Optionally materialize the same validated records into SQLite with the
-   generic `car-agent-ingest` command. This is a storage demonstration, not a
-   separate inventory source.
-3. Use a VIN, when present in an enrichment fixture, to associate NHTSA vPIC
+2. Use a VIN, when present in an enrichment fixture, to associate NHTSA vPIC
    identity facts. Use year/make/model and matching options to associate EPA
    configuration facts.
-4. Store inventory observations and external facts separately. No source
+3. Store inventory observations and external facts separately. No source
    silently overwrites another source's fields.
-5. Expose the resulting facts through retrieval tools so CrewAI can use
+4. Expose the resulting facts through retrieval tools so CrewAI can use
    source-grounded information in its response and trace.
-6. Keep listing-level service history separate from general knowledge facts.
+5. Keep listing-level service history separate from general knowledge facts.
    The checked-in records are synthetic, typed as `ServiceRecord`, and
    retrieved only through `retrieve_service_history`.
 
@@ -69,8 +66,6 @@ discloses that limitation before suggesting a pre-purchase inspection.
 
 - `data/inventory.json` is the canonical six-record mock inventory used by the
   app and tests.
-- `car-agent-ingest` validates that fixture and can write an idempotent SQLite
-  copy for repository/storage demonstrations.
 - Recorded NHTSA vPIC, NHTSA recall, and EPA fixtures provide offline tests for
   the enrichment adapter contract.
 - Curated Car and Driver and MotorTrend links are validated with Pydantic and

@@ -192,33 +192,7 @@ Run the tests with:
 pytest
 ```
 
-The inventory and knowledge records in `data/` are illustrative mock records. The multi-source plan in [`data/sources.md`](data/sources.md) treats the checked-in inventory fixture as the canonical inventory and NHTSA/EPA payloads as provenance-backed enrichment. Pydantic boundary models and recorded fixtures keep the integration inspectable without requiring live provider calls.
-
-To normalize an inventory fixture and write it to an idempotent SQLite store:
-
-```bash
-car-agent-ingest --input data/inventory.json --output data/inventory.sqlite
-```
-
-To validate the mock inventory and optionally write it to an idempotent SQLite
-store:
-
-```bash
-car-agent-ingest \
-  --input data/inventory.json \
-  --output data/inventory.sqlite
-```
-
-The app uses `data/inventory.json` by default. To point the agent at the
-generated SQLite copy instead, set the repository path before starting the
-app:
-
-```bash
-CAR_AGENT_INVENTORY_PATH=data/inventory.sqlite uvicorn car_agent.app:app --reload
-```
-
-The SQLite output is ignored by Git and can be regenerated from the mock JSON
-fixture at any time.
+The inventory and knowledge records in `data/` are illustrative mock records. The multi-source plan in [`data/sources.md`](data/sources.md) treats the checked-in inventory fixture as the canonical inventory and NHTSA/EPA payloads as provenance-backed enrichment. Pydantic boundary models and recorded fixtures keep the integration inspectable without requiring live provider calls. The app validates and loads `data/inventory.json` directly at startup.
 
 To verify Phase 2 interactively, install the notebook extra and open [notebooks/verify_phase2.ipynb](notebooks/verify_phase2.ipynb):
 

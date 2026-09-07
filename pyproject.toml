@@ -27,7 +27,6 @@ notebook = [
 
 [project.scripts]
 car-agent-verify = "car_agent.verify_cli:main"
-car-agent-ingest = "car_agent.ingest_cli:main"
 car-agent-evaluate = "car_agent.evaluate_cli:main"
 car-agent-demo = "car_agent.demo_cli:main"
 car-agent-profile = "car_agent.profile_cli:main"

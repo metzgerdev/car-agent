@@ -4,7 +4,6 @@ import pytest
 
 from car_agent.data_pipeline import (
     InventoryValidationError,
-    SQLiteInventoryStore,
     load_inventory_fixture,
 )
 from car_agent.repositories import KnowledgeRepository
@@ -63,15 +62,15 @@ def test_phase2_rejects_incomplete_provenance(tmp_path) -> None:
         load_inventory_fixture(_write_fixture(tmp_path / "incomplete-provenance.json", [record]))
 
 
-def test_phase2_ingestion_is_idempotent(tmp_path) -> None:
-    vehicles = load_inventory_fixture(_write_fixture(tmp_path / "valid.json", [_record()]))
-    store = SQLiteInventoryStore(tmp_path / "inventory.sqlite")
+def test_phase2_loading_mock_fixture_is_deterministic(tmp_path) -> None:
+    fixture_path = _write_fixture(tmp_path / "valid.json", [_record()])
 
-    assert store.ingest(vehicles) == 1
-    assert store.ingest(vehicles) == 1
-    assert store.count() == 1
-    assert store.get("fixture-car").provenance.source_type == "test_fixture"
-    store.close()
+    first = load_inventory_fixture(fixture_path)
+    second = load_inventory_fixture(fixture_path)
+
+    assert [vehicle.id for vehicle in first] == ["fixture-car"]
+    assert [vehicle.id for vehicle in second] == ["fixture-car"]
+    assert first == second
 
 
 def test_phase2_rejects_out_of_range_year_and_invalid_price(tmp_path) -> None:
