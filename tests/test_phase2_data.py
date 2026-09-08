@@ -7,6 +7,7 @@ from car_agent.data_pipeline import (
     load_inventory_fixture,
 )
 from car_agent.repositories import InventoryRepository, KnowledgeRepository
+from scripts.generate_mock_inventory import CATALOG, generate_record
 
 
 def _record(**overrides):
@@ -74,7 +75,7 @@ def test_phase2_loading_mock_fixture_is_deterministic(tmp_path) -> None:
 
 
 def test_phase2_rejects_out_of_range_year_and_invalid_price(tmp_path) -> None:
-    record = _record(year=1989, price=0)
+    record = _record(year=1959, price=0)
 
     with pytest.raises(InventoryValidationError, match="year.*price|price.*year"):
         load_inventory_fixture(_write_fixture(tmp_path / "invalid.json", [record]))
@@ -127,3 +128,24 @@ def test_phase2_checked_in_inventory_has_50_typed_records_and_real_photos() -> N
     assert all(vehicle.provenance.source_type == "illustrative_fixture" for vehicle in vehicles)
     assert all(vehicle.service_history for vehicle in vehicles)
     assert all(record.source == "synthetic_demo" for vehicle in generated for record in vehicle.service_history)
+
+
+def test_generated_model_years_stay_inside_their_production_ranges() -> None:
+    for index, spec in enumerate(CATALOG):
+        record = generate_record(index)
+        assert any(
+            start <= record["year"] <= end
+            for start, end in spec["production_year_ranges"]
+        ), f"{record['make']} {record['model']} generated invalid year {record['year']}"
+
+
+def test_checked_in_inventory_has_no_known_impossible_model_years() -> None:
+    vehicles = InventoryRepository().all()
+    by_model = {
+        (spec["make"], spec["model"]): spec["production_year_ranges"]
+        for spec in CATALOG
+    }
+
+    for vehicle in vehicles[6:]:
+        ranges = by_model[(vehicle.make, vehicle.model)]
+        assert any(start <= vehicle.year <= end for start, end in ranges)

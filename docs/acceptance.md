@@ -14,9 +14,9 @@ and deterministic verification.
 | --- | --- | --- | --- |
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
-| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, recorded NHTSA/EPA adapters, deterministic 50-record fixture generation, and notebook verification pass; 78 Python tests pass | none |
+| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, recorded NHTSA/EPA adapters, deterministic 50-record fixture generation with model-specific production-year validation, and notebook verification pass; 83 Python tests pass | none |
 | 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, context-aware vehicle follow-ups, bounded hybrid LLM context, shared consultative salesperson persona, synthetic service-history retrieval, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass; 73 Python tests pass | Phase 4 API and conversion tests |
-| 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, clean offline demo, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, phase-aware tool purpose/outcome/timing metadata, streamed deterministic and live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review context, suggested-vehicle review context pass, text-only composer, deterministic side-effect routing for test-drive scheduling, and a fixed composer with bottom-following chat scroll; 77 Python tests, 6 frontend tests, and frontend build pass | none |
+| 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, clean offline demo, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, phase-aware tool purpose/outcome/timing metadata, streamed deterministic and live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review context, suggested-vehicle review context pass, text-only composer, deterministic side-effect routing for test-drive scheduling, and a fixed composer with bottom-following chat scroll; 83 Python tests, 6 frontend tests, and frontend build pass | none |
 
 ### Update protocol
 
@@ -86,6 +86,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-07 | Phase 4 paginated inventory gallery | The gallery loads all 100 typed mock listings, displays six cards per page, resets pagination for filters, and provides accessible Previous/Next controls; 78 Python tests, 4 frontend tests, and frontend build pass | `b5d28bc` | none |
 | 2026-09-07 | Phase 4 complete inventory photo coverage | Reduced the canonical fixture to 50 records and mapped every listing model family to a real Wikimedia Commons reference photo with source-page, attribution, and license metadata; 78 Python tests, 4 frontend tests, and frontend build pass | `bfc5733` | none |
 | 2026-09-07 | Phase 4 fixed chat composer and auto-scroll | Constrained the conversation to a fixed-height flex surface, placed the composer outside the scrolling message viewport, and explicitly enabled assistant-ui bottom-following for new messages; 81 Python tests, 6 frontend tests, and frontend build pass | `a2fcea0` | none |
+| 2026-09-08 | Phase 2 model-year validity | Replaced the generic 1990–2020 year formula with model-specific production-year ranges; the BMW 2002 and E36 328is examples now generate only historically valid years, and the checked-in 50-record fixture passes the new validity tests; 83 Python tests, 6 frontend tests, and frontend build pass | pending | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -141,7 +142,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
-| P2-T1 | Ingest a valid source fixture | A normalized 1990–2020 record is produced | implemented |
+| P2-T1 | Ingest a valid source fixture | A normalized 1960–2025 record is produced | implemented |
 | P2-T2 | Ingest without provenance | Record is rejected with a field-level error | implemented |
 | P2-T3 | Load the same fixture twice | The validated mock inventory is deterministic and contains no duplicate IDs | implemented |
 | P2-T4 | Ask for one model’s ownership notes | Only that model’s sourced facts are returned | implemented |

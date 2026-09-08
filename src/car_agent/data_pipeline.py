@@ -9,8 +9,8 @@ from urllib.parse import urlparse
 
 from .models import Provenance, ServiceRecord, Vehicle
 
-MIN_YEAR = 1990
-MAX_YEAR = 2020
+MIN_YEAR = 1960
+MAX_YEAR = 2025
 REQUIRED_FIELDS = {
     "id",
     "make",

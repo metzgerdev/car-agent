@@ -10,7 +10,8 @@ grounding without requiring live marketplace ingestion.
 | Source | Role in the demo | Boundary model | Normalized output |
 | --- | --- | --- | --- |
 | Checked-in mock inventory (`data/inventory.json`) | Canonical listing facts: price, mileage, description, configuration, provenance, and synthetic service history | `Vehicle` through `normalize_inventory_record` | Validated `Vehicle` records |
-| Deterministic inventory generator (`scripts/generate_mock_inventory.py`) | Reproducible synthetic auction-style records inspired by common enthusiast-listing fields; preserves the six curated demo vehicles and maps every model family to a real reference photo | Generator output validated by `normalize_inventory_record` | 44 generated `Vehicle` records with local provenance and model-reference photo metadata |
+| Deterministic inventory generator (`scripts/generate_mock_inventory.py`) | Reproducible synthetic auction-style records inspired by common enthusiast-listing fields; preserves the six curated demo vehicles, constrains each model to its valid production-year ranges, and maps every model family to a real reference photo | Generator output validated by `normalize_inventory_record` | 44 generated `Vehicle` records with local provenance, model-reference photo metadata, and model-year validity |
+| Model-year reference catalog in the generator | Prevents a generic year formula from creating impossible combinations such as a 2006 BMW 2002 or a 2017 E36 328is; separate ranges represent separate generations when a model name spans them | `production_year_ranges` on each catalog family | Deterministic model/year pairs that stay within the curated production ranges |
 | [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/) | VIN decoding and vehicle identity/specification normalization | `NHTSAVPICResponse` / `NHTSAVPICResult` | Provenance-backed `VehicleFact(topic="identity")` |
 | [NHTSA recalls](https://www.nhtsa.gov/nhtsa-datasets-and-apis) | Safety recall and campaign context | `NHTSARecallResponse` / `NHTSARecallRecord` | Provenance-backed `VehicleFact(topic="safety_recall")` |
 | [EPA FuelEconomy.gov](https://www.fueleconomy.gov/feg/ws/) | Fuel type, MPG, estimated fuel cost, emissions, drivetrain, and related configuration data | `EPAFuelEconomyVehicle` | Provenance-backed efficiency, ownership, emissions, and specification facts |
@@ -24,7 +25,8 @@ grounding without requiring live marketplace ingestion.
 1. Run `scripts/generate_mock_inventory.py` when the fixture needs to be
    regenerated. It preserves the six curated demo vehicles and writes 44
    synthetic records, for exactly 50 total records. Every generated model
-   family receives a source-backed Wikimedia Commons reference photo.
+   family receives a source-backed Wikimedia Commons reference photo and a
+   year selected from its model-specific production ranges.
 2. Validate the checked-in JSON records with `normalize_inventory_record` and
    load them through `InventoryRepository`.
 3. Use a VIN, when present in an enrichment fixture, to associate NHTSA vPIC
@@ -81,6 +83,13 @@ discloses that limitation before suggesting a pre-purchase inspection.
 - All photo URLs point to Wikimedia Commons file derivatives. The app displays
   each source page, photographer, and license. These are model-reference
   photos, not photographs of the individual synthetic listing records.
+- Model-year ranges are curated as an allowlist rather than inferred from a
+  generic date formula. Representative anchors include [BMW Group's 02 Series
+  history](https://www.bmwgroup.com/en/news/general/2026/60-years-bmw-02.html),
+  [Hagerty's BMW 2002 reference](https://www.hagerty.com/valuation-tools/bmw/2002/1968/1968-bmw-2002-Base?id=aCn1I000000DExLSAW),
+  and the [BMW E36 model-year table](https://en.wikipedia.org/wiki/BMW_3_Series_%28E36%29).
+  The ranges are still demo catalog metadata, not a VIN decoder or title-history
+  assertion.
 - Recorded NHTSA vPIC, NHTSA recall, and EPA fixtures provide offline tests for
   the enrichment adapter contract.
 - Curated Car and Driver and MotorTrend links are validated with Pydantic and
