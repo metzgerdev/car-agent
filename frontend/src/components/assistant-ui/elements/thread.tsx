@@ -94,12 +94,12 @@ function AssistantMessage() {
       <div className="aui-styled-message-body">
         <div className="aui-styled-message-label">Advisor</div>
         <div className="aui-styled-message-text aui-styled-markdown">
-          <AuiIf condition={(state) => state.message.status?.type === "running" && state.message.parts.length === 0}>
-            <ThinkingIndicator />
-          </AuiIf>
           <MessagePrimitive.Parts>
             {({ part }) => {
               if (part.type === "text") {
+                if (part.status?.type === "running" && part.text === "") {
+                  return <ThinkingIndicator />;
+                }
                 return <MarkdownTextPrimitive remarkPlugins={[remarkGfm]} />;
               }
               if (part.type === "tool-call") {

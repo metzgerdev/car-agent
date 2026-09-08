@@ -400,7 +400,7 @@ def test_p4_t13_browser_shows_thinking_placeholder_during_processing() -> None:
     assert "<Thread />" in main_text
     assert "function ThinkingPlaceholder" not in thread_text
     assert "function ThinkingIndicator" in thread_text
-    assert "state.message.status?.type === \"running\" && state.message.parts.length === 0" in thread_text
+    assert "part.status?.type === \"running\" && part.text === \"\"" in thread_text
     assert "{isProcessing ? <ThinkingPlaceholder /> : null}" not in thread_text
     assert 'aria-label="Thinking..."' in thread_text
     assert ".aui-thinking-dots" in css_text
