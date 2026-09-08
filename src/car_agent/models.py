@@ -10,6 +10,10 @@ TracePhase = Literal["retrieve", "evaluate", "act"]
 
 
 _TRACE_DESCRIPTORS: dict[str, tuple[TracePhase, str]] = {
+    "parse_intent": (
+        "evaluate",
+        "Classify an ambiguous shopper request before selecting a read-only route.",
+    ),
     "search_inventory": (
         "retrieve",
         "Find inventory listings that match the shopper's stated preferences.",
@@ -57,6 +61,12 @@ def trace_descriptor(name: str) -> tuple[TracePhase, str]:
 def trace_outcome(name: str, result: dict[str, Any]) -> str:
     """Summarize a tool result for the human-facing trace."""
 
+    if name == "parse_intent":
+        intent = result.get("intent", "unknown")
+        confidence = result.get("confidence")
+        if isinstance(confidence, (int, float)):
+            return f"Classified as {intent} ({confidence:.0%} confidence)."
+        return f"Classified as {intent}."
     if name == "search_inventory":
         return f"Found {result.get('count', 0)} matching listing(s)."
     if name == "lookup_vehicle_exact":

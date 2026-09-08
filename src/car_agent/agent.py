@@ -12,6 +12,7 @@ from difflib import get_close_matches
 from time import perf_counter
 from typing import Any, Callable, Literal
 
+from .intent_parser import IntentEnvelope
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall, Vehicle
 from .persona import CLASSIC_CAR_PERSONA
@@ -42,6 +43,32 @@ class DeterministicRouter:
         try:
             with self.profiler.span("agent.turn"):
                 return self._respond(conversation_id, user_message)
+        finally:
+            _trace_observer.reset(observer_token)
+
+    def respond_to_intent(
+        self,
+        conversation_id: str,
+        user_message: str,
+        intent: IntentEnvelope,
+        *,
+        initial_trace: list[ToolCall] | None = None,
+        trace_observer: TraceObserver | None = None,
+    ) -> AgentResponse:
+        """Execute a validated read-only intent without reparsing raw text."""
+
+        observer_token = _trace_observer.set(trace_observer)
+        try:
+            with self.profiler.span("agent.intent_route"):
+                state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
+                self._update_preferences(state.preferences, user_message.strip())
+                trace = list(initial_trace or [])
+                filters = intent.filters.model_dump(exclude_none=True)
+                query = filters.pop("query", None)
+                for field_name in ("budget_max", "intended_use", "body_style", "driving_style"):
+                    if field_name in filters:
+                        setattr(state.preferences, field_name, filters[field_name])
+                return self._recommend(state, trace, query=query, filter_overrides=filters)
         finally:
             _trace_observer.reset(observer_token)
 
@@ -380,9 +407,10 @@ class DeterministicRouter:
         state: ConversationState,
         trace: list[ToolCall],
         query: str | None = None,
+        filter_overrides: dict[str, Any] | None = None,
     ) -> AgentResponse:
         with self.profiler.span("agent.recommendation_flow"):
-            return self._recommend_impl(state, trace, query=query)
+            return self._recommend_impl(state, trace, query=query, filter_overrides=filter_overrides)
 
     def _recommend_impl(
         self,
@@ -390,6 +418,7 @@ class DeterministicRouter:
         trace: list[ToolCall],
         *,
         query: str | None = None,
+        filter_overrides: dict[str, Any] | None = None,
     ) -> AgentResponse:
         preferences = state.preferences
         filters = {
@@ -402,6 +431,8 @@ class DeterministicRouter:
             }.items()
             if value is not None
         }
+        if filter_overrides:
+            filters.update(filter_overrides)
         if query:
             filters["query"] = query
         search = self._call(

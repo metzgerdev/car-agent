@@ -6,6 +6,7 @@ from crewai.types.streaming import CrewStreamingOutput, StreamChunk, StreamChunk
 from car_agent.agent import DeterministicRouter
 from car_agent.conversation_context import ConversationTurn
 from car_agent.crewai_agent import CrewAISalesAgent, CrewTurnOutput
+from car_agent.intent_parser import IntentEnvelope, InventoryIntentFilters
 from car_agent.models import ConversationState, ShopperPreferences
 from car_agent.profiling import TimingRecorder
 
@@ -174,6 +175,32 @@ def test_live_facade_completes_make_browse_with_inventory_trace(monkeypatch) -> 
 
     assert response.trace[0].name == "search_inventory"
     assert response.trace[0].arguments == {"filters": {"query": "BMW"}}
+    assert "2008 BMW Z4 M Coupe" in response.message
+
+
+def test_live_facade_uses_validated_intent_parser_for_indirect_inventory_request(monkeypatch) -> None:
+    class FakeIntentParser:
+        def parse(self, message, *, known_makes):
+            assert message == "I’m hunting for a classic Beemer for weekends."
+            assert "BMW" in known_makes
+            return IntentEnvelope(
+                intent="search_inventory",
+                confidence=0.94,
+                filters=InventoryIntentFilters(query="BMW", intended_use="weekend"),
+            )
+
+    agent = CrewAISalesAgent(use_live_model=True, intent_parser=FakeIntentParser())
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("a confident read-only search intent should use the deterministic search route")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-intent-search", "I’m hunting for a classic Beemer for weekends.")
+
+    assert [call.name for call in response.trace[:2]] == ["parse_intent", "search_inventory"]
+    assert response.trace[0].result["confidence"] == 0.94
+    assert response.trace[1].arguments == {"filters": {"intended_use": "weekend", "query": "BMW"}}
     assert "2008 BMW Z4 M Coupe" in response.message
 
 

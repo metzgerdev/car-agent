@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 from .agent import DeterministicRouter, TraceObserver
 from .conversation_context import ConversationTurn, build_prompt_context
+from .intent_parser import IntentEnvelope, IntentParser, LLMIntentParser
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall
 from .persona import CLASSIC_CAR_PERSONA
@@ -258,6 +259,7 @@ class CrewAISalesAgent:
         use_live_model: bool | None = None,
         llm: str | None = None,
         profiler: TimingRecorder | None = None,
+        intent_parser: IntentParser | None = None,
     ) -> None:
         self.profiler = profiler or TimingRecorder(enabled=False)
         self.router = DeterministicRouter(tools, profiler=self.profiler)
@@ -270,6 +272,7 @@ class CrewAISalesAgent:
             else use_live_model
         )
         self.llm = llm or os.getenv("CAR_AGENT_CREWAI_MODEL") or "openrouter/deepseek/deepseek-chat"
+        self.intent_parser = intent_parser
 
     def respond(
         self,
@@ -401,11 +404,27 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
+        intent_trace: list[ToolCall] = []
+        parsed_intent = self._parse_intent(user_message, intent_trace, trace_observer)
+        if (
+            parsed_intent
+            and parsed_intent.intent == "search_inventory"
+            and parsed_intent.confidence >= LLMIntentParser.MIN_CONFIDENCE
+        ):
+            return self._respond_to_intent(
+                conversation_id,
+                user_message,
+                parsed_intent,
+                intent_trace,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
         return self._respond_live(
             conversation_id,
             user_message,
             trace_observer,
             response_observer,
+            initial_trace=intent_trace,
         )
 
     def _respond_deterministic(
@@ -426,6 +445,73 @@ class CrewAISalesAgent:
         if response_observer:
             _emit_response_chunks(response.message, response_observer)
         return response
+
+    def _respond_to_intent(
+        self,
+        conversation_id: str,
+        user_message: str,
+        intent: IntentEnvelope,
+        initial_trace: list[ToolCall],
+        *,
+        trace_observer: TraceObserver | None = None,
+        response_observer: ResponseObserver | None = None,
+    ) -> AgentResponse:
+        response = self.router.respond_to_intent(
+            conversation_id,
+            user_message,
+            intent,
+            initial_trace=initial_trace,
+            trace_observer=trace_observer,
+        )
+        if response_observer:
+            _emit_response_chunks(response.message, response_observer)
+        return response
+
+    def _parse_intent(
+        self,
+        user_message: str,
+        trace: list[ToolCall],
+        trace_observer: TraceObserver | None,
+    ) -> IntentEnvelope | None:
+        """Parse only after deterministic guards, recording a safe trace entry."""
+
+        arguments = {"message_length": len(user_message.strip())}
+        if trace_observer:
+            trace_observer("start", "parse_intent", arguments, None)
+        started = perf_counter()
+        try:
+            parser = self.intent_parser or self._new_intent_parser()
+            intent = IntentEnvelope.model_validate(
+                parser.parse(
+                    user_message.strip(),
+                    known_makes=sorted({vehicle.make for vehicle in self.tools.inventory.all()}),
+                )
+            )
+            result = intent.model_dump()
+        except Exception:
+            # An unavailable or malformed classifier must not make the live
+            # conversation unavailable. Continue to the normal CrewAI path.
+            intent = None
+            result = {
+                "intent": "general_conversation",
+                "confidence": 0.0,
+                "fallback": True,
+            }
+        call = ToolCall(
+            name="parse_intent",
+            arguments=arguments,
+            result=result,
+            duration_ms=(perf_counter() - started) * 1000,
+        )
+        trace.append(call)
+        if trace_observer:
+            trace_observer("complete", "parse_intent", arguments, call)
+        return intent
+
+    def _new_intent_parser(self) -> IntentParser:
+        parser = LLMIntentParser(self._live_llm(), profiler=self.profiler)
+        self.intent_parser = parser
+        return parser
 
     def _record_turn(
         self,
@@ -551,11 +637,13 @@ class CrewAISalesAgent:
         user_message: str,
         trace_observer: TraceObserver | None = None,
         response_observer: ResponseObserver | None = None,
+        *,
+        initial_trace: list[ToolCall] | None = None,
     ) -> AgentResponse:
         with self.profiler.span("crewai.live_turn"):
             previous_state = self.sessions.setdefault(conversation_id, ConversationState(conversation_id))
             self._pin_explicit_vehicle(previous_state, user_message)
-            trace: list[ToolCall] = []
+            trace: list[ToolCall] = list(initial_trace or [])
             with self.profiler.span("crewai.crew_build"):
                 build_kwargs: dict[str, Any] = {}
                 if trace_observer:
