@@ -162,6 +162,21 @@ def test_live_facade_routes_unique_bare_model_token_through_grounded_trace(monke
     assert "1999 Porsche 911 Carrera" in response.message
 
 
+def test_live_facade_completes_make_browse_with_inventory_trace(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("an explicit inventory browse must not stop at a live-model progress message")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-browse-make", "Show me classic BMWs")
+
+    assert response.trace[0].name == "search_inventory"
+    assert response.trace[0].arguments == {"filters": {"query": "BMW"}}
+    assert "2008 BMW Z4 M Coupe" in response.message
+
+
 def test_live_facade_routes_test_drive_booking_through_traceable_safety_path(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
     agent.sessions["live-schedule"] = ConversationState(
@@ -366,7 +381,7 @@ def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) ->
 
     monkeypatch.setattr(agent, "build_crew", lambda trace: FakeCrew())
 
-    response = agent.respond("live-contract", "Find me a weekend car.")
+    response = agent.respond("live-contract", "I’d like advice on a weekend car.")
 
     assert response.message == "I found a grounded match."
     assert response.state.stage == "recommending"

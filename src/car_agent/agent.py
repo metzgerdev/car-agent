@@ -74,6 +74,9 @@ class DeterministicRouter:
         if self._is_alternative_request(message) and state.last_vehicle_ids:
             return self._similar_options(state, mentioned_vehicles, trace)
 
+        if self._is_inventory_browse_request(message):
+            return self._browse_inventory(state, message, mentioned_vehicles, trace)
+
         ambiguous_make = self._ambiguous_make(message, mentioned_vehicles)
         if ambiguous_make:
             state.stage = "qualifying"
@@ -372,11 +375,22 @@ class DeterministicRouter:
         lines.append("Would you like more details on one of these?")
         return AgentResponse("\n".join(lines), state, trace)
 
-    def _recommend(self, state: ConversationState, trace: list[ToolCall]) -> AgentResponse:
+    def _recommend(
+        self,
+        state: ConversationState,
+        trace: list[ToolCall],
+        query: str | None = None,
+    ) -> AgentResponse:
         with self.profiler.span("agent.recommendation_flow"):
-            return self._recommend_impl(state, trace)
+            return self._recommend_impl(state, trace, query=query)
 
-    def _recommend_impl(self, state: ConversationState, trace: list[ToolCall]) -> AgentResponse:
+    def _recommend_impl(
+        self,
+        state: ConversationState,
+        trace: list[ToolCall],
+        *,
+        query: str | None = None,
+    ) -> AgentResponse:
         preferences = state.preferences
         filters = {
             key: value
@@ -388,6 +402,8 @@ class DeterministicRouter:
             }.items()
             if value is not None
         }
+        if query:
+            filters["query"] = query
         search = self._call(
             trace,
             "search_inventory",
@@ -423,6 +439,18 @@ class DeterministicRouter:
             lambda: self.tools.retrieve_vehicle_facts(top_vehicle["id"]),
         )
         return AgentResponse(self._recommendation_message(vehicles, facts), state, trace)
+
+    def _browse_inventory(
+        self,
+        state: ConversationState,
+        message: str,
+        mentioned_vehicles: list[Vehicle],
+        trace: list[ToolCall],
+    ) -> AgentResponse:
+        """Complete an explicit browse request with a grounded inventory search."""
+
+        query = self._inventory_search_query(message, mentioned_vehicles)
+        return self._recommend(state, trace, query=query)
 
     def _schedule(
         self,
@@ -946,6 +974,58 @@ class DeterministicRouter:
     def _is_schedule_request(message: str) -> bool:
         lowered = message.lower()
         return "test drive" in lowered or "test-drive" in lowered or "schedule" in lowered or "book" in lowered
+
+    @staticmethod
+    def _is_inventory_browse_request(message: str) -> bool:
+        """Recognize requests that explicitly ask to see available inventory."""
+
+        lowered = message.lower()
+        browse_phrase = any(
+            phrase in lowered
+            for phrase in (
+                "show me",
+                "find me",
+                "what do you have",
+                "what's available",
+                "what is available",
+                "browse",
+                "list",
+                "give me options",
+                "show me options",
+            )
+        )
+        inventory_subject = any(
+            term in lowered
+            for term in (
+                "car",
+                "cars",
+                "vehicle",
+                "vehicles",
+                "inventory",
+                "sports",
+                "classic",
+                "roadster",
+                "coupe",
+                "convertible",
+                "options",
+            )
+        )
+        return browse_phrase and inventory_subject
+
+    def _inventory_search_query(self, message: str, mentioned_vehicles: list[Vehicle]) -> str | None:
+        """Reduce natural-language browse text to a searchable identity hint."""
+
+        if len(mentioned_vehicles) == 1:
+            vehicle = mentioned_vehicles[0]
+            return f"{vehicle.make} {vehicle.model}"
+
+        lowered = message.lower()
+        makes = sorted({vehicle.make for vehicle in self.tools.inventory.all()}, key=len, reverse=True)
+        for make in makes:
+            # Shoppers commonly pluralize a make: "BMWs", "Porsches", etc.
+            if re.search(rf"\b{re.escape(make.lower())}s?\b", lowered):
+                return make
+        return None
 
     def _ambiguous_make(self, message: str, mentioned_vehicles: list[Vehicle]) -> str | None:
         if mentioned_vehicles:

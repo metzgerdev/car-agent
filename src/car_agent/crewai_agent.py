@@ -334,6 +334,16 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
+        # Explicit browse requests such as "Show me classic BMWs" must finish
+        # with grounded inventory results. Keep them out of the open-ended
+        # model path so the model cannot stop at an unfulfilled progress claim.
+        if self.router._is_inventory_browse_request(user_message):
+            return self._respond_deterministic(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
         # Service-history requests are always grounded. The deterministic
         # router either retrieves records for the selected vehicle or asks the
         # shopper to identify one; the live model must not invent records.

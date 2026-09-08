@@ -97,6 +97,15 @@ def test_phase3_unique_bare_model_token_checks_inventory() -> None:
     assert "1999 Porsche 911 Carrera" in response.message
 
 
+def test_phase3_explicit_make_browse_returns_grounded_inventory_options() -> None:
+    response = DeterministicRouter().respond("phase3-browse-make", "Show me classic BMWs")
+
+    assert response.trace[0].name == "search_inventory"
+    assert response.trace[0].arguments == {"filters": {"query": "BMW"}}
+    assert "2008 BMW Z4 M Coupe" in response.message
+    assert "1998 BMW E36 328is" in response.message
+
+
 def test_phase3_similar_followup_uses_grounded_alternatives_from_unavailable_lookup() -> None:
     agent = DeterministicRouter()
 
