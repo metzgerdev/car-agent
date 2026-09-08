@@ -1,5 +1,6 @@
 from car_agent.agent import DeterministicRouter
 from car_agent.evaluation import run_phase3_evaluation
+from car_agent.models import ConversationState
 from car_agent.tools import SalesTools
 
 
@@ -162,6 +163,20 @@ def test_phase3_agent_retrieves_service_history_for_the_explicit_vehicle() -> No
     assert "2004 Honda S2000" in response.message
     assert "synthetic demo records" in response.message
     assert response.trace[0].result["service_history"]
+
+
+def test_phase3_agent_tolerates_a_service_history_typo() -> None:
+    agent = DeterministicRouter()
+    agent.sessions["phase3-service-typo"] = ConversationState(
+        "phase3-service-typo",
+        stage="recommending",
+        last_vehicle_ids=["honda-s2000-2004"],
+    )
+
+    response = agent.respond("phase3-service-typo", "maintanece records")
+
+    assert [call.name for call in response.trace] == ["retrieve_service_history"]
+    assert "2004 Honda S2000" in response.message
 
 
 def test_phase3_ambiguity_does_not_guess_a_porsche_model() -> None:

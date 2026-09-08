@@ -187,6 +187,27 @@ def test_live_facade_routes_test_drive_booking_through_traceable_safety_path(mon
     assert response.trace[0].result["ok"] is True
 
 
+def test_live_facade_routes_typo_service_history_through_traceable_path(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+    agent.sessions["live-service-typo"] = ConversationState(
+        "live-service-typo",
+        stage="recommending",
+        last_vehicle_ids=["honda-s2000-2004"],
+        preferences=ShopperPreferences(selected_vehicle_id="honda-s2000-2004"),
+    )
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("service-record requests must not be answered without the retrieval tool")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-service-typo", "maintanece records")
+
+    assert [call.name for call in response.trace] == ["retrieve_service_history"]
+    assert response.trace[0].result["vehicle_id"] == "honda-s2000-2004"
+    assert "synthetic demo records" in response.message
+
+
 def test_live_facade_routes_clear_similar_followup_to_grounded_alternatives(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
     agent.respond("live-similar", "Do you have a 1999 BMW Z4 in inventory?")

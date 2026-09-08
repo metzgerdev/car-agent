@@ -334,6 +334,16 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
+        # Service-history requests are always grounded. The deterministic
+        # router either retrieves records for the selected vehicle or asks the
+        # shopper to identify one; the live model must not invent records.
+        if self.router._is_service_history_request(user_message):
+            return self._respond_deterministic(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
         # Scheduling is a side effect, so it must go through the deterministic
         # validation path. This prevents the live model from claiming that a
         # drive was booked without actually calling schedule_test_drive.

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from contextvars import ContextVar
+from difflib import get_close_matches
 from time import perf_counter
 from typing import Any, Callable, Literal
 
@@ -741,7 +742,7 @@ class DeterministicRouter:
     @staticmethod
     def _is_service_history_request(message: str) -> bool:
         lowered = message.lower()
-        return any(
+        if any(
             phrase in lowered
             for phrase in (
                 "service history",
@@ -754,7 +755,18 @@ class DeterministicRouter:
                 "previous service",
                 "service receipts",
             )
+        ):
+            return True
+
+        # Treat common spelling mistakes as the same records request while
+        # requiring a records/history term so a general maintenance objection
+        # does not trigger a service-history lookup.
+        tokens = re.findall(r"[a-z]+", lowered)
+        has_record_term = any(
+            token in {"history", "record", "records", "receipt", "receipts", "done", "work"}
+            for token in tokens
         )
+        return has_record_term and bool(get_close_matches("maintenance", tokens, n=1, cutoff=0.72))
 
     @staticmethod
     def _is_compare_request(message: str) -> bool:
