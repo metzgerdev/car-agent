@@ -1,8 +1,8 @@
 # Classic Sports Car Sales Agent
 
-This is a portfolio demo of a used classic-sports-car sales agent. It is deliberately built around explicit state, typed tools, retrieval, and an inspectable tool trace so its behavior can be evaluated independently of a language model. CrewAI provides the live `Agent`/`Task`/`Crew` orchestration boundary, while the default mode remains deterministic and offline.
+Classic Sports Car Sales Agent is a used classic-sports-car sales application built around explicit state, typed tools, retrieval, and an inspectable tool trace. CrewAI provides the live `Agent`/`Task`/`Crew` orchestration boundary, while the default mode remains deterministic and offline.
 
-The current slice supports preference discovery, exact availability lookup, inventory search, vehicle facts, synthetic service-history retrieval, comparisons, and a validated mock test-drive request. CrewAI 1.15.x is supported on the Python 3.12.13 baseline. The HTTP app loads the local `.env` and uses its `OPENROUTER_API_KEY` for live CrewAI turns; the acceptance verifier remains explicitly offline.
+The application supports preference discovery, exact availability lookup, inventory search, vehicle facts, service-history retrieval, comparisons, and a validated test-drive request. CrewAI 1.15.x is supported on the Python 3.12.13 baseline. The HTTP app loads the local `.env` and uses its `OPENROUTER_API_KEY` for live CrewAI turns; the acceptance verifier runs offline.
 
 ## Run locally
 
@@ -20,7 +20,7 @@ Then send a message:
 ```bash
 curl -X POST http://127.0.0.1:8000/chat \
   -H 'content-type: application/json' \
-  -d '{"conversation_id":"demo","message":"I want a weekend sports car under $45k with spirited driving."}'
+  -d '{"conversation_id":"sales-chat","message":"I want a weekend sports car under $45k with spirited driving."}'
 ```
 
 The response includes the assistant message, current qualification state, and the tools used for that turn.
@@ -39,12 +39,12 @@ A compact identity response such as `2001 BMW M3` follows the same exact lookup
 path, so the live model cannot end the turn with a progress message before
 returning the availability result.
 
-For the browser demo, open [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+For the browser UI, open [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 after starting the server. The page has the conversation and a right-side Tool
 Trace panel that exposes redacted agent activity. The composer accepts text
 messages only.
 
-The browser also includes a small auction-style featured inventory gallery.
+The browser also includes an auction-style featured inventory gallery.
 It loads the typed 50-car fixture from `/inventory`, supports local filtering
 and pagination, and opens a listing preview with a real model-reference photo
 and key vehicle specs for every record. The source page, photographer, and
@@ -54,7 +54,7 @@ The browser frontend is built with [assistant-ui](https://github.com/assistant-u
 and uses its `LocalRuntime` adapter to call the existing FastAPI `/chat`
 endpoint. Its conversation surface is a styled assistant-ui Thread/Composer
 composition with a ChatGPT-inspired dark theme; the surrounding panels expose
-the demo's grounding evidence. The checked-in browser bundle is ready to serve.
+grounding evidence. The checked-in browser bundle is ready to serve.
 To rebuild it after changing the React source, use Node 22 or newer:
 
 ```bash
@@ -83,7 +83,7 @@ continue to receive the existing single JSON response.
 
 Deterministic turns use the same `response_delta` contract. The local policy
 splits its already-computed answer into small chunks without adding an
-artificial delay, so offline and live demos exercise the same browser streaming
+artificial delay, so offline and live modes exercise the same browser streaming
 path.
 
 Follow-up turns use the structured conversation state: `selected_vehicle_id`
@@ -105,9 +105,9 @@ context, not condition reports for a specific listing.
 
 The advisor can also answer questions about a car's service history. The
 dedicated `retrieve_service_history` tool returns typed listing records and
-appears in the Tool Trace. These records are synthetic demo data, clearly
-marked as `synthetic_demo`; they demonstrate a separate inventory enrichment
-source and must not be treated as seller documents or a real condition report.
+appears in the Tool Trace. These records are synthetic data, clearly marked as
+`synthetic_demo`; they demonstrate a separate inventory enrichment source and
+must not be treated as seller documents or a real condition report.
 
 The advisor can also answer a contextual request such as `summarize magazine
 reviews of the car`. It retrieves the curated review records, passes those
@@ -116,19 +116,7 @@ publication's short summary and source link in the response. Offline mode
 serves the same grounded records directly. It asks for a specific vehicle if
 no car has been selected yet.
 
-## Run the clean offline demo
-
-Run the complete qualification, recommendation, fact lookup, and test-drive
-flow without a live model or network connection:
-
-```bash
-car-agent-demo
-```
-
-The demo prints each shopper turn, the assistant response, the current stage,
-and the tool trace, ending with `Demo result: PASS`.
-
-## Evaluate Phase 3
+## Run deterministic evaluation
 
 Run the deterministic 20-conversation sales evaluation without a live model:
 
@@ -140,38 +128,12 @@ The strict evaluator checks state progression, tool use, ambiguity handling,
 uncertainty responses, objection handling, question count, and hard-budget
 compliance.
 
-## Profile offline latency
+## Configure live CrewAI and OpenRouter
 
-Run the repeatable six-turn profile to see time spent in parsing, agent flows,
-and each domain tool:
-
-```bash
-car-agent-profile --iterations 25
-```
-
-The profile reports exclusive phase time, so nested phases are not double-counted.
-It intentionally measures the deterministic offline path. Live CrewAI latency is
-dominated by the external model request and should be measured separately when
-you explicitly want to spend an OpenRouter call.
-
-To measure that live path, use a deliberately small opt-in workload:
-
-```bash
-car-agent-profile --live --iterations 1
-```
-
-This makes four OpenRouter-backed CrewAI turns. The report separates CrewAI
-turn setup, `crew.kickoff` (model request plus orchestration), tool execution,
-and output normalization. Provider usage and latency can vary by model, load,
-and network conditions.
-
-## Run with CrewAI and OpenRouter
-
-The HTTP app uses `CrewAISalesAgent` with OpenRouter. The copied `.env` already supplies `OPENROUTER_API_KEY`; the model defaults to `openrouter/deepseek/deepseek-chat` and can be changed with `CAR_AGENT_CREWAI_MODEL`.
-
-```bash
-uvicorn car_agent.app:app --reload
-```
+The HTTP app uses `CrewAISalesAgent` with OpenRouter. Create a local `.env` with
+`OPENROUTER_API_KEY`; the model defaults to
+`openrouter/deepseek/deepseek-chat` and can be changed with
+`CAR_AGENT_CREWAI_MODEL`.
 
 For deterministic local checks, use `car-agent-verify --strict`; it never makes model calls. Both paths return the same domain response shape: message, conversation state, and tool trace.
 
@@ -180,12 +142,12 @@ For deterministic local checks, use `car-agent-verify --strict`; it never makes 
 The advisor uses the shared `CLASSIC_CAR_PERSONA` contract in
 [`src/car_agent/persona.py`](src/car_agent/persona.py). It gives the live
 CrewAI agent a named, consultative character—Alex—through its role, goal, and
-backstory, while the deterministic demo uses the same user-facing voice. The
+backstory, while deterministic mode uses the same user-facing voice. The
 character is enthusiastic but not pushy: it explains trade-offs, distinguishes
 facts from opinions, never invents inventory or specifications, and ends with
 a natural next step.
 
-## Verify Phase 1 interactively
+## Verify interactively
 
 After installing the project, run:
 
@@ -193,7 +155,7 @@ After installing the project, run:
 car-agent-verify --guided
 ```
 
-Enter the suggested shopper messages and use `/check` at any point. The verifier reports the Phase 1 cases as they pass. Other useful commands are `/state`, `/trace`, `/reset`, and `/quit`. To make an incomplete run fail in automation, add `--strict`.
+Enter the suggested shopper messages and use `/check` at any point. Other useful commands are `/state`, `/trace`, `/reset`, and `/quit`. To make an incomplete run fail in automation, add `--strict`.
 
 Run the tests with:
 
@@ -201,11 +163,11 @@ Run the tests with:
 pytest
 ```
 
-The inventory and knowledge records in `data/` are illustrative mock records. The multi-source plan in [`data/sources.md`](data/sources.md) treats the checked-in inventory fixture as the canonical inventory and NHTSA/EPA payloads as provenance-backed enrichment. Pydantic boundary models and recorded fixtures keep the integration inspectable without requiring live provider calls. The app validates and loads `data/inventory.json` directly at startup.
+The inventory and knowledge records in `data/` are illustrative records. The multi-source plan in [`data/sources.md`](data/sources.md) treats the checked-in inventory fixture as the canonical inventory and NHTSA/EPA payloads as provenance-backed enrichment. Pydantic boundary models and recorded fixtures keep the integration inspectable without requiring live provider calls. The app validates and loads `data/inventory.json` directly at startup.
 
-The checked-in inventory contains 50 deterministic mock records: six
-curated vehicles used by the scripted demo plus 44 auction-style records
-generated by [`scripts/generate_mock_inventory.py`](scripts/generate_mock_inventory.py).
+The checked-in inventory contains 50 deterministic records: six curated
+vehicles plus 44 auction-style records generated by
+[`scripts/generate_mock_inventory.py`](scripts/generate_mock_inventory.py).
 Regenerate it with:
 
 ```bash
@@ -218,9 +180,9 @@ they are not copied marketplace listings and their service records are marked
 `synthetic_demo`. Every inventory record includes a real model-reference photo
 from Wikimedia Commons with photographer, source-page, and license credits;
 generated model families reuse their corresponding source-backed reference
-photo across mock years and listing records.
+photo across generated years and listing records.
 
-To verify Phase 2 interactively, install the notebook extra and open [notebooks/verify_phase2.ipynb](notebooks/verify_phase2.ipynb):
+To verify the inventory data interactively, install the notebook extra and open [notebooks/verify_phase2.ipynb](notebooks/verify_phase2.ipynb):
 
 ```bash
 python -m pip install -e '.[dev,notebook]'
@@ -230,5 +192,5 @@ python -m ipykernel install --user \
 jupyter lab notebooks/verify_phase2.ipynb
 ```
 
-In Jupyter, select the `Python 3.12.13 (car-agent)` kernel. The notebook is
-offline and ends with a PASS summary for P2-T1 through P2-T5.
+In Jupyter, select the `Python 3.12.13 (car-agent)` kernel. The notebook runs
+offline and ends with a PASS summary for the inventory checks.
