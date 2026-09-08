@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "test": "node --test src/trace-history.test.mjs src/thread-layout.test.mjs",
+    "test": "node --test src/trace-history.test.mjs src/thread-layout.test.mjs src/stream-pacing.test.mjs",
     "dev": "vite --host 127.0.0.1"
   },
   "dependencies": {

@@ -7,6 +7,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Thread } from "./components/assistant-ui/elements/thread";
+import { splitStreamDelta, STREAM_TICK_MS, waitForStreamTick } from "./stream-pacing.js";
 import { mergeTraceHistory } from "./trace-history.js";
 import "./styles.css";
 
@@ -121,15 +122,20 @@ function createChatAdapter(
         }
 
         let payload: ChatPayload | null = null;
-        let streamedMessage = "";
+        let displayedMessage = "";
         for await (const [eventName, data] of consumeSse(response)) {
           if (eventName === "trace") {
             onTrace(data as TraceStreamEvent);
           } else if (eventName === "response_delta") {
             const delta = (data as { delta?: unknown }).delta;
             if (typeof delta === "string" && delta) {
-              streamedMessage += delta;
-              yield { content: [{ type: "text", text: streamedMessage }] };
+              for (const displayChunk of splitStreamDelta(delta)) {
+                if (displayedMessage) {
+                  await waitForStreamTick(STREAM_TICK_MS, abortSignal);
+                }
+                displayedMessage += displayChunk;
+                yield { content: [{ type: "text", text: displayedMessage }] };
+              }
             }
           } else if (eventName === "response") {
             payload = data as ChatPayload;
