@@ -323,6 +323,17 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
+        # An explicit detail request such as "Tell me about the Honda S2000"
+        # is also an inventory lookup, even when it is the first turn and
+        # therefore has no prior conversation context.
+        mentioned_vehicles = self.tools.inventory.find_in_text(user_message)
+        if len(mentioned_vehicles) == 1 and self.router._is_vehicle_detail_request(user_message):
+            return self._respond_deterministic(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
         # Scheduling is a side effect, so it must go through the deterministic
         # validation path. This prevents the live model from claiming that a
         # drive was booked without actually calling schedule_test_drive.

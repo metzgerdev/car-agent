@@ -117,6 +117,21 @@ def test_live_facade_routes_bare_known_model_through_grounded_trace(monkeypatch)
     assert "2004 Honda S2000" in response.message
 
 
+def test_live_facade_routes_explicit_vehicle_detail_through_grounded_trace(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("an explicit vehicle detail request should use the inventory path")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-explicit-detail", "Tell me about the Honda S2000")
+
+    assert [call.name for call in response.trace] == ["get_vehicle"]
+    assert response.state.preferences.selected_vehicle_id == "honda-s2000-2004"
+    assert "2004 Honda S2000" in response.message
+
+
 def test_live_facade_routes_bare_model_family_through_grounded_trace(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
 
