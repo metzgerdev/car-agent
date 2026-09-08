@@ -980,11 +980,10 @@ class DeterministicRouter:
         """Recognize requests that explicitly ask to see available inventory."""
 
         lowered = message.lower()
-        browse_phrase = any(
+        browse_phrase = bool(re.search(r"\bfind(?:\s+me)?\b", lowered)) or any(
             phrase in lowered
             for phrase in (
                 "show me",
-                "find me",
                 "what do you have",
                 "what's available",
                 "what is available",
@@ -994,6 +993,8 @@ class DeterministicRouter:
                 "show me options",
             )
         )
+        if any(phrase in lowered for phrase in ("review", "service history", "maintenance record")):
+            return False
         inventory_subject = any(
             term in lowered
             for term in (

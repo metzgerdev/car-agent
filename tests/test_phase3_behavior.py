@@ -106,6 +106,14 @@ def test_phase3_explicit_make_browse_returns_grounded_inventory_options() -> Non
     assert "1998 BMW E36 328is" in response.message
 
 
+def test_phase3_category_browse_returns_a_search_trace_before_qualification() -> None:
+    response = DeterministicRouter().respond("phase3-browse-category", "Find a weekend sports car")
+
+    assert response.trace[0].name == "search_inventory"
+    assert response.trace[0].arguments == {"filters": {"intended_use": "weekend"}}
+    assert "I found a few promising matches" in response.message
+
+
 def test_phase3_similar_followup_uses_grounded_alternatives_from_unavailable_lookup() -> None:
     agent = DeterministicRouter()
 
