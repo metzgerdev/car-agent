@@ -31,7 +31,13 @@ export function Thread() {
           </AuiIf>
 
           <ThreadPrimitive.Messages>
-            {({ message }) => (message.role === "user" ? <UserMessage /> : <AssistantMessage />)}
+            {({ message }) => {
+              if (message.role === "user") return <UserMessage />;
+              if (message.status?.type === "running" && message.parts.length === 0) {
+                return <ThinkingPlaceholder />;
+              }
+              return <AssistantMessage />;
+            }}
           </ThreadPrimitive.Messages>
 
           <ThreadPrimitive.ViewportFooter className="aui-styled-footer">
@@ -74,16 +80,38 @@ function StarterPrompts() {
   );
 }
 
-function ThinkingIndicator() {
+function ThinkingPlaceholder() {
   return (
-    <div className="aui-thinking-indicator" role="status" aria-label="Thinking...">
-      <span>Thinking</span>
-      <span className="aui-thinking-dots" aria-hidden="true">
-        <span>.</span>
-        <span>.</span>
-        <span>.</span>
-      </span>
+    <div className="aui-styled-message aui-styled-assistant-message aui-thinking-message" role="status" aria-label="Thinking...">
+      <div className="aui-styled-avatar aui-assistant-avatar" aria-hidden="true">GP</div>
+      <div className="aui-styled-message-body">
+        <div className="aui-styled-message-label">Advisor</div>
+        <div className="aui-thinking-indicator">
+          <span>Thinking</span>
+          <span className="aui-thinking-dots" aria-hidden="true">
+            <span>.</span>
+            <span>.</span>
+            <span>.</span>
+          </span>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function UserMessage() {
+  return (
+    <MessagePrimitive.Root className="aui-styled-message aui-styled-user-message">
+      <div className="aui-styled-avatar aui-user-avatar" aria-hidden="true">You</div>
+      <div className="aui-styled-message-body">
+        <div className="aui-styled-message-label">You</div>
+        <div className="aui-styled-message-text">
+          <MessagePrimitive.Parts>
+            {({ part }) => (part.type === "text" ? <MessagePartPrimitive.Text /> : null)}
+          </MessagePrimitive.Parts>
+        </div>
+      </div>
+    </MessagePrimitive.Root>
   );
 }
 
@@ -97,9 +125,6 @@ function AssistantMessage() {
           <MessagePrimitive.Parts>
             {({ part }) => {
               if (part.type === "text") {
-                if (part.status?.type === "running" && part.text === "") {
-                  return <ThinkingIndicator />;
-                }
                 return <MarkdownTextPrimitive remarkPlugins={[remarkGfm]} />;
               }
               if (part.type === "tool-call") {
