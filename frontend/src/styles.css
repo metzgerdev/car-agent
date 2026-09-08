@@ -253,13 +253,10 @@ a { color: #65b8a2; }
 .aui-thinking-dots span:nth-child(2) { animation-delay: 160ms; }
 .aui-thinking-dots span:nth-child(3) { animation-delay: 320ms; }
 .aui-styled-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
   width: min(100%, var(--thread-max-width));
   flex: 0 0 auto;
   padding: 18px 28px 22px;
-  margin: auto;
+  margin: 0 auto;
   background: linear-gradient(180deg, rgba(33, 33, 33, 0), var(--chat-bg) 25%);
   box-shadow: 0 -10px 22px rgba(33, 33, 33, 0.18);
 }

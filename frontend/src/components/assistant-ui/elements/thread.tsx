@@ -45,12 +45,11 @@ export function Thread() {
               return <AssistantMessage />;
             }}
           </ThreadPrimitive.Messages>
-
-          <ThreadPrimitive.ViewportFooter className="aui-styled-footer">
-            <Composer />
-          </ThreadPrimitive.ViewportFooter>
         </div>
       </ThreadPrimitive.Viewport>
+      <div className="aui-styled-footer">
+        <Composer />
+      </div>
     </ThreadPrimitive.Root>
   );
 }
