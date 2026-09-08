@@ -156,15 +156,17 @@ a { color: #65b8a2; }
   border-radius: 12px;
 }
 .conversation-card {
+  display: flex;
+  height: 720px;
   min-height: 720px;
+  flex-direction: column;
   overflow: hidden;
   background: var(--chat-bg);
 }
 
 /* assistant-ui styled Thread surface */
-.aui-styled-thread, .aui-styled-viewport { display: flex; min-height: 720px; flex-direction: column; }
-.aui-styled-thread { height: 100%; background: var(--chat-bg); }
-.aui-styled-viewport { overflow: auto; }
+.aui-styled-thread { display: flex; height: 100%; min-height: 0; flex-direction: column; background: var(--chat-bg); }
+.aui-styled-viewport { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow-x: hidden; overflow-y: auto; }
 .aui-thread-content { display: flex; min-height: 100%; flex: 1; flex-direction: column; }
 .aui-thread-welcome {
   width: min(100%, 680px);
@@ -253,10 +255,13 @@ a { color: #65b8a2; }
 .aui-styled-footer {
   position: sticky;
   bottom: 0;
+  z-index: 2;
   width: min(100%, var(--thread-max-width));
+  flex: 0 0 auto;
   padding: 18px 28px 22px;
   margin: auto;
   background: linear-gradient(180deg, rgba(33, 33, 33, 0), var(--chat-bg) 25%);
+  box-shadow: 0 -10px 22px rgba(33, 33, 33, 0.18);
 }
 .aui-styled-composer { display: flex; flex-direction: column; gap: 8px; }
 .aui-composer-input-wrap {
@@ -343,7 +348,7 @@ a { color: #65b8a2; }
 @media (max-width: 900px) {
   .gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .workspace { grid-template-columns: 1fr; }
-  .conversation-card, .aui-styled-thread, .aui-styled-viewport { min-height: 640px; }
+  .conversation-card { height: 640px; min-height: 640px; }
 }
 @media (max-width: 520px) {
   .shell { width: min(100% - 20px, 1440px); padding-top: 18px; }

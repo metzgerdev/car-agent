@@ -20,7 +20,13 @@ import remarkGfm from "remark-gfm";
 export function Thread() {
   return (
     <ThreadPrimitive.Root className="aui-styled-thread">
-      <ThreadPrimitive.Viewport className="aui-styled-viewport">
+      <ThreadPrimitive.Viewport
+        className="aui-styled-viewport"
+        autoScroll
+        turnAnchor="bottom"
+        scrollToBottomOnRunStart
+        scrollToBottomOnInitialize
+      >
         <div className="aui-thread-content">
           <AuiIf condition={(state) => state.thread.isEmpty}>
             <div className="aui-thread-welcome">
