@@ -55,7 +55,8 @@ export function Thread() {
 }
 
 function StarterPrompts() {
-  const { setText, send, canSend } = unstable_useComposerInput();
+  const aui = useAui();
+  const { setText, isDisabled } = unstable_useComposerInput();
   const prompts = [
     "Find a weekend sports car",
     "Show me classic BMWs",
@@ -63,10 +64,10 @@ function StarterPrompts() {
   ];
 
   const sendPrompt = useCallback((prompt: string) => {
-    if (!canSend) return;
+    if (isDisabled) return;
     setText(prompt);
-    send();
-  }, [canSend, send, setText]);
+    aui.composer.send();
+  }, [aui, isDisabled, setText]);
 
   return (
     <div className="aui-starter-prompts" aria-label="Starter prompts">
@@ -76,7 +77,7 @@ function StarterPrompts() {
           className="aui-starter-prompt"
           type="button"
           onClick={() => sendPrompt(prompt)}
-          disabled={!canSend}
+          disabled={isDisabled}
         >
           {prompt}
         </button>

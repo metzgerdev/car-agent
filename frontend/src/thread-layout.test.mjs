@@ -18,3 +18,14 @@ test("the composer is outside the scrolling message viewport", () => {
   assert.match(stylesSource, /\.aui-styled-viewport\s*\{[\s\S]*flex: 1 1 auto;[\s\S]*overflow-x: hidden;[\s\S]*overflow-y: auto;/);
   assert.match(stylesSource, /\.aui-styled-footer\s*\{[\s\S]*flex: 0 0 auto;[\s\S]*margin: 0 auto;/);
 });
+
+test("starter prompts remain enabled on an empty composer and send their text", () => {
+  const starterPromptSource = threadSource.match(/function StarterPrompts\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+
+  assert.match(starterPromptSource, /const aui = useAui\(\);/);
+  assert.match(starterPromptSource, /const \{ setText, isDisabled \} = unstable_useComposerInput\(\);/);
+  assert.match(starterPromptSource, /if \(isDisabled\) return;/);
+  assert.match(starterPromptSource, /setText\(prompt\);\s*aui\.composer\.send\(\);/);
+  assert.match(starterPromptSource, /disabled=\{isDisabled\}/);
+  assert.doesNotMatch(starterPromptSource, /disabled=\{!canSend\}/);
+});
