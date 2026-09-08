@@ -67,14 +67,12 @@ type Dashboard = {
   trace: ToolCall[];
   activeTrace: ActiveTrace[];
   turnTraceCount: number;
-  isProcessing: boolean;
 };
 
 const EMPTY_DASHBOARD: Dashboard = {
   trace: [],
   activeTrace: [],
   turnTraceCount: 0,
-  isProcessing: false,
 };
 
 function newConversationId() {
@@ -97,7 +95,6 @@ function latestUserText(messages: readonly ThreadMessage[]) {
 function createChatAdapter(
   conversationId: string,
   onStreamStarted: () => void,
-  onResponseDelta: () => void,
   onResponse: (payload: ChatPayload) => void,
   onTrace: (event: TraceStreamEvent) => void,
   onStreamFinished: () => void,
@@ -131,7 +128,6 @@ function createChatAdapter(
           } else if (eventName === "response_delta") {
             const delta = (data as { delta?: unknown }).delta;
             if (typeof delta === "string" && delta) {
-              onResponseDelta();
               streamedMessage += delta;
               yield { content: [{ type: "text", text: streamedMessage }] };
             }
@@ -535,7 +531,7 @@ function AdvisorWorkspace({ dashboard }: { dashboard: Dashboard }) {
       <InventoryGallery />
       <div className="workspace">
         <section className="conversation-card panel" aria-label="Conversation">
-        <Thread isProcessing={dashboard.isProcessing} />
+        <Thread />
         </section>
         <aside className="sidebar" aria-label="Agent evidence">
           <ToolTracePanel dashboard={dashboard} />
@@ -548,7 +544,6 @@ function AdvisorWorkspace({ dashboard }: { dashboard: Dashboard }) {
 function RuntimeShell({
   conversationId,
   onStreamStarted,
-  onResponseDelta,
   onResponse,
   dashboard,
   onTrace,
@@ -556,15 +551,14 @@ function RuntimeShell({
 }: {
   conversationId: string;
   onStreamStarted: () => void;
-  onResponseDelta: () => void;
   onResponse: (payload: ChatPayload) => void;
   onTrace: (event: TraceStreamEvent) => void;
   onStreamFinished: () => void;
   dashboard: Dashboard;
 }) {
   const adapter = useMemo(
-    () => createChatAdapter(conversationId, onStreamStarted, onResponseDelta, onResponse, onTrace, onStreamFinished),
-    [conversationId, onStreamStarted, onResponseDelta, onResponse, onTrace, onStreamFinished],
+    () => createChatAdapter(conversationId, onStreamStarted, onResponse, onTrace, onStreamFinished),
+    [conversationId, onStreamStarted, onResponse, onTrace, onStreamFinished],
   );
   const runtime = useLocalRuntime(adapter);
   return (
@@ -578,10 +572,7 @@ function App() {
   const [conversationId] = useState(newConversationId);
   const [dashboard, setDashboard] = useState<Dashboard>(EMPTY_DASHBOARD);
   const handleStreamStarted = useCallback(() => {
-    setDashboard((current) => ({ ...current, activeTrace: [], turnTraceCount: 0, isProcessing: true }));
-  }, []);
-  const handleResponseDelta = useCallback(() => {
-    setDashboard((current) => current.isProcessing ? { ...current, isProcessing: false } : current);
+    setDashboard((current) => ({ ...current, activeTrace: [], turnTraceCount: 0 }));
   }, []);
   const handleResponse = useCallback(
     (payload: ChatPayload) => setDashboard((current) => {
@@ -589,7 +580,6 @@ function App() {
         trace: mergeTraceHistory(current.trace, current.turnTraceCount, payload.trace),
         activeTrace: [],
         turnTraceCount: 0,
-        isProcessing: false,
       };
     }),
     [],
@@ -618,8 +608,8 @@ function App() {
   }, []);
   const handleStreamFinished = useCallback(() => {
     setDashboard((current) => {
-      if (!current.activeTrace.length && !current.isProcessing) return current;
-      return { ...current, activeTrace: [], isProcessing: false };
+      if (!current.activeTrace.length) return current;
+      return { ...current, activeTrace: [] };
     });
   }, []);
 
@@ -628,7 +618,6 @@ function App() {
       key={conversationId}
       conversationId={conversationId}
       onStreamStarted={handleStreamStarted}
-      onResponseDelta={handleResponseDelta}
       onResponse={handleResponse}
       onTrace={handleTrace}
       onStreamFinished={handleStreamFinished}

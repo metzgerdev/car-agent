@@ -245,7 +245,6 @@ a { color: #65b8a2; }
 .aui-styled-markdown pre { padding: 12px; overflow: auto; background: #171717; border: 1px solid var(--chat-border); border-radius: 8px; }
 .aui-styled-markdown pre code { padding: 0; background: transparent; }
 .aui-tool-note { display: inline-block; color: var(--chat-muted); font-size: 0.85rem; font-style: italic; }
-.aui-thinking-message { animation: appear 180ms ease-out; }
 .aui-thinking-indicator { display: inline-flex; align-items: baseline; color: var(--chat-muted); font-size: 0.9rem; }
 .aui-thinking-dots { display: inline-flex; gap: 2px; margin-left: 2px; }
 .aui-thinking-dots span { animation: thinking-dot 1.2s infinite; color: var(--chat-text); opacity: 0.25; }

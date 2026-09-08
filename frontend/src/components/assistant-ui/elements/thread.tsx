@@ -11,17 +11,13 @@ import { useCallback } from "react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
 
-type ThreadProps = {
-  isProcessing: boolean;
-};
-
 /**
  * The official assistant-ui Thread element is a composed surface: primitives
  * provide the runtime behavior and the element owns the presentation. This
  * Vite app keeps that same boundary, with local CSS tokens instead of a
  * shadcn/Tailwind build step so the FastAPI bundle stays self-contained.
  */
-export function Thread({ isProcessing }: ThreadProps) {
+export function Thread() {
   return (
     <ThreadPrimitive.Root className="aui-styled-thread">
       <ThreadPrimitive.Viewport className="aui-styled-viewport">
@@ -37,7 +33,6 @@ export function Thread({ isProcessing }: ThreadProps) {
           <ThreadPrimitive.Messages>
             {({ message }) => (message.role === "user" ? <UserMessage /> : <AssistantMessage />)}
           </ThreadPrimitive.Messages>
-          {isProcessing ? <ThinkingPlaceholder /> : null}
 
           <ThreadPrimitive.ViewportFooter className="aui-styled-footer">
             <Composer />
@@ -79,38 +74,16 @@ function StarterPrompts() {
   );
 }
 
-function ThinkingPlaceholder() {
+function ThinkingIndicator() {
   return (
-    <div className="aui-styled-message aui-styled-assistant-message aui-thinking-message" role="status" aria-label="Thinking...">
-      <div className="aui-styled-avatar aui-assistant-avatar" aria-hidden="true">GP</div>
-      <div className="aui-styled-message-body">
-        <div className="aui-styled-message-label">Advisor</div>
-        <div className="aui-thinking-indicator">
-          <span>Thinking</span>
-          <span className="aui-thinking-dots" aria-hidden="true">
-            <span>.</span>
-            <span>.</span>
-            <span>.</span>
-          </span>
-        </div>
-      </div>
+    <div className="aui-thinking-indicator" role="status" aria-label="Thinking...">
+      <span>Thinking</span>
+      <span className="aui-thinking-dots" aria-hidden="true">
+        <span>.</span>
+        <span>.</span>
+        <span>.</span>
+      </span>
     </div>
-  );
-}
-
-function UserMessage() {
-  return (
-    <MessagePrimitive.Root className="aui-styled-message aui-styled-user-message">
-      <div className="aui-styled-avatar aui-user-avatar" aria-hidden="true">You</div>
-      <div className="aui-styled-message-body">
-        <div className="aui-styled-message-label">You</div>
-        <div className="aui-styled-message-text">
-          <MessagePrimitive.Parts>
-            {({ part }) => (part.type === "text" ? <MessagePartPrimitive.Text /> : null)}
-          </MessagePrimitive.Parts>
-        </div>
-      </div>
-    </MessagePrimitive.Root>
   );
 }
 
@@ -121,6 +94,9 @@ function AssistantMessage() {
       <div className="aui-styled-message-body">
         <div className="aui-styled-message-label">Advisor</div>
         <div className="aui-styled-message-text aui-styled-markdown">
+          <AuiIf condition={(state) => state.message.status?.type === "running" && state.message.parts.length === 0}>
+            <ThinkingIndicator />
+          </AuiIf>
           <MessagePrimitive.Parts>
             {({ part }) => {
               if (part.type === "text") {
