@@ -12,40 +12,67 @@ source links and summaries.
 
 ## Install
 
-Requires Python 3.12.
+Requires Python 3.12 and Node.js/npm. From the repository root:
 
 ```bash
+# Backend
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
+
+# Frontend
+npm --prefix frontend install
+npm --prefix frontend run build
 ```
 
-For live CrewAI/OpenRouter responses, create `.env`:
+For live CrewAI/OpenRouter responses, add this to `.env`:
 
 ```env
 OPENROUTER_API_KEY=your-key
 CAR_AGENT_CREWAI_MODEL=openrouter/deepseek/deepseek-chat
 ```
 
-## Run the UI
+## Run the app
 
 ```bash
+# If needed in a new terminal:
+source .venv/bin/activate
+
 uvicorn car_agent.app:app --reload
 ```
 
 Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
-The UI provides a dark assistant-ui chat interface, inventory gallery, and
-live Tool Trace panel. HTTP chat requests use the CrewAI/OpenRouter path when
-the API key is configured; deterministic routing and tool contracts remain
-available for offline verification.
+The UI provides an assistant-ui chat interface, inventory gallery, and live
+Tool Trace panel. The frontend build is served by FastAPI at `/`.
 
-To rebuild the frontend after changing `frontend/src`:
+## Architecture and design
 
-```bash
-npm --prefix frontend install
-npm --prefix frontend run build
-```
+- React and assistant-ui provide the chat and inventory gallery.
+- FastAPI exposes the UI and JSON/SSE API.
+- `CrewAISalesAgent` coordinates deterministic routing and LLM CrewAI turns.
+- Pydantic models define inventory, conversation state, tool results, reviews,
+  and API responses.
+- Typed tools ground responses in inventory, exact vehicle lookup, vehicle
+  facts, service history, magazine reviews, comparisons, and test-drive
+  scheduling.
+- Conversation state and the test-drive scheduler are in memory. Inventory and
+  source records are loaded from JSON fixtures.
+- Tool calls include phase, purpose, outcome, duration, and redacted arguments;
+  the UI receives them through the existing SSE stream.
+
+## Available tools
+
+| Tool | Purpose |
+|---|---|
+| `search_inventory` | Rank listings using shopper preferences and query terms. |
+| `lookup_vehicle_exact` | Verify exact year, make, and model availability, including family matches. |
+| `get_vehicle` | Load one complete inventory listing. |
+| `retrieve_vehicle_facts` | Retrieve sourced ownership and vehicle facts. |
+| `retrieve_service_history` | Retrieve listing-level service records and provenance. |
+| `retrieve_magazine_reviews` | Retrieve curated magazine reviews and source links. |
+| `compare_vehicles` | Compare two inventory vehicles. |
+| `schedule_test_drive` | Validate and create a test-drive request. |
 
 ## API endpoints
 
@@ -68,31 +95,3 @@ npm --prefix frontend run build
 
 Clients requesting `Accept: text/event-stream` receive trace events and
 response deltas as the turn runs. Standard clients receive one JSON response.
-
-## Available tools
-
-| Tool | Purpose |
-|---|---|
-| `search_inventory` | Rank listings using shopper preferences and query terms. |
-| `lookup_vehicle_exact` | Verify exact year, make, and model availability, including family matches. |
-| `get_vehicle` | Load one complete inventory listing. |
-| `retrieve_vehicle_facts` | Retrieve sourced ownership and vehicle facts. |
-| `retrieve_service_history` | Retrieve listing-level service records and provenance. |
-| `retrieve_magazine_reviews` | Retrieve curated magazine reviews and source links. |
-| `compare_vehicles` | Compare two inventory vehicles. |
-| `schedule_test_drive` | Validate and create a test-drive request. |
-
-## Architecture and design
-
-- React and assistant-ui provide the chat and inventory gallery.
-- FastAPI exposes the UI and JSON/SSE API.
-- `CrewAISalesAgent` coordinates deterministic routing and live CrewAI turns.
-- Pydantic models define inventory, conversation state, tool results, reviews,
-  and API responses.
-- Typed tools ground responses in inventory, exact vehicle lookup, vehicle
-  facts, service history, magazine reviews, comparisons, and test-drive
-  scheduling.
-- Conversation state and the test-drive scheduler are in memory. Inventory and
-  source records are loaded from JSON fixtures.
-- Tool calls include phase, purpose, outcome, duration, and redacted arguments;
-  the UI receives them through the existing SSE stream.
