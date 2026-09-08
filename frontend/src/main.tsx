@@ -251,6 +251,7 @@ function ListingVisual({
   large?: boolean;
 }) {
   const tone = galleryTones[(vehicle.year + shot) % galleryTones.length];
+  const [imageLoading, setImageLoading] = useState(Boolean(vehicle.image_url));
   return (
     <div
       className={`listing-visual tone-${tone}${large ? " listing-visual-large" : ""}${vehicle.image_url ? " has-photo" : ""}`}
@@ -258,16 +259,25 @@ function ListingVisual({
       aria-label={`${vehicle.image_url ? "Reference photo" : galleryShots[shot % galleryShots.length]} for ${vehicle.name}`}
     >
       {vehicle.image_url ? (
-        <img
-          className="listing-photo"
-          src={vehicle.image_url}
-          alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-          loading={large ? "eager" : "lazy"}
-          onError={(event) => {
-            event.currentTarget.hidden = true;
-            event.currentTarget.parentElement?.classList.add("image-fallback");
-          }}
-        />
+        <>
+          {imageLoading ? (
+            <span className="listing-image-loading" role="status" aria-label="Loading image">
+              <span className="listing-image-spinner" aria-hidden="true" />
+            </span>
+          ) : null}
+          <img
+            className="listing-photo"
+            src={vehicle.image_url}
+            alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+            loading={large ? "eager" : "lazy"}
+            onLoad={() => setImageLoading(false)}
+            onError={(event) => {
+              setImageLoading(false);
+              event.currentTarget.hidden = true;
+              event.currentTarget.parentElement?.classList.add("image-fallback");
+            }}
+          />
+        </>
       ) : (
         <>
           <div className="visual-skyline" />
