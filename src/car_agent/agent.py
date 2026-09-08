@@ -817,6 +817,7 @@ class DeterministicRouter:
             _normalize_vehicle_identity(
                 f"{vehicle.make} {vehicle.model.split()[0]}"
             ),
+            _normalize_vehicle_identity(vehicle.model.split()[0]),
         }
         return normalized_message in identities
 

@@ -35,6 +35,20 @@ class InventoryRepository:
                 normalized, vehicle
             ):
                 matches.append(vehicle)
+
+        # A short follow-up such as "911" can be the unique leading token of
+        # a multi-word model such as "911 Carrera". Only accept this shorthand
+        # when it identifies one inventory vehicle, so ambiguous tokens do not
+        # become accidental vehicle selections.
+        bare_token = re.sub(r"[^a-z0-9-]+", " ", normalized).strip()
+        if len(bare_token.split()) == 1 and not matches:
+            bare_matches = []
+            for vehicle in self._vehicles:
+                model_family = re.match(r"[a-z0-9][a-z0-9-]*", vehicle.model.lower())
+                if model_family and model_family.group(0) == bare_token:
+                    bare_matches.append(vehicle)
+            if len(bare_matches) == 1:
+                return bare_matches
         return matches
 
     @staticmethod

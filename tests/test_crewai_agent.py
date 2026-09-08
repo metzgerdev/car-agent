@@ -132,6 +132,21 @@ def test_live_facade_routes_bare_model_family_through_grounded_trace(monkeypatch
     assert "2008 BMW Z4 M Coupe" in response.message
 
 
+def test_live_facade_routes_unique_bare_model_token_through_grounded_trace(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("a unique bare model token should use the deterministic inventory path")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-bare-token", "911")
+
+    assert [call.name for call in response.trace] == ["search_inventory", "get_vehicle"]
+    assert response.state.preferences.selected_vehicle_id == "porsche-911-1999"
+    assert "1999 Porsche 911 Carrera" in response.message
+
+
 def test_live_facade_routes_test_drive_booking_through_traceable_safety_path(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
     agent.sessions["live-schedule"] = ConversationState(

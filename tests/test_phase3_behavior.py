@@ -88,6 +88,14 @@ def test_phase3_bare_model_family_reference_checks_inventory() -> None:
     assert "2008 BMW Z4 M Coupe" in response.message
 
 
+def test_phase3_unique_bare_model_token_checks_inventory() -> None:
+    response = DeterministicRouter().respond("phase3-bare-token", "911")
+
+    assert [call.name for call in response.trace] == ["search_inventory", "get_vehicle"]
+    assert response.state.preferences.selected_vehicle_id == "porsche-911-1999"
+    assert "1999 Porsche 911 Carrera" in response.message
+
+
 def test_phase3_similar_followup_uses_grounded_alternatives_from_unavailable_lookup() -> None:
     agent = DeterministicRouter()
 
