@@ -69,6 +69,19 @@ npm --prefix frontend run build
 Clients requesting `Accept: text/event-stream` receive trace events and
 response deltas as the turn runs. Standard clients receive one JSON response.
 
+## Available tools
+
+| Tool | Purpose |
+|---|---|
+| `search_inventory` | Rank listings using shopper preferences and query terms. |
+| `lookup_vehicle_exact` | Verify exact year, make, and model availability, including family matches. |
+| `get_vehicle` | Load one complete inventory listing. |
+| `retrieve_vehicle_facts` | Retrieve sourced ownership and vehicle facts. |
+| `retrieve_service_history` | Retrieve listing-level service records and provenance. |
+| `retrieve_magazine_reviews` | Retrieve curated magazine reviews and source links. |
+| `compare_vehicles` | Compare two inventory vehicles. |
+| `schedule_test_drive` | Validate and create a test-drive request. |
+
 ## Architecture and design
 
 - React and assistant-ui provide the chat and inventory gallery.
