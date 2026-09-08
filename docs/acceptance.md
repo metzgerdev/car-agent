@@ -14,9 +14,9 @@ and deterministic verification.
 | --- | --- | --- | --- |
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
-| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, recorded NHTSA/EPA adapters, deterministic 50-record fixture generation with model-specific production-year validation, and notebook verification pass; 84 Python tests pass | none |
-| 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, explicit deterministic-router grounding and safety routes, context-aware vehicle follow-ups, bounded hybrid LLM context, shared consultative salesperson persona, synthetic service-history retrieval, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass; 84 Python tests pass | Phase 4 API and conversion tests |
-| 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, clean offline demo, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, phase-aware tool purpose/outcome/timing metadata, streamed deterministic and live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review context, suggested-vehicle review context pass, text-only composer, deterministic side-effect routing for test-drive scheduling, fixed composer with bottom-following chat scroll, gallery image loading states, and clickable initial starter prompts; 84 Python tests, 9 frontend tests, and frontend build pass | none |
+| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, recorded NHTSA/EPA adapters, deterministic 50-record fixture generation with model-specific production-year validation, and notebook verification pass; 83 Python tests pass | none |
+| 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, exact availability lookup, explicit deterministic-router grounding and safety routes, context-aware vehicle follow-ups, bounded hybrid LLM context, shared consultative salesperson persona, synthetic service-history retrieval, ambiguity/uncertainty handling, grounded objections, and 20-scenario evaluation pass; 83 Python tests pass | Phase 4 API and conversion tests |
+| 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, phase-aware tool purpose/outcome/timing metadata, streamed deterministic and live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review context, suggested-vehicle review context pass, text-only composer, deterministic side-effect routing for test-drive scheduling, fixed composer with bottom-following chat scroll, gallery image loading states, and clickable initial starter prompts; 83 Python tests, 9 frontend tests, and frontend build pass | none |
 
 ### Update protocol
 
@@ -36,7 +36,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-03 | Phase 2 multi-source adapters | 29 tests pass for typed source contracts, NHTSA vPIC/recall fixtures, EPA facts, and provenance-preserving enrichment | `2a3d692` | Phase 3 scenario evaluation |
 | 2026-09-03 | Phase 2 fixture ingestion | Mock inventory records pass typed normalization, canonical SQLite storage, repository loading, and idempotency checks; 45 tests pass | `a48846a` | none |
 | 2026-09-03 | Phase 3 sales behavior | 35 tests pass; `car-agent-evaluate --strict` reports 20/20 scenarios and zero budget violations | `3770b2c` | Phase 4 API and conversion tests |
-| 2026-09-03 | Phase 4 conversion and polish | 41 tests pass; API, scheduling, redaction, modality, and `car-agent-demo` clean-checkout smoke tests pass | `11bfd1b` | none |
+| 2026-09-03 | Phase 4 conversion and polish | 41 tests pass; API, scheduling, redaction, modality, and clean-checkout smoke tests pass | `11bfd1b` | none |
 | 2026-09-03 | Phase 4 browser demo UI | Browser shell, guided prompts, live API health state, shopper profile, and redacted tool-trace panels are served by FastAPI; 42 tests pass | `15146ef` | none |
 | 2026-09-03 | Phase 4 editorial review context | Typed Car and Driver/MotorTrend review links and paraphrased summaries are matched to inventory and surfaced through the UI modal; 46 tests pass | `8efbc20` | none |
 | 2026-09-03 | Phase 4 suggested-vehicle review context | Review groups are attached from both conversation state and structured search/get-vehicle tool results, so alternatives suggested by the agent also surface review cards; 46 tests pass | `4170afb` | none |
@@ -91,6 +91,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-08 | Phase 4 gallery image loading state | Gallery photos show a centered spinner while loading, clear it on success or failure, and preserve the existing fallback visual and clean source-photo presentation; 83 Python tests, 8 frontend tests, and frontend build pass | `c735fac` | none |
 | 2026-09-08 | Phase 3 live routing boundary | Renamed the deterministic policy to `DeterministicRouter`; `CrewAISalesAgent` remains the live CrewAI/LLM facade and delegates only grounding, context, offline verification, and safety-sensitive routes to the router; 84 Python tests, 8 frontend tests, and frontend build pass | `a6d429c` | none |
 | 2026-09-08 | Phase 4 starter prompt initial state | Starter prompts no longer inherit the empty-composer `canSend` state; they remain enabled on initial load, submit their text through assistant-ui, and pass 9 frontend tests with a production build | `fa6185c` | none |
+| 2026-09-08 | Phase 4 CLI simplification | Removed `demo_cli.py`, its `car-agent-demo` entry point, smoke test, and active documentation references; API/frontend verification remains the supported path; 83 Python tests pass | `6a71754` | none |
 | 2026-09-03 | Phase 3 exact availability lookup | Typed `lookup_vehicle_exact` returns `exact_match` with matched/not-found/ambiguous status; explicit unavailable requests call it before grounded alternative search; 48 tests pass | `cdd7813` | none |
 | 2026-09-03 | Phase 3 bare vehicle availability regression | A compact identity such as `2001 bmw m3` is routed through exact lookup even in live mode, returning a complete unavailable/alternative response instead of a progress-only final message; 52 tests pass | `74f1ea7` | none |
 | 2026-09-03 | CrewAI orchestration foundation | CrewAI crew construction, typed tool adapters, offline facade behavior, and structured-output normalization pass | `cdb2046` | Scenario evaluation set |
@@ -111,10 +112,12 @@ Phase 3 can be verified with the deterministic scenario evaluator:
 car-agent-evaluate --strict
 ```
 
-Phase 4 can be verified with the clean offline happy-path demo:
+Phase 4 can be verified with the API and frontend checks:
 
 ```bash
-car-agent-demo
+pytest -q tests/test_phase4_contract.py
+npm --prefix frontend test
+npm --prefix frontend run build
 ```
 
 Phase 2 can also be verified interactively with [notebooks/verify_phase2.ipynb](../notebooks/verify_phase2.ipynb). Run it with `jupyter lab` after installing `.[notebook]`; its final cell asserts P2-T1 through P2-T5 and prints a single summary. For headless verification:
@@ -182,7 +185,7 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P4-T2 | Submit invalid scheduling data | Error is returned and request count does not change | implemented |
 | P4-T3 | Retry an identical booking | No duplicate booking is created | implemented |
 | P4-T4 | Inspect a trace/log | Tool trace remains inspectable and contact values are redacted | implemented |
-| P4-T6 | Follow clean-checkout instructions | Setup, tests, and demo transcript complete successfully | implemented |
+| P4-T6 | Follow clean-checkout instructions | Backend setup, frontend build, full tests, and browser start instructions complete successfully | implemented |
 | P4-T7 | Open the browser demo | `GET /` serves the assistant-ui React UI, its generated static assets load, the styled Thread uses the dark theme, and the right rail exposes only the live Tool Trace panel | implemented |
 | P4-T8 | Open magazine context for a matched or suggested vehicle | The review endpoint and `/chat` response return typed links and short summaries from Car and Driver/MotorTrend without treating editorial context as canonical inventory facts; the right rail remains dedicated to Tool Trace | implemented |
 | P4-T9 | Ask for magazine or press reviews of the car | The agent retrieves the explicitly named, selected, or last vehicle's curated reviews; phrases such as “press reviews” route to `retrieve_magazine_reviews`; live CrewAI receives those bounded records and synthesizes publication-level themes/differences with Markdown citations, while offline mode serves the same grounded summaries; without vehicle context it asks for a specific model | implemented |
