@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -30,9 +31,21 @@ class InventoryRepository:
         matches = []
         for vehicle in self._vehicles:
             identifiers = (vehicle.id, vehicle.model, vehicle.name, f"{vehicle.make} {vehicle.model}")
-            if any(identifier.lower() in normalized for identifier in identifiers):
+            if any(identifier.lower() in normalized for identifier in identifiers) or self._model_family_in_text(
+                normalized, vehicle
+            ):
                 matches.append(vehicle)
         return matches
+
+    @staticmethod
+    def _model_family_in_text(text: str, vehicle: Vehicle) -> bool:
+        """Recognize a make plus the leading model token as a family reference."""
+
+        model_family = re.match(r"[A-Za-z0-9][A-Za-z0-9-]*", vehicle.model)
+        if not model_family:
+            return False
+        identity = f"{vehicle.make} {model_family.group(0)}"
+        return re.search(rf"\b{re.escape(identity)}\b", text, re.IGNORECASE) is not None
 
     def search(self, preferences: ShopperPreferences, query: str | None = None) -> list[Vehicle]:
         candidates = self._vehicles

@@ -812,6 +812,9 @@ class DemoSalesAgent:
             _normalize_vehicle_identity(f"{vehicle.make} {vehicle.model}"),
             _normalize_vehicle_identity(vehicle.model),
             _normalize_vehicle_identity(vehicle.name),
+            _normalize_vehicle_identity(
+                f"{vehicle.make} {vehicle.model.split()[0]}"
+            ),
         }
         return normalized_message in identities
 

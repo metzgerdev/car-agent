@@ -80,6 +80,14 @@ def test_phase3_bare_vehicle_identity_is_an_exact_availability_request() -> None
     assert "2001 bmw m3" in response.message.lower()
 
 
+def test_phase3_bare_model_family_reference_checks_inventory() -> None:
+    response = DemoSalesAgent().respond("phase3-bare-family", "bmw z4")
+
+    assert [call.name for call in response.trace] == ["search_inventory", "get_vehicle"]
+    assert response.state.preferences.selected_vehicle_id == "bmw-z4-m-2008"
+    assert "2008 BMW Z4 M Coupe" in response.message
+
+
 def test_phase3_similar_followup_uses_grounded_alternatives_from_unavailable_lookup() -> None:
     agent = DemoSalesAgent()
 
