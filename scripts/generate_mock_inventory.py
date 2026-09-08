@@ -183,7 +183,7 @@ def generate_record(index: int) -> dict[str, Any]:
         "drivetrain": spec["drivetrain"],
         "horsepower": horsepower,
         "description": (
-            f"Synthetic auction-style listing for an enthusiast-owned {year} "
+            f"Enthusiast-owned {year} "
             f"{spec['make']} {spec['model']} with {mileage:,} miles. "
             f"Modification summary: {trim_note}. Condition note: {condition_note}. "
             "Seller documentation and an independent inspection are recommended."

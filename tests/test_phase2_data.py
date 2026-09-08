@@ -128,6 +128,10 @@ def test_phase2_checked_in_inventory_has_50_typed_records_and_real_photos() -> N
     assert all(vehicle.provenance.source_type == "illustrative_fixture" for vehicle in vehicles)
     assert all(vehicle.service_history for vehicle in vehicles)
     assert all(record.source == "synthetic_demo" for vehicle in generated for record in vehicle.service_history)
+    assert all(
+        "Synthetic auction-style listing for an" not in vehicle.description
+        for vehicle in vehicles
+    )
 
 
 def test_generated_model_years_stay_inside_their_production_ranges() -> None:
