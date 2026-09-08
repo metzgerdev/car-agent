@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from .agent import DemoSalesAgent
+from .agent import DeterministicRouter
 from .crewai_agent import CrewAISalesAgent
 from .profiling import TimingRecorder, TimingSummary
 from .tools import SalesTools
@@ -34,7 +34,7 @@ def run_profile(iterations: int = 25) -> tuple[TimingRecorder, int]:
     recorder = TimingRecorder()
     tools = SalesTools()
     for iteration in range(iterations):
-        agent = DemoSalesAgent(tools=tools, profiler=recorder)
+        agent = DeterministicRouter(tools=tools, profiler=recorder)
         conversation_id = f"latency-profile-{iteration}"
         for message in PROFILE_TURNS:
             agent.respond(conversation_id, message)
@@ -59,7 +59,7 @@ def run_live_profile(iterations: int = 1) -> tuple[TimingRecorder, int, str]:
 def format_profile(recorder: TimingRecorder, turn_count: int, iterations: int) -> str:
     wall_time_ms = recorder.root_total_ms
     lines = [
-        "Offline latency profile (deterministic path)",
+        "Offline latency profile (deterministic router path)",
         f"workload: {iterations} runs × {len(PROFILE_TURNS)} turns = {turn_count} turns",
         f"measured agent wall time: {wall_time_ms:.2f} ms",
         "",

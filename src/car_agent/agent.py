@@ -1,7 +1,7 @@
-"""Deterministic sales policy used until a live model adapter is added.
+"""Deterministic grounding and safety router for the sales conversation.
 
-The policy is intentionally boring and inspectable. It demonstrates the state and
-tool boundaries that a model-driven policy can use later.
+The router owns inspectable inventory, side-effect, and context decisions that
+must remain reliable when the live CrewAI/LLM facade is enabled.
 """
 
 from __future__ import annotations
@@ -22,7 +22,9 @@ TraceObserver = Callable[[Literal["start", "complete"], str, dict[str, Any], Too
 _trace_observer: ContextVar[TraceObserver | None] = ContextVar("trace_observer", default=None)
 
 
-class DemoSalesAgent:
+class DeterministicRouter:
+    """Handle grounded and safety-sensitive turns without an LLM call."""
+
     def __init__(self, tools: SalesTools | None = None, profiler: TimingRecorder | None = None) -> None:
         self.tools = tools or SalesTools()
         self.profiler = profiler or TimingRecorder(enabled=False)

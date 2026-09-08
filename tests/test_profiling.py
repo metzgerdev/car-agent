@@ -1,4 +1,4 @@
-from car_agent.agent import DemoSalesAgent
+from car_agent.agent import DeterministicRouter
 from car_agent.profiling import TimingRecorder
 
 
@@ -19,7 +19,7 @@ def test_timing_recorder_reports_exclusive_nested_time() -> None:
 
 def test_agent_profile_captures_input_flows_and_domain_tools() -> None:
     recorder = TimingRecorder()
-    agent = DemoSalesAgent(profiler=recorder)
+    agent = DeterministicRouter(profiler=recorder)
 
     agent.respond("profile-test", "I want a weekend coupe under $45k with spirited driving.")
 

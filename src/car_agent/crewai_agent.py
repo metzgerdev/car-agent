@@ -19,7 +19,7 @@ from crewai.types.streaming import CrewStreamingOutput, StreamChunkType
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, PrivateAttr
 
-from .agent import DemoSalesAgent, TraceObserver
+from .agent import DeterministicRouter, TraceObserver
 from .conversation_context import ConversationTurn, build_prompt_context
 from .lookup_models import ExactVehicleQuery
 from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall
@@ -247,7 +247,7 @@ class ScheduleTestDriveTool(_CrewSalesTool):
 
 
 class CrewAISalesAgent:
-    """Conversation facade backed by CrewAI in live mode and local policy by default."""
+    """Live conversation facade with deterministic grounding and safety routes."""
 
     framework = "crewai"
 
@@ -260,9 +260,9 @@ class CrewAISalesAgent:
         profiler: TimingRecorder | None = None,
     ) -> None:
         self.profiler = profiler or TimingRecorder(enabled=False)
-        self.deterministic_agent = DemoSalesAgent(tools, profiler=self.profiler)
-        self.tools = self.deterministic_agent.tools
-        self.sessions = self.deterministic_agent.sessions
+        self.router = DeterministicRouter(tools, profiler=self.profiler)
+        self.tools = self.router.tools
+        self.sessions = self.router.sessions
         self.turn_history: dict[str, list[ConversationTurn]] = {}
         self.use_live_model = (
             _env_truthy(os.getenv("CAR_AGENT_USE_CREWAI"))
@@ -306,7 +306,7 @@ class CrewAISalesAgent:
         # Exact availability is a deterministic inventory contract. Handle it
         # before CrewAI so a live model cannot end a turn with "one moment"
         # without returning the lookup result and a complete next step.
-        if self.deterministic_agent._exact_vehicle_query(user_message.strip()):
+        if self.router._exact_vehicle_query(user_message.strip()):
             return self._respond_deterministic(
                 conversation_id,
                 user_message,
@@ -316,7 +316,7 @@ class CrewAISalesAgent:
         # A bare known make/model such as "Honda S2000" is still an inventory
         # lookup. Keep it grounded and traceable instead of allowing the model
         # to answer from memory without emitting a tool call.
-        if self.deterministic_agent._is_model_reference_request(user_message):
+        if self.router._is_model_reference_request(user_message):
             return self._respond_deterministic(
                 conversation_id,
                 user_message,
@@ -328,7 +328,7 @@ class CrewAISalesAgent:
         # drive was booked without actually calling schedule_test_drive.
         previous_state = self.sessions.get(conversation_id)
         if (
-            self.deterministic_agent._is_schedule_request(user_message)
+            self.router._is_schedule_request(user_message)
             or (previous_state and previous_state.stage == "scheduling")
         ):
             return self._respond_deterministic(
@@ -344,7 +344,7 @@ class CrewAISalesAgent:
         if (
             previous_state
             and previous_state.last_vehicle_ids
-            and self.deterministic_agent._is_alternative_request(user_message)
+            and self.router._is_alternative_request(user_message)
         ):
             return self._respond_deterministic(
                 conversation_id,
@@ -352,7 +352,7 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        if self.deterministic_agent._is_review_request(user_message):
+        if self.router._is_review_request(user_message):
             return self._respond_live_review(
                 conversation_id,
                 user_message,
@@ -362,7 +362,7 @@ class CrewAISalesAgent:
         if (
             previous_state
             and previous_state.last_vehicle_ids
-            and self.deterministic_agent._is_contextual_followup(user_message)
+            and self.router._is_contextual_followup(user_message)
         ):
             return self._respond_deterministic(
                 conversation_id,
@@ -385,9 +385,9 @@ class CrewAISalesAgent:
         trace_observer: TraceObserver | None = None,
         response_observer: ResponseObserver | None = None,
     ) -> AgentResponse:
-        """Run the local policy and expose its answer using the live stream contract."""
+        """Run the deterministic router through the live stream contract."""
 
-        response = self.deterministic_agent.respond(
+        response = self.router.respond(
             conversation_id,
             user_message,
             trace_observer=trace_observer,
@@ -575,7 +575,7 @@ class CrewAISalesAgent:
     ) -> AgentResponse:
         """Retrieve local review records, then ask CrewAI to synthesize them."""
 
-        prepared = self.deterministic_agent.respond(
+        prepared = self.router.respond(
             conversation_id,
             user_message,
             trace_observer=trace_observer,

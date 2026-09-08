@@ -3,6 +3,7 @@ import json
 from crewai import Crew
 from crewai.types.streaming import CrewStreamingOutput, StreamChunk, StreamChunkType
 
+from car_agent.agent import DeterministicRouter
 from car_agent.conversation_context import ConversationTurn
 from car_agent.crewai_agent import CrewAISalesAgent, CrewTurnOutput
 from car_agent.models import ConversationState, ShopperPreferences
@@ -63,6 +64,13 @@ def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
         "get_vehicle",
         "retrieve_vehicle_facts",
     ]
+
+
+def test_live_facade_exposes_a_deterministic_router_boundary() -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    assert isinstance(agent.router, DeterministicRouter)
+    assert not hasattr(agent, "deterministic_agent")
 
 
 def test_deterministic_facade_emits_response_deltas() -> None:
@@ -167,7 +175,7 @@ def test_live_facade_routes_clear_similar_followup_to_grounded_alternatives(monk
 
 def test_live_facade_routes_vehicle_reference_followup_to_grounded_listing(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
-    initial = agent.deterministic_agent.respond(
+    initial = agent.router.respond(
         "live-context-detail",
         "I want a weekend convertible under $40k with spirited driving.",
     )

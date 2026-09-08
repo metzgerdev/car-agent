@@ -1,10 +1,10 @@
-from car_agent.agent import DemoSalesAgent
+from car_agent.agent import DeterministicRouter
 from car_agent.evaluation import run_phase3_evaluation
 from car_agent.tools import SalesTools
 
 
 def test_phase3_progressive_qualification_preserves_state_and_limits_questions() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
 
     first = agent.respond("phase3-progressive", "My maximum is $40k.")
     second = agent.respond("phase3-progressive", "I will use it on weekends.")
@@ -54,7 +54,7 @@ def test_phase3_exact_lookup_returns_authoritative_match_status() -> None:
 
 
 def test_phase3_partial_model_identity_returns_family_match_to_shopper() -> None:
-    response = DemoSalesAgent().respond("phase3-family-match", "2008 BMW Z4")
+    response = DeterministicRouter().respond("phase3-family-match", "2008 BMW Z4")
 
     assert [call.name for call in response.trace] == ["lookup_vehicle_exact"]
     assert response.trace[0].result["status"] == "family_match"
@@ -63,7 +63,7 @@ def test_phase3_partial_model_identity_returns_family_match_to_shopper() -> None
 
 
 def test_phase3_unavailable_exact_request_searches_only_after_lookup() -> None:
-    response = DemoSalesAgent().respond("phase3-exact-availability", "Do you have a 2011 BMW M3 in inventory?")
+    response = DeterministicRouter().respond("phase3-exact-availability", "Do you have a 2011 BMW M3 in inventory?")
 
     assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "search_inventory"]
     assert response.trace[0].result["exact_match"] is False
@@ -73,7 +73,7 @@ def test_phase3_unavailable_exact_request_searches_only_after_lookup() -> None:
 
 
 def test_phase3_bare_vehicle_identity_is_an_exact_availability_request() -> None:
-    response = DemoSalesAgent().respond("phase3-bare-exact", "2001 bmw m3")
+    response = DeterministicRouter().respond("phase3-bare-exact", "2001 bmw m3")
 
     assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "search_inventory"]
     assert response.trace[0].result["status"] == "not_found"
@@ -81,7 +81,7 @@ def test_phase3_bare_vehicle_identity_is_an_exact_availability_request() -> None
 
 
 def test_phase3_bare_model_family_reference_checks_inventory() -> None:
-    response = DemoSalesAgent().respond("phase3-bare-family", "bmw z4")
+    response = DeterministicRouter().respond("phase3-bare-family", "bmw z4")
 
     assert [call.name for call in response.trace] == ["search_inventory", "get_vehicle"]
     assert response.state.preferences.selected_vehicle_id == "bmw-z4-m-2008"
@@ -89,7 +89,7 @@ def test_phase3_bare_model_family_reference_checks_inventory() -> None:
 
 
 def test_phase3_similar_followup_uses_grounded_alternatives_from_unavailable_lookup() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
 
     first = agent.respond("phase3-similar", "Do you have a 1999 BMW Z4 in inventory?")
     followup = agent.respond("phase3-similar", "Yeah, tell me about similar sports cars.")
@@ -103,7 +103,7 @@ def test_phase3_similar_followup_uses_grounded_alternatives_from_unavailable_loo
 
 
 def test_phase3_vehicle_reference_followup_resolves_it_to_latest_match() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
     recommendation = agent.respond(
         "phase3-context",
         "I want a weekend convertible under $40k with spirited driving.",
@@ -121,7 +121,7 @@ def test_phase3_vehicle_reference_followup_resolves_it_to_latest_match() -> None
 
 
 def test_phase3_agent_summarizes_reviews_for_the_last_vehicle() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
     agent.respond("phase3-reviews", "I want a weekend roadster under $40k with spirited driving.")
 
     response = agent.respond("phase3-reviews", "Summarize magazine reviews of the car.")
@@ -134,7 +134,7 @@ def test_phase3_agent_summarizes_reviews_for_the_last_vehicle() -> None:
 
 
 def test_phase3_agent_treats_press_reviews_as_a_magazine_review_request() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
     agent.respond("phase3-press-reviews", "2008 BMW Z4")
 
     response = agent.respond("phase3-press-reviews", "What are the press reviews of the car?")
@@ -145,7 +145,7 @@ def test_phase3_agent_treats_press_reviews_as_a_magazine_review_request() -> Non
 
 
 def test_phase3_agent_retrieves_service_history_for_the_explicit_vehicle() -> None:
-    response = DemoSalesAgent().respond(
+    response = DeterministicRouter().respond(
         "phase3-service-history",
         "Show me the maintenance records for the 2004 Honda S2000.",
     )
@@ -157,7 +157,7 @@ def test_phase3_agent_retrieves_service_history_for_the_explicit_vehicle() -> No
 
 
 def test_phase3_ambiguity_does_not_guess_a_porsche_model() -> None:
-    response = DemoSalesAgent().respond("phase3-ambiguity", "I like Porsche.")
+    response = DeterministicRouter().respond("phase3-ambiguity", "I like Porsche.")
 
     assert response.state.stage == "qualifying"
     assert response.trace == []
@@ -167,7 +167,7 @@ def test_phase3_ambiguity_does_not_guess_a_porsche_model() -> None:
 
 
 def test_phase3_unsupported_specification_is_explicitly_qualified() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
     agent.respond("phase3-uncertainty", "I want a weekend coupe under $50k with spirited driving.")
 
     response = agent.respond(
@@ -182,7 +182,7 @@ def test_phase3_unsupported_specification_is_explicitly_qualified() -> None:
 
 
 def test_phase3_objection_uses_a_sourced_tradeoff() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
     agent.respond("phase3-objection", "I want a weekend roadster under $40k with spirited driving.")
 
     response = agent.respond(

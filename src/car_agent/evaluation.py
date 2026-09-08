@@ -1,10 +1,10 @@
-"""Repeatable Phase 3 scenario evaluation for the deterministic sales policy."""
+"""Repeatable Phase 3 scenario evaluation for the deterministic router."""
 
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .agent import DemoSalesAgent
+from .agent import DeterministicRouter
 
 
 class Phase3Scenario(BaseModel):
@@ -55,7 +55,7 @@ def run_phase3_evaluation(
     cases = scenarios or phase3_scenarios()
     results: list[ScenarioResult] = []
     for scenario in cases:
-        agent = DemoSalesAgent()
+        agent = DeterministicRouter()
         responses = [
             agent.respond(scenario.scenario_id, turn)
             for turn in scenario.turns

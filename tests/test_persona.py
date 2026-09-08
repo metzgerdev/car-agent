@@ -1,4 +1,4 @@
-from car_agent.agent import DemoSalesAgent
+from car_agent.agent import DeterministicRouter
 from car_agent.crewai_agent import CrewAISalesAgent
 from car_agent.persona import CLASSIC_CAR_PERSONA
 
@@ -16,7 +16,7 @@ def test_persona_contract_is_attached_to_the_crewai_agent() -> None:
 
 
 def test_offline_advisor_uses_the_same_consultative_voice() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
 
     greeting = agent.respond("persona-greeting", "")
     recommendation = agent.respond(
@@ -30,7 +30,7 @@ def test_offline_advisor_uses_the_same_consultative_voice() -> None:
 
 
 def test_offline_vehicle_details_end_with_a_natural_next_step() -> None:
-    response = DemoSalesAgent().respond("persona-details", "Tell me about the 2004 Honda S2000.")
+    response = DeterministicRouter().respond("persona-details", "Tell me about the 2004 Honda S2000.")
 
     assert CLASSIC_CAR_PERSONA.detail_opening in response.message
     assert response.message.endswith("Would you like the ownership notes or a test drive?")

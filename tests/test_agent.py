@@ -1,10 +1,10 @@
-from car_agent.agent import DemoSalesAgent
+from car_agent.agent import DeterministicRouter
 from car_agent.repositories import InventoryRepository
 from car_agent.tools import SalesTools
 
 
 def test_agent_qualifies_then_searches_with_trace() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
 
     first = agent.respond("one", "I want something under $45k.")
     assert first.state.stage == "qualifying"
@@ -35,7 +35,7 @@ def test_inventory_search_respects_budget() -> None:
 
 
 def test_compare_uses_last_recommendations() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
     agent.respond("compare", "I have $80k for a daily car and like spirited driving.")
     response = agent.respond("compare", "Can you compare those two?")
 
@@ -44,7 +44,7 @@ def test_compare_uses_last_recommendations() -> None:
 
 
 def test_facts_are_retrieved_for_a_mentioned_vehicle() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
     agent.respond("facts", "I have $40k for a weekend car and want analog driving.")
     response = agent.respond("facts", "What should I inspect on the Honda S2000?")
 
@@ -54,7 +54,7 @@ def test_facts_are_retrieved_for_a_mentioned_vehicle() -> None:
 
 
 def test_service_history_is_a_separate_grounded_tool_call() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
 
     response = agent.respond("service-history", "What service history does the Honda S2000 have?")
 
@@ -69,7 +69,7 @@ def test_service_history_is_a_separate_grounded_tool_call() -> None:
 
 
 def test_schedule_request_collects_details_then_creates_request() -> None:
-    agent = DemoSalesAgent()
+    agent = DeterministicRouter()
     recommendation = agent.respond("schedule", "I want a weekend car under $40k with spirited driving.")
     vehicle_name = recommendation.state.last_vehicle_ids[0]
 
