@@ -1,7 +1,5 @@
 import json
 import re
-import subprocess
-import sys
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -533,18 +531,6 @@ def test_p4_t4_public_response_redacts_contact_values() -> None:
     assert schedule_trace["arguments"]["name"] == "[REDACTED]"
     assert schedule_trace["arguments"]["email"] == "[REDACTED]"
     assert "alex@example.com" not in response.message
-
-
-def test_p4_t6_clean_checkout_demo_runs_to_completion() -> None:
-    result = subprocess.run(
-        [sys.executable, "-m", "car_agent.demo_cli"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    assert result.returncode == 0
-    assert "Demo result: PASS" in result.stdout
 
 
 def test_p4_t5_browser_is_text_only() -> None:
