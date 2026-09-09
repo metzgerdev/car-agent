@@ -23,7 +23,7 @@ class SalesTools:
         self.reviews = reviews or ReviewRepository()
         self.scheduler = scheduler or TestDriveScheduler(self.inventory)
 
-    def search_inventory(self, filters: dict[str, Any]) -> dict[str, Any]:
+    def list_inventory(self, filters: dict[str, Any]) -> dict[str, Any]:
         preferences = ShopperPreferences(
             budget_max=filters.get("budget_max"),
             intended_use=filters.get("intended_use"),
@@ -107,7 +107,7 @@ class SalesTools:
             return {"found": False, "error": "Vehicle not found."}
         return {"found": True, "vehicle": vehicle.to_dict(include_service_history=False)}
 
-    def retrieve_vehicle_facts(self, vehicle_id: str, topic: str | None = None) -> dict[str, Any]:
+    def get_vehicle_facts(self, vehicle_id: str, topic: str | None = None) -> dict[str, Any]:
         facts = self.knowledge.retrieve(vehicle_id, topic)
         return {
             "vehicle_id": vehicle_id,
@@ -115,7 +115,7 @@ class SalesTools:
             "source_count": len({fact.source for fact in facts}),
         }
 
-    def retrieve_service_history(self, vehicle_id: str) -> dict[str, Any]:
+    def get_service_history(self, vehicle_id: str) -> dict[str, Any]:
         """Return listing-level service records, including their demo provenance."""
 
         vehicle = self.inventory.get(vehicle_id)
@@ -137,7 +137,7 @@ class SalesTools:
             "synthetic": all(record["source"] == "synthetic_demo" for record in records),
         }
 
-    def retrieve_magazine_reviews(self, vehicle_id: str) -> dict[str, Any]:
+    def get_magazine_reviews(self, vehicle_id: str) -> dict[str, Any]:
         """Return curated editorial summaries and links for one inventory vehicle."""
 
         vehicle = self.inventory.get(vehicle_id)
@@ -151,7 +151,7 @@ class SalesTools:
             "reviews": [review.model_dump(mode="json") for review in reviews],
         }
 
-    def compare_vehicles(self, vehicle_ids: list[str]) -> dict[str, Any]:
+    def get_vehicle_comparison(self, vehicle_ids: list[str]) -> dict[str, Any]:
         vehicles = [self.inventory.get(vehicle_id) for vehicle_id in vehicle_ids]
         found = [vehicle for vehicle in vehicles if vehicle]
         return {
@@ -159,7 +159,7 @@ class SalesTools:
             "missing_ids": [vehicle_id for vehicle_id, vehicle in zip(vehicle_ids, vehicles) if not vehicle],
         }
 
-    def schedule_test_drive(
+    def create_test_drive(
         self,
         *,
         vehicle_id: str,

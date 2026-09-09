@@ -29,7 +29,7 @@ def test_prompt_context_includes_active_vehicle_and_latest_safe_grounding() -> N
             assistant_message="I found a Honda S2000.",
             tool_calls=[
                 {
-                    "name": "search_inventory",
+                    "name": "list_inventory",
                     "arguments": {"filters": {"intended_use": "weekend"}},
                     "result": {"vehicles": [{"id": "honda-s2000-2004"}]},
                 }
@@ -47,7 +47,7 @@ def test_prompt_context_includes_active_vehicle_and_latest_safe_grounding() -> N
     assert context.active_vehicle is not None
     assert context.active_vehicle["id"] == "honda-s2000-2004"
     assert context.latest_grounding is not None
-    assert context.latest_grounding["name"] == "search_inventory"
+    assert context.latest_grounding["name"] == "list_inventory"
 
 
 def test_prompt_inputs_do_not_forward_schedule_contact_data() -> None:
@@ -57,12 +57,12 @@ def test_prompt_inputs_do_not_forward_schedule_contact_data() -> None:
             assistant_message="Your test-drive request is in.",
             tool_calls=[
                 {
-                    "name": "schedule_test_drive",
+                    "name": "create_test_drive",
                     "arguments": {"name": "Alex Rivera", "email": "alex@example.com"},
                     "result": {"request_id": "td-0001"},
                 },
                 {
-                    "name": "retrieve_vehicle_facts",
+                    "name": "get_vehicle_facts",
                     "arguments": {"vehicle_id": "honda-s2000-2004"},
                     "result": {"facts": [{"fact": "Inspect the soft top."}]},
                 },
@@ -80,4 +80,4 @@ def test_prompt_inputs_do_not_forward_schedule_contact_data() -> None:
 
     assert "alex@example.com" not in prompt_text
     assert "Alex Rivera" not in prompt_text
-    assert "retrieve_vehicle_facts" in prompt_text
+    assert "get_vehicle_facts" in prompt_text

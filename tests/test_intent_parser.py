@@ -12,7 +12,7 @@ class FakeIntentModel:
         self.messages = messages
         self.response_model = response_model
         return {
-            "intent": "search_inventory",
+            "intent": "list_inventory",
             "confidence": 0.93,
             "filters": {"query": "BMW", "intended_use": "weekend"},
         }
@@ -25,7 +25,7 @@ def test_llm_intent_parser_requires_and_validates_structured_output() -> None:
     result = parser.parse("I’m hunting for a classic Beemer for weekends.", known_makes=["BMW", "Honda"])
 
     assert isinstance(result, IntentEnvelope)
-    assert result.intent == "search_inventory"
+    assert result.intent == "list_inventory"
     assert result.confidence == 0.93
     assert result.filters.query == "BMW"
     assert result.filters.intended_use == "weekend"

@@ -21,14 +21,14 @@ def test_crewai_crew_is_constructed_without_an_api_key() -> None:
     assert len(crew.agents) == 1
     assert crew.agents[0].role == "Classic Sports Car Sales Advisor"
     assert {tool.name for tool in crew.agents[0].tools} == {
-        "search_inventory",
+        "list_inventory",
         "lookup_vehicle_exact",
         "get_vehicle",
-        "retrieve_vehicle_facts",
-        "retrieve_service_history",
-        "retrieve_magazine_reviews",
-        "compare_vehicles",
-        "schedule_test_drive",
+        "get_vehicle_facts",
+        "get_service_history",
+        "get_magazine_reviews",
+        "get_vehicle_comparison",
+        "create_test_drive",
     }
     assert crew.tasks[0].output_pydantic is not None
 
@@ -60,10 +60,10 @@ def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
     assert first_stage == "qualifying"
     assert second.state.stage == "recommending"
     assert [call.name for call in second.trace] == [
-        "search_inventory",
+        "list_inventory",
         "get_vehicle",
         "get_vehicle",
-        "retrieve_vehicle_facts",
+        "get_vehicle_facts",
     ]
 
 
@@ -98,7 +98,7 @@ def test_live_facade_completes_bare_vehicle_lookup_without_model_call(monkeypatc
 
     response = agent.respond("live-bare-exact", "2001 bmw m3")
 
-    assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "search_inventory"]
+    assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "list_inventory"]
     assert response.trace[0].result["exact_match"] is False
     assert "2001 bmw m3" in response.message.lower()
 
@@ -113,7 +113,7 @@ def test_live_facade_routes_bare_known_model_through_grounded_trace(monkeypatch)
 
     response = agent.respond("live-bare-model", "honda s2000")
 
-    assert [call.name for call in response.trace] == ["search_inventory", "get_vehicle"]
+    assert [call.name for call in response.trace] == ["list_inventory", "get_vehicle"]
     assert response.state.preferences.selected_vehicle_id == "honda-s2000-2004"
     assert "2004 Honda S2000" in response.message
 
@@ -143,7 +143,7 @@ def test_live_facade_routes_bare_model_family_through_grounded_trace(monkeypatch
 
     response = agent.respond("live-bare-family", "bmw z4")
 
-    assert [call.name for call in response.trace] == ["search_inventory", "get_vehicle"]
+    assert [call.name for call in response.trace] == ["list_inventory", "get_vehicle"]
     assert response.state.preferences.selected_vehicle_id == "bmw-z4-m-2008"
     assert "2008 BMW Z4 M Coupe" in response.message
 
@@ -158,7 +158,7 @@ def test_live_facade_routes_unique_bare_model_token_through_grounded_trace(monke
 
     response = agent.respond("live-bare-token", "911")
 
-    assert [call.name for call in response.trace] == ["search_inventory", "get_vehicle"]
+    assert [call.name for call in response.trace] == ["list_inventory", "get_vehicle"]
     assert response.state.preferences.selected_vehicle_id == "porsche-911-1999"
     assert "1999 Porsche 911 Carrera" in response.message
 
@@ -173,7 +173,7 @@ def test_live_facade_completes_make_browse_with_inventory_trace(monkeypatch) -> 
 
     response = agent.respond("live-browse-make", "Show me classic BMWs")
 
-    assert response.trace[0].name == "search_inventory"
+    assert response.trace[0].name == "list_inventory"
     assert response.trace[0].arguments == {"filters": {"query": "BMW"}}
     assert "2008 BMW Z4 M Coupe" in response.message
 
@@ -184,7 +184,7 @@ def test_live_facade_uses_validated_intent_parser_for_indirect_inventory_request
             assert message == "I’m hunting for a classic Beemer for weekends."
             assert "BMW" in known_makes
             return IntentEnvelope(
-                intent="search_inventory",
+                intent="list_inventory",
                 confidence=0.94,
                 filters=InventoryIntentFilters(query="BMW", intended_use="weekend"),
             )
@@ -198,7 +198,7 @@ def test_live_facade_uses_validated_intent_parser_for_indirect_inventory_request
 
     response = agent.respond("live-intent-search", "I’m hunting for a classic Beemer for weekends.")
 
-    assert [call.name for call in response.trace[:2]] == ["parse_intent", "search_inventory"]
+    assert [call.name for call in response.trace[:2]] == ["parse_intent", "list_inventory"]
     assert response.trace[0].result["confidence"] == 0.94
     assert response.trace[1].arguments == {"filters": {"intended_use": "weekend", "query": "BMW"}}
     assert "2008 BMW Z4 M Coupe" in response.message
@@ -225,7 +225,7 @@ def test_live_facade_routes_test_drive_booking_through_traceable_safety_path(mon
     )
 
     assert response.state.stage == "scheduled"
-    assert [call.name for call in response.trace] == ["schedule_test_drive"]
+    assert [call.name for call in response.trace] == ["create_test_drive"]
     assert response.trace[0].result["ok"] is True
 
 
@@ -245,7 +245,7 @@ def test_live_facade_routes_typo_service_history_through_traceable_path(monkeypa
 
     response = agent.respond("live-service-typo", "maintanece records")
 
-    assert [call.name for call in response.trace] == ["retrieve_service_history"]
+    assert [call.name for call in response.trace] == ["get_service_history"]
     assert response.trace[0].result["vehicle_id"] == "honda-s2000-2004"
     assert "synthetic demo records" in response.message
 
@@ -320,7 +320,7 @@ def test_live_facade_synthesizes_contextual_magazine_reviews_with_model(monkeypa
 
     response = agent.respond("live-review", "Summarize magazine reviews of the car.")
 
-    assert [call.name for call in response.trace] == ["retrieve_magazine_reviews"]
+    assert [call.name for call in response.trace] == ["get_magazine_reviews"]
     assert "Car and Driver" in response.message
     assert "MotorTrend" in response.message
     assert response.message.count("https://") >= 2
@@ -378,7 +378,7 @@ def test_live_explicit_vehicle_wins_over_stale_state_for_review_followup(monkeyp
 
     assert first.state.preferences.selected_vehicle_id == "mazda-rx7-1992"
     assert second.state.preferences.selected_vehicle_id == "mazda-rx7-1992"
-    assert [call.name for call in second.trace] == ["retrieve_magazine_reviews"]
+    assert [call.name for call in second.trace] == ["get_magazine_reviews"]
 
 
 def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) -> None:
@@ -438,7 +438,7 @@ def test_live_turn_receives_bounded_history_and_grounded_context(monkeypatch) ->
             tool_calls=(
                 [
                     {
-                        "name": "search_inventory",
+                        "name": "list_inventory",
                         "arguments": {"filters": {"intended_use": "weekend"}},
                         "result": {"vehicles": [{"id": "honda-s2000-2004"}]},
                     }
@@ -459,7 +459,7 @@ def test_live_turn_receives_bounded_history_and_grounded_context(monkeypatch) ->
             assert recent[0]["user"] == "Earlier question 1"
             assert "Earlier question 0" in inputs["conversation_summary"]
             assert active_vehicle["id"] == "honda-s2000-2004"
-            assert grounding["name"] == "search_inventory"
+            assert grounding["name"] == "list_inventory"
             return type(
                 "FakeCrewOutput",
                 (),

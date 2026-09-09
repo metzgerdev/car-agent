@@ -17,10 +17,10 @@ def test_agent_qualifies_then_searches_with_trace() -> None:
     assert second.state.preferences.intended_use == "weekend"
     assert second.state.preferences.driving_style == "spirited"
     assert [call.name for call in second.trace] == [
-        "search_inventory",
+        "list_inventory",
         "get_vehicle",
         "get_vehicle",
-        "retrieve_vehicle_facts",
+        "get_vehicle_facts",
     ]
     assert second.state.last_vehicle_ids
     assert "I found" in second.message
@@ -28,7 +28,7 @@ def test_agent_qualifies_then_searches_with_trace() -> None:
 
 def test_inventory_search_respects_budget() -> None:
     tools = SalesTools()
-    result = tools.search_inventory({"budget_max": 40_000, "intended_use": "weekend"})
+    result = tools.list_inventory({"budget_max": 40_000, "intended_use": "weekend"})
 
     assert result["count"] == 3
     assert all(vehicle["price"] <= 40_000 for vehicle in result["vehicles"])
@@ -39,7 +39,7 @@ def test_compare_uses_last_recommendations() -> None:
     agent.respond("compare", "I have $80k for a daily car and like spirited driving.")
     response = agent.respond("compare", "Can you compare those two?")
 
-    assert [call.name for call in response.trace] == ["compare_vehicles"]
+    assert [call.name for call in response.trace] == ["get_vehicle_comparison"]
     assert "Here’s the short version" in response.message
 
 
@@ -48,7 +48,7 @@ def test_facts_are_retrieved_for_a_mentioned_vehicle() -> None:
     agent.respond("facts", "I have $40k for a weekend car and want analog driving.")
     response = agent.respond("facts", "What should I inspect on the Honda S2000?")
 
-    assert [call.name for call in response.trace] == ["retrieve_vehicle_facts"]
+    assert [call.name for call in response.trace] == ["get_vehicle_facts"]
     assert "soft top" in response.message
     assert response.state.preferences.selected_vehicle_id == "honda-s2000-2004"
 
@@ -58,7 +58,7 @@ def test_service_history_is_a_separate_grounded_tool_call() -> None:
 
     response = agent.respond("service-history", "What service history does the Honda S2000 have?")
 
-    assert [call.name for call in response.trace] == ["retrieve_service_history"]
+    assert [call.name for call in response.trace] == ["get_service_history"]
     result = response.trace[0].result
     assert result["vehicle_id"] == "honda-s2000-2004"
     assert result["record_count"] == 3
@@ -82,7 +82,7 @@ def test_schedule_request_collects_details_then_creates_request() -> None:
         "My name is Alex Rivera, my email is alex@example.com, and Saturday at 10am works.",
     )
     assert booked.state.stage == "scheduled"
-    assert [call.name for call in booked.trace] == ["schedule_test_drive"]
+    assert [call.name for call in booked.trace] == ["create_test_drive"]
     assert "td-0001" in booked.message
 
 

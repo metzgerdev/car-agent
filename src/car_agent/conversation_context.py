@@ -16,13 +16,13 @@ SUMMARY_CHAR_LIMIT = 1_600
 MESSAGE_CHAR_LIMIT = 900
 GROUNDING_CHAR_LIMIT = 3_500
 GROUNDING_TOOLS = {
-    "search_inventory",
+    "list_inventory",
     "lookup_vehicle_exact",
     "get_vehicle",
-    "retrieve_vehicle_facts",
-    "retrieve_service_history",
-    "retrieve_magazine_reviews",
-    "compare_vehicles",
+    "get_vehicle_facts",
+    "get_service_history",
+    "get_magazine_reviews",
+    "get_vehicle_comparison",
 }
 
 

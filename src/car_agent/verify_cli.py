@@ -71,10 +71,10 @@ class Phase1Verifier:
             self.checks["P1-T1"].passed = True
 
         expected_trace = [
-            "search_inventory",
+            "list_inventory",
             "get_vehicle",
             "get_vehicle",
-            "retrieve_vehicle_facts",
+            "get_vehicle_facts",
         ]
         if response.state.stage == "recommending" and trace_names == expected_trace:
             self.checks["P1-T2"].passed = True
@@ -82,14 +82,14 @@ class Phase1Verifier:
         if self._is_fact_question(message):
             self.checks["P1-T3"].passed = self._has_grounded_facts(response)
 
-        schedule_calls = [call for call in response.trace if call.name == "schedule_test_drive"]
+        schedule_calls = [call for call in response.trace if call.name == "create_test_drive"]
         if schedule_calls:
             result = schedule_calls[-1].result
             self.checks["P1-T4"].passed = bool(
                 result.get("ok") and len(self.agent.tools.scheduler.requests) == 1
             )
 
-        search_calls = [call for call in response.trace if call.name == "search_inventory"]
+        search_calls = [call for call in response.trace if call.name == "list_inventory"]
         if search_calls and response.state.preferences.budget_max is not None:
             vehicles = search_calls[-1].result.get("vehicles", [])
             self.checks["P1-T5"].passed = all(
@@ -103,7 +103,7 @@ class Phase1Verifier:
 
     @staticmethod
     def _has_grounded_facts(response: AgentResponse) -> bool:
-        fact_calls = [call for call in response.trace if call.name == "retrieve_vehicle_facts"]
+        fact_calls = [call for call in response.trace if call.name == "get_vehicle_facts"]
         if not fact_calls:
             return False
         for call in fact_calls:
@@ -130,17 +130,17 @@ def _print_trace(trace: list[ToolCall]) -> None:
         print("  (no tool calls)")
         return
     for call in trace:
-        if call.name == "search_inventory":
+        if call.name == "list_inventory":
             detail = f"{call.result.get('count', 0)} vehicle(s)"
         elif call.name == "get_vehicle":
             detail = call.result.get("vehicle", {}).get("name", "not found")
-        elif call.name == "retrieve_vehicle_facts":
+        elif call.name == "get_vehicle_facts":
             detail = f"{call.result.get('source_count', 0)} source(s)"
-        elif call.name == "retrieve_service_history":
+        elif call.name == "get_service_history":
             detail = f"{call.result.get('record_count', 0)} service record(s)"
-        elif call.name == "compare_vehicles":
+        elif call.name == "get_vehicle_comparison":
             detail = f"{len(call.result.get('vehicles', []))} vehicle(s)"
-        elif call.name == "schedule_test_drive":
+        elif call.name == "create_test_drive":
             detail = "request created" if call.result.get("ok") else "rejected"
         else:
             detail = "completed"

@@ -159,7 +159,7 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert "text/event-stream" in response.headers["content-type"]
     assert trace_events
     assert trace_events[0]["status"] == "running"
-    assert trace_events[0]["name"] == "search_inventory"
+    assert trace_events[0]["name"] == "list_inventory"
     assert trace_events[0]["phase"] == "retrieve"
     assert trace_events[0]["purpose"]
     assert trace_events[0]["outcome"] == "Running…"
@@ -172,10 +172,10 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert all(payload["duration_ms"] >= 0 for payload in completed)
     assert all(payload["call"]["duration_ms"] >= 0 for payload in completed)
     assert [payload["call"]["name"] for payload in completed] == [
-        "search_inventory",
+        "list_inventory",
         "get_vehicle",
         "get_vehicle",
-        "retrieve_vehicle_facts",
+        "get_vehicle_facts",
     ]
     assert len(response_events) == 1
     assert len(response_events[0]["trace"]) == 4
@@ -215,8 +215,8 @@ def test_p4_t10_bare_known_model_streams_grounding_trace() -> None:
     response_payload = next(payload for name, payload in events if name == "response")
 
     assert response.status_code == 200
-    assert [payload["name"] for payload in completed] == ["search_inventory", "get_vehicle"]
-    assert [call["name"] for call in response_payload["trace"]] == ["search_inventory", "get_vehicle"]
+    assert [payload["name"] for payload in completed] == ["list_inventory", "get_vehicle"]
+    assert [call["name"] for call in response_payload["trace"]] == ["list_inventory", "get_vehicle"]
 
 
 def test_p4_t17_trace_metadata_explains_tool_purpose_and_outcome() -> None:
@@ -275,7 +275,7 @@ def test_p4_t16_scheduled_confirmation_includes_schedule_tool_trace() -> None:
 
     assert response.status_code == 200
     assert [payload["name"] for payload in trace_events if payload["status"] == "complete"] == [
-        "schedule_test_drive",
+        "create_test_drive",
     ]
     completed = next(payload for payload in trace_events if payload["status"] == "complete")
     assert completed["phase"] == "act"
@@ -283,7 +283,7 @@ def test_p4_t16_scheduled_confirmation_includes_schedule_tool_trace() -> None:
     assert completed["outcome"] == "Test-drive request scheduled successfully."
     assert completed["duration_ms"] >= 0
     assert response_payload["state"]["stage"] == "scheduled"
-    assert [call["name"] for call in response_payload["trace"]] == ["schedule_test_drive"]
+    assert [call["name"] for call in response_payload["trace"]] == ["create_test_drive"]
     assert "Request td-0001" in response_payload["message"]
 
 
@@ -446,7 +446,7 @@ def test_p4_t8_magazine_reviews_are_typed_and_matched_to_inventory() -> None:
             ConversationState(conversation_id),
             [
                 ToolCall(
-                    name="search_inventory",
+                    name="list_inventory",
                     arguments={"filters": {"query": "BMW M3"}},
                     result={"count": 1, "vehicles": [vehicle.to_dict()]},
                 )
@@ -486,9 +486,9 @@ def test_p4_t2_invalid_schedule_never_creates_a_request() -> None:
 
     assert invalid_email.status_code == 200
     assert invalid_email.json()["state"]["stage"] == "scheduling"
-    assert not any(call["name"] == "schedule_test_drive" for call in invalid_email.json()["trace"])
+    assert not any(call["name"] == "create_test_drive" for call in invalid_email.json()["trace"])
     assert unknown_vehicle.status_code == 200
-    assert not any(call["name"] == "schedule_test_drive" for call in unknown_vehicle.json()["trace"])
+    assert not any(call["name"] == "create_test_drive" for call in unknown_vehicle.json()["trace"])
     assert len(agent.tools.scheduler.requests) == 0
 
 

@@ -148,9 +148,9 @@ class DeterministicRouter:
                 state.preferences.selected_vehicle_id = vehicle.id
                 facts = self._call(
                     trace,
-                    "retrieve_vehicle_facts",
+                    "get_vehicle_facts",
                     {"vehicle_id": vehicle.id},
-                    lambda: self.tools.retrieve_vehicle_facts(vehicle.id),
+                    lambda: self.tools.get_vehicle_facts(vehicle.id),
                 )
                 state.stage = "recommending"
                 return AgentResponse(self._facts_message(vehicle, facts), state, trace)
@@ -215,9 +215,9 @@ class DeterministicRouter:
         filters = {"query": f"{vehicle.make} {vehicle.model}"}
         search = self._call(
             trace,
-            "search_inventory",
+            "list_inventory",
             {"filters": filters},
-            lambda: self.tools.search_inventory(filters),
+            lambda: self.tools.list_inventory(filters),
         )
         matches = search.get("vehicles", [])
         if not matches:
@@ -228,7 +228,7 @@ class DeterministicRouter:
                 trace,
             )
 
-        # `search_inventory` intentionally returns a ranked slice, so it may
+        # `list_inventory` intentionally returns a ranked slice, so it may
         # include nearby alternatives after the direct model hit. The
         # identity detected from the shopper's text remains authoritative.
         state.last_vehicle_ids = [vehicle.id]
@@ -274,9 +274,9 @@ class DeterministicRouter:
             }
             search = self._call(
                 trace,
-                "search_inventory",
+                "list_inventory",
                 {"filters": filters},
-                lambda: self.tools.search_inventory(filters),
+                lambda: self.tools.list_inventory(filters),
             )
             candidate_ids = [
                 vehicle.get("id")
@@ -381,9 +381,9 @@ class DeterministicRouter:
         }
         search = self._call(
             trace,
-            "search_inventory",
+            "list_inventory",
             {"filters": filters},
-            lambda: self.tools.search_inventory(filters),
+            lambda: self.tools.list_inventory(filters),
         )
         alternatives = search.get("vehicles", [])
         state.last_vehicle_ids = [vehicle["id"] for vehicle in alternatives]
@@ -437,9 +437,9 @@ class DeterministicRouter:
             filters["query"] = query
         search = self._call(
             trace,
-            "search_inventory",
+            "list_inventory",
             {"filters": filters},
-            lambda: self.tools.search_inventory(filters),
+            lambda: self.tools.list_inventory(filters),
         )
         vehicles = search["vehicles"]
         if not vehicles:
@@ -469,9 +469,9 @@ class DeterministicRouter:
         top_vehicle = enriched_vehicles[0]
         facts = self._call(
             trace,
-            "retrieve_vehicle_facts",
+            "get_vehicle_facts",
             {"vehicle_id": top_vehicle["id"]},
-            lambda: self.tools.retrieve_vehicle_facts(top_vehicle["id"]),
+            lambda: self.tools.get_vehicle_facts(top_vehicle["id"]),
         )
         return AgentResponse(self._recommendation_message(enriched_vehicles, facts), state, trace)
 
@@ -531,14 +531,14 @@ class DeterministicRouter:
 
         result = self._call(
             trace,
-            "schedule_test_drive",
+            "create_test_drive",
             {
                 "vehicle_id": vehicle.id,
                 "name": state.preferences.name,
                 "email": state.preferences.email,
                 "preferred_time": state.preferences.preferred_time,
             },
-            lambda: self.tools.schedule_test_drive(
+            lambda: self.tools.create_test_drive(
                 vehicle_id=vehicle.id,
                 name=state.preferences.name or "",
                 email=state.preferences.email or "",
@@ -582,9 +582,9 @@ class DeterministicRouter:
             )
         result = self._call(
             trace,
-            "compare_vehicles",
+            "get_vehicle_comparison",
             {"vehicle_ids": [vehicle.id for vehicle in vehicles]},
-            lambda: self.tools.compare_vehicles([vehicle.id for vehicle in vehicles]),
+            lambda: self.tools.get_vehicle_comparison([vehicle.id for vehicle in vehicles]),
         )
         state.stage = "recommending"
         state.last_vehicle_ids = [vehicle.id for vehicle in vehicles]
@@ -616,9 +616,9 @@ class DeterministicRouter:
         state.stage = "recommending"
         facts = self._call(
             trace,
-            "retrieve_vehicle_facts",
+            "get_vehicle_facts",
             {"vehicle_id": vehicle.id, "topic": "ownership"},
-            lambda: self.tools.retrieve_vehicle_facts(vehicle.id, "ownership"),
+            lambda: self.tools.get_vehicle_facts(vehicle.id, "ownership"),
         )
         fact_text = facts["facts"][0]["fact"] if facts.get("facts") else None
         lowered = message.lower()
@@ -651,9 +651,9 @@ class DeterministicRouter:
         state.stage = "recommending"
         result = self._call(
             trace,
-            "retrieve_magazine_reviews",
+            "get_magazine_reviews",
             {"vehicle_id": vehicle.id},
-            lambda: self.tools.retrieve_magazine_reviews(vehicle.id),
+            lambda: self.tools.get_magazine_reviews(vehicle.id),
         )
         reviews = result.get("reviews", [])
         if not reviews:
@@ -684,9 +684,9 @@ class DeterministicRouter:
         state.stage = "recommending"
         result = self._call(
             trace,
-            "retrieve_service_history",
+            "get_service_history",
             {"vehicle_id": vehicle.id},
-            lambda: self.tools.retrieve_service_history(vehicle.id),
+            lambda: self.tools.get_service_history(vehicle.id),
         )
         records = result.get("service_history", [])
         if not records:

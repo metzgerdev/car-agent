@@ -22,10 +22,10 @@ def test_phase3_progressive_qualification_preserves_state_and_limits_questions()
 def test_phase3_budget_is_hard_and_body_style_is_a_soft_ranking_preference() -> None:
     tools = SalesTools()
 
-    convertible = tools.search_inventory(
+    convertible = tools.list_inventory(
         {"budget_max": 40_000, "intended_use": "weekend", "driving_style": "spirited", "body_style": "convertible"}
     )
-    coupe = tools.search_inventory(
+    coupe = tools.list_inventory(
         {"budget_max": 40_000, "intended_use": "weekend", "driving_style": "spirited", "body_style": "coupe"}
     )
 
@@ -66,7 +66,7 @@ def test_phase3_partial_model_identity_returns_family_match_to_shopper() -> None
 def test_phase3_unavailable_exact_request_searches_only_after_lookup() -> None:
     response = DeterministicRouter().respond("phase3-exact-availability", "Do you have a 2011 BMW M3 in inventory?")
 
-    assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "search_inventory"]
+    assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "list_inventory"]
     assert response.trace[0].result["exact_match"] is False
     assert response.trace[0].result["status"] == "not_found"
     assert "2011 BMW M3" in response.message
@@ -76,7 +76,7 @@ def test_phase3_unavailable_exact_request_searches_only_after_lookup() -> None:
 def test_phase3_bare_vehicle_identity_is_an_exact_availability_request() -> None:
     response = DeterministicRouter().respond("phase3-bare-exact", "2001 bmw m3")
 
-    assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "search_inventory"]
+    assert [call.name for call in response.trace] == ["lookup_vehicle_exact", "list_inventory"]
     assert response.trace[0].result["status"] == "not_found"
     assert "2001 bmw m3" in response.message.lower()
 
@@ -84,7 +84,7 @@ def test_phase3_bare_vehicle_identity_is_an_exact_availability_request() -> None
 def test_phase3_bare_model_family_reference_checks_inventory() -> None:
     response = DeterministicRouter().respond("phase3-bare-family", "bmw z4")
 
-    assert [call.name for call in response.trace] == ["search_inventory", "get_vehicle"]
+    assert [call.name for call in response.trace] == ["list_inventory", "get_vehicle"]
     assert response.state.preferences.selected_vehicle_id == "bmw-z4-m-2008"
     assert "2008 BMW Z4 M Coupe" in response.message
 
@@ -92,7 +92,7 @@ def test_phase3_bare_model_family_reference_checks_inventory() -> None:
 def test_phase3_unique_bare_model_token_checks_inventory() -> None:
     response = DeterministicRouter().respond("phase3-bare-token", "911")
 
-    assert [call.name for call in response.trace] == ["search_inventory", "get_vehicle"]
+    assert [call.name for call in response.trace] == ["list_inventory", "get_vehicle"]
     assert response.state.preferences.selected_vehicle_id == "porsche-911-1999"
     assert "1999 Porsche 911 Carrera" in response.message
 
@@ -100,7 +100,7 @@ def test_phase3_unique_bare_model_token_checks_inventory() -> None:
 def test_phase3_explicit_make_browse_returns_grounded_inventory_options() -> None:
     response = DeterministicRouter().respond("phase3-browse-make", "Show me classic BMWs")
 
-    assert response.trace[0].name == "search_inventory"
+    assert response.trace[0].name == "list_inventory"
     assert response.trace[0].arguments == {"filters": {"query": "BMW"}}
     assert "2008 BMW Z4 M Coupe" in response.message
     assert "1998 BMW E36 328is" in response.message
@@ -110,7 +110,7 @@ def test_phase3_explicit_make_browse_returns_grounded_inventory_options() -> Non
 def test_phase3_category_browse_returns_a_search_trace_before_qualification() -> None:
     response = DeterministicRouter().respond("phase3-browse-category", "Find a weekend sports car")
 
-    assert response.trace[0].name == "search_inventory"
+    assert response.trace[0].name == "list_inventory"
     assert response.trace[0].arguments == {"filters": {"intended_use": "weekend"}}
     assert "I found a few promising matches" in response.message
 
@@ -153,7 +153,7 @@ def test_phase3_agent_summarizes_reviews_for_the_last_vehicle() -> None:
 
     response = agent.respond("phase3-reviews", "Summarize magazine reviews of the car.")
 
-    assert [call.name for call in response.trace] == ["retrieve_magazine_reviews"]
+    assert [call.name for call in response.trace] == ["get_magazine_reviews"]
     assert "Car and Driver" in response.message
     assert "MotorTrend" in response.message
     assert "Read it: [" in response.message
@@ -166,7 +166,7 @@ def test_phase3_agent_treats_press_reviews_as_a_magazine_review_request() -> Non
 
     response = agent.respond("phase3-press-reviews", "What are the press reviews of the car?")
 
-    assert [call.name for call in response.trace] == ["retrieve_magazine_reviews"]
+    assert [call.name for call in response.trace] == ["get_magazine_reviews"]
     assert "MotorTrend" in response.message
     assert "condition report" in response.message
 
@@ -177,7 +177,7 @@ def test_phase3_agent_retrieves_service_history_for_the_explicit_vehicle() -> No
         "Show me the maintenance records for the 2004 Honda S2000.",
     )
 
-    assert [call.name for call in response.trace] == ["retrieve_service_history"]
+    assert [call.name for call in response.trace] == ["get_service_history"]
     assert "2004 Honda S2000" in response.message
     assert "synthetic demo records" in response.message
     assert response.trace[0].result["service_history"]
@@ -193,7 +193,7 @@ def test_phase3_agent_tolerates_a_service_history_typo() -> None:
 
     response = agent.respond("phase3-service-typo", "maintanece records")
 
-    assert [call.name for call in response.trace] == ["retrieve_service_history"]
+    assert [call.name for call in response.trace] == ["get_service_history"]
     assert "2004 Honda S2000" in response.message
 
 
@@ -231,7 +231,7 @@ def test_phase3_objection_uses_a_sourced_tradeoff() -> None:
         "I’m worried about maintenance on the Honda S2000.",
     )
 
-    assert [call.name for call in response.trace] == ["retrieve_vehicle_facts"]
+    assert [call.name for call in response.trace] == ["get_vehicle_facts"]
     assert "trade-off" in response.message
     assert "soft top" in response.message
     assert "inspection" in response.message

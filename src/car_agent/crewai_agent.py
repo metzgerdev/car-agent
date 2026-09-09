@@ -36,7 +36,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 ResponseObserver = Callable[[str], None]
 
 
-class SearchInventoryInput(BaseModel):
+class ListInventoryInput(BaseModel):
     filters: dict[str, Any] = Field(default_factory=dict, description="Hard and soft shopper filters")
 
 
@@ -48,24 +48,24 @@ class GetVehicleInput(BaseModel):
     vehicle_id: str = Field(description="Exact inventory vehicle ID")
 
 
-class RetrieveVehicleFactsInput(BaseModel):
+class GetVehicleFactsInput(BaseModel):
     vehicle_id: str = Field(description="Exact inventory vehicle ID")
     topic: str | None = Field(default=None, description="Optional fact topic such as maintenance")
 
 
-class RetrieveServiceHistoryInput(BaseModel):
+class GetServiceHistoryInput(BaseModel):
     vehicle_id: str = Field(description="Exact inventory vehicle ID")
 
 
-class RetrieveMagazineReviewsInput(BaseModel):
+class GetMagazineReviewsInput(BaseModel):
     vehicle_id: str = Field(description="Exact inventory vehicle ID")
 
 
-class CompareVehiclesInput(BaseModel):
+class GetVehicleComparisonInput(BaseModel):
     vehicle_ids: list[str] = Field(description="Exactly two inventory vehicle IDs", min_length=2, max_length=2)
 
 
-class ScheduleTestDriveInput(BaseModel):
+class CreateTestDriveInput(BaseModel):
     vehicle_id: str = Field(description="Exact inventory vehicle ID")
     name: str = Field(description="Shopper's full name")
     email: str = Field(description="Shopper's email address")
@@ -130,16 +130,16 @@ class _CrewSalesTool(BaseTool):
         return json.dumps(result)
 
 
-class SearchInventoryTool(_CrewSalesTool):
-    name: str = "search_inventory"
-    description: str = "Search the current used classic sports-car inventory using shopper filters."
-    args_schema: type[BaseModel] = SearchInventoryInput
+class ListInventoryTool(_CrewSalesTool):
+    name: str = "list_inventory"
+    description: str = "List ranked current used classic sports-car inventory records matching filters."
+    args_schema: type[BaseModel] = ListInventoryInput
 
     def _run(self, filters: dict[str, Any]) -> str:
         return self._run_backend(
-            "search_inventory",
+            "list_inventory",
             {"filters": filters},
-            lambda: self._backend.search_inventory(filters),
+            lambda: self._backend.list_inventory(filters),
         )
 
 
@@ -170,63 +170,63 @@ class GetVehicleTool(_CrewSalesTool):
         )
 
 
-class RetrieveVehicleFactsTool(_CrewSalesTool):
-    name: str = "retrieve_vehicle_facts"
-    description: str = "Retrieve sourced ownership and vehicle facts for one exact vehicle ID."
-    args_schema: type[BaseModel] = RetrieveVehicleFactsInput
+class GetVehicleFactsTool(_CrewSalesTool):
+    name: str = "get_vehicle_facts"
+    description: str = "Get sourced ownership and vehicle facts for one exact vehicle ID."
+    args_schema: type[BaseModel] = GetVehicleFactsInput
 
     def _run(self, vehicle_id: str, topic: str | None = None) -> str:
         arguments = {"vehicle_id": vehicle_id, "topic": topic}
         return self._run_backend(
-            "retrieve_vehicle_facts",
+            "get_vehicle_facts",
             arguments,
-            lambda: self._backend.retrieve_vehicle_facts(vehicle_id, topic),
+            lambda: self._backend.get_vehicle_facts(vehicle_id, topic),
         )
 
 
-class RetrieveServiceHistoryTool(_CrewSalesTool):
-    name: str = "retrieve_service_history"
-    description: str = "Retrieve the listing's service records and clearly labeled record provenance for one exact inventory vehicle."
-    args_schema: type[BaseModel] = RetrieveServiceHistoryInput
+class GetServiceHistoryTool(_CrewSalesTool):
+    name: str = "get_service_history"
+    description: str = "Get listing-level service records and provenance for one exact inventory vehicle."
+    args_schema: type[BaseModel] = GetServiceHistoryInput
 
     def _run(self, vehicle_id: str) -> str:
         return self._run_backend(
-            "retrieve_service_history",
+            "get_service_history",
             {"vehicle_id": vehicle_id},
-            lambda: self._backend.retrieve_service_history(vehicle_id),
+            lambda: self._backend.get_service_history(vehicle_id),
         )
 
 
-class RetrieveMagazineReviewsTool(_CrewSalesTool):
-    name: str = "retrieve_magazine_reviews"
-    description: str = "Retrieve curated Car and Driver or MotorTrend summaries and links for one exact inventory vehicle."
-    args_schema: type[BaseModel] = RetrieveMagazineReviewsInput
+class GetMagazineReviewsTool(_CrewSalesTool):
+    name: str = "get_magazine_reviews"
+    description: str = "Get curated Car and Driver or MotorTrend summaries and links for one exact inventory vehicle."
+    args_schema: type[BaseModel] = GetMagazineReviewsInput
 
     def _run(self, vehicle_id: str) -> str:
         return self._run_backend(
-            "retrieve_magazine_reviews",
+            "get_magazine_reviews",
             {"vehicle_id": vehicle_id},
-            lambda: self._backend.retrieve_magazine_reviews(vehicle_id),
+            lambda: self._backend.get_magazine_reviews(vehicle_id),
         )
 
 
-class CompareVehiclesTool(_CrewSalesTool):
-    name: str = "compare_vehicles"
-    description: str = "Compare exactly two inventory vehicles by their exact IDs."
-    args_schema: type[BaseModel] = CompareVehiclesInput
+class GetVehicleComparisonTool(_CrewSalesTool):
+    name: str = "get_vehicle_comparison"
+    description: str = "Get a comparison of exactly two inventory vehicles by exact IDs."
+    args_schema: type[BaseModel] = GetVehicleComparisonInput
 
     def _run(self, vehicle_ids: list[str]) -> str:
         return self._run_backend(
-            "compare_vehicles",
+            "get_vehicle_comparison",
             {"vehicle_ids": vehicle_ids},
-            lambda: self._backend.compare_vehicles(vehicle_ids),
+            lambda: self._backend.get_vehicle_comparison(vehicle_ids),
         )
 
 
-class ScheduleTestDriveTool(_CrewSalesTool):
-    name: str = "schedule_test_drive"
-    description: str = "Validate shopper contact details and create a mock test-drive request."
-    args_schema: type[BaseModel] = ScheduleTestDriveInput
+class CreateTestDriveTool(_CrewSalesTool):
+    name: str = "create_test_drive"
+    description: str = "Create a mock test-drive request after validating shopper contact details."
+    args_schema: type[BaseModel] = CreateTestDriveInput
 
     def _run(self, vehicle_id: str, name: str, email: str, preferred_time: str) -> str:
         arguments = {
@@ -236,9 +236,9 @@ class ScheduleTestDriveTool(_CrewSalesTool):
             "preferred_time": preferred_time,
         }
         return self._run_backend(
-            "schedule_test_drive",
+            "create_test_drive",
             arguments,
-            lambda: self._backend.schedule_test_drive(
+            lambda: self._backend.create_test_drive(
                 vehicle_id=vehicle_id,
                 name=name,
                 email=email,
@@ -359,7 +359,7 @@ class CrewAISalesAgent:
             )
         # Scheduling is a side effect, so it must go through the deterministic
         # validation path. This prevents the live model from claiming that a
-        # drive was booked without actually calling schedule_test_drive.
+        # drive was booked without actually calling create_test_drive.
         previous_state = self.sessions.get(conversation_id)
         if (
             self.router._is_schedule_request(user_message)
@@ -408,7 +408,7 @@ class CrewAISalesAgent:
         parsed_intent = self._parse_intent(user_message, intent_trace, trace_observer)
         if (
             parsed_intent
-            and parsed_intent.intent == "search_inventory"
+            and parsed_intent.intent == "list_inventory"
             and parsed_intent.confidence >= LLMIntentParser.MIN_CONFIDENCE
         ):
             return self._respond_to_intent(
@@ -539,14 +539,14 @@ class CrewAISalesAgent:
 
         trace = trace if trace is not None else []
         crew_tools = [] if review_only else [
-            SearchInventoryTool(self.tools, trace, self.profiler, trace_observer),
+            ListInventoryTool(self.tools, trace, self.profiler, trace_observer),
             LookupVehicleExactTool(self.tools, trace, self.profiler, trace_observer),
             GetVehicleTool(self.tools, trace, self.profiler, trace_observer),
-            RetrieveVehicleFactsTool(self.tools, trace, self.profiler, trace_observer),
-            RetrieveServiceHistoryTool(self.tools, trace, self.profiler, trace_observer),
-            RetrieveMagazineReviewsTool(self.tools, trace, self.profiler, trace_observer),
-            CompareVehiclesTool(self.tools, trace, self.profiler, trace_observer),
-            ScheduleTestDriveTool(self.tools, trace, self.profiler, trace_observer),
+            GetVehicleFactsTool(self.tools, trace, self.profiler, trace_observer),
+            GetServiceHistoryTool(self.tools, trace, self.profiler, trace_observer),
+            GetMagazineReviewsTool(self.tools, trace, self.profiler, trace_observer),
+            GetVehicleComparisonTool(self.tools, trace, self.profiler, trace_observer),
+            CreateTestDriveTool(self.tools, trace, self.profiler, trace_observer),
         ]
         review_instructions = (
             "You are in review-synthesis mode. The supplied review context is the complete source "
@@ -555,7 +555,7 @@ class CrewAISalesAgent:
             "using the supplied URL exactly, and state that the editorial material is not a condition "
             "report for the specific listing. Never say you lack access when review context is supplied."
             if review_only
-            else "For a magazine-review request, call retrieve_magazine_reviews and include the short "
+            else "For a magazine-review request, call get_magazine_reviews and include the short "
             "sourced summaries and links; do not claim review access is unavailable when the tool returns reviews."
         )
         salesperson = Agent(
@@ -584,12 +584,12 @@ class CrewAISalesAgent:
                 "before claiming availability. Treat status=matched as an exact match and "
                 "status=family_match as a unique same-year model-family match; clearly name the "
                 "full trim in the latter case. Treat status=not_found as absence from the current "
-                "snapshot and use search_inventory only to find grounded alternatives. "
+                "snapshot and use list_inventory only to find grounded alternatives. "
                 "Never turn a fuzzy search result into an exact availability claim. "
                 "For service-history, service-record, or maintenance-record requests, call "
-                "retrieve_service_history for the explicitly selected vehicle; do not substitute "
+                "get_service_history for the explicitly selected vehicle; do not substitute "
                 "general ownership facts for listing history. Clearly label synthetic demo records. "
-                "For any test-drive scheduling request, use schedule_test_drive when all required "
+                "For any test-drive scheduling request, use create_test_drive when all required "
                 "vehicle and contact details are present. Never claim that a test drive is scheduled "
                 "unless that tool returned a successful request; otherwise ask for the missing details. "
                 f"{review_instructions} "
@@ -699,7 +699,7 @@ class CrewAISalesAgent:
             user_message,
             trace_observer=trace_observer,
         )
-        if not prepared.trace or prepared.trace[-1].name != "retrieve_magazine_reviews":
+        if not prepared.trace or prepared.trace[-1].name != "get_magazine_reviews":
             if response_observer:
                 _emit_response_chunks(prepared.message, response_observer)
             return prepared

@@ -28,5 +28,5 @@ def test_agent_profile_captures_input_flows_and_domain_tools() -> None:
     assert "agent.preference_parsing" in names
     assert "agent.inventory_mention_detection" in names
     assert "agent.recommendation_flow" in names
-    assert "tool.search_inventory" in names
-    assert "tool.retrieve_vehicle_facts" in names
+    assert "tool.list_inventory" in names
+    assert "tool.get_vehicle_facts" in names

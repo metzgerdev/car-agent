@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from .profiling import TimingRecorder
 
 
-IntentName = Literal["search_inventory", "general_conversation"]
+IntentName = Literal["list_inventory", "general_conversation"]
 IntendedUse = Literal["daily", "weekend", "track", "grand-tourer"]
 BodyStyle = Literal["coupe", "convertible"]
 DrivingStyle = Literal["relaxed", "spirited", "analog"]
@@ -70,7 +70,7 @@ class LLMIntentParser:
                         "role": "system",
                         "content": (
                             "Classify the shopper request for a classic-car inventory assistant. "
-                            "Return only the requested structured schema. Use search_inventory only "
+                            "Return only the requested structured schema. Use list_inventory only "
                             "when the shopper is asking to find, browse, see, or explore available "
                             "cars or options, including indirect wording. Extract only explicit "
                             "inventory preferences. Put a canonical make or model in filters.query "

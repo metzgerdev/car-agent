@@ -14,7 +14,7 @@ _TRACE_DESCRIPTORS: dict[str, tuple[TracePhase, str]] = {
         "evaluate",
         "Classify an ambiguous shopper request before selecting a read-only route.",
     ),
-    "search_inventory": (
+    "list_inventory": (
         "retrieve",
         "Find inventory listings that match the shopper's stated preferences.",
     ),
@@ -26,23 +26,23 @@ _TRACE_DESCRIPTORS: dict[str, tuple[TracePhase, str]] = {
         "retrieve",
         "Load the complete grounded listing for one specific vehicle.",
     ),
-    "retrieve_vehicle_facts": (
+    "get_vehicle_facts": (
         "retrieve",
         "Retrieve sourced ownership and vehicle facts for the selected vehicle.",
     ),
-    "retrieve_service_history": (
+    "get_service_history": (
         "retrieve",
         "Retrieve listing-level service records and their provenance.",
     ),
-    "retrieve_magazine_reviews": (
+    "get_magazine_reviews": (
         "retrieve",
         "Retrieve curated magazine reviews and links for the selected vehicle.",
     ),
-    "compare_vehicles": (
+    "get_vehicle_comparison": (
         "evaluate",
         "Compare the grounded vehicle options requested by the shopper.",
     ),
-    "schedule_test_drive": (
+    "create_test_drive": (
         "act",
         "Validate and create the requested test-drive appointment.",
     ),
@@ -67,7 +67,7 @@ def trace_outcome(name: str, result: dict[str, Any]) -> str:
         if isinstance(confidence, (int, float)):
             return f"Classified as {intent} ({confidence:.0%} confidence)."
         return f"Classified as {intent}."
-    if name == "search_inventory":
+    if name == "list_inventory":
         return f"Found {result.get('count', 0)} matching listing(s)."
     if name == "lookup_vehicle_exact":
         status = result.get("status", "completed")
@@ -79,17 +79,17 @@ def trace_outcome(name: str, result: dict[str, Any]) -> str:
         }.get(status, f"Exact lookup completed with status: {status}.")
     if name == "get_vehicle":
         return "Loaded the vehicle listing." if result.get("found") else "Vehicle listing was not found."
-    if name == "retrieve_vehicle_facts":
+    if name == "get_vehicle_facts":
         return f"Retrieved {len(result.get('facts', []))} sourced fact(s)."
-    if name == "retrieve_service_history":
+    if name == "get_service_history":
         count = result.get("record_count", 0)
         provenance = " synthetic demo record(s)" if result.get("synthetic") else " service record(s)"
         return f"Retrieved {count}{provenance}."
-    if name == "retrieve_magazine_reviews":
+    if name == "get_magazine_reviews":
         return f"Retrieved {len(result.get('reviews', []))} magazine review(s)."
-    if name == "compare_vehicles":
+    if name == "get_vehicle_comparison":
         return f"Compared {len(result.get('vehicles', []))} vehicle option(s)."
-    if name == "schedule_test_drive":
+    if name == "create_test_drive":
         if result.get("ok"):
             return "Test-drive request scheduled successfully."
         return str(result.get("error", "Test-drive request was not scheduled."))
@@ -232,7 +232,7 @@ class ToolCall:
 
     def to_dict(self, *, redact_sensitive: bool = False) -> dict[str, Any]:
         result = asdict(self)
-        if redact_sensitive and self.name == "schedule_test_drive":
+        if redact_sensitive and self.name == "create_test_drive":
             result["arguments"] = _redact_contact_values(result["arguments"])
             result["result"] = _redact_contact_values(result["result"])
         return result
