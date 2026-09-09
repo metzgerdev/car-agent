@@ -118,6 +118,28 @@ def test_live_facade_routes_bare_known_model_through_grounded_trace(monkeypatch)
     assert "2004 Honda S2000" in response.message
 
 
+def test_live_facade_routes_first_turn_comparison_through_grounded_resource(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("comparisons must not be delegated to the live model without grounding")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond(
+        "live-first-turn-compare",
+        "Compare the Honda S2000 and Porsche 911 Carrera",
+    )
+
+    assert [call.name for call in response.trace] == ["get_vehicle_comparison"]
+    assert response.trace[0].arguments == {
+        "vehicle_ids": ["honda-s2000-2004", "porsche-911-1999"],
+    }
+    assert "2004 Honda S2000" in response.message
+    assert "1999 Porsche 911 Carrera" in response.message
+    assert "2008" not in response.message
+
+
 def test_live_facade_routes_explicit_vehicle_detail_through_grounded_trace(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
 

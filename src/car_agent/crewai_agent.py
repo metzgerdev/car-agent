@@ -316,6 +316,15 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
+        # Comparisons are a read-only resource operation, but the model must
+        # not invent a shared year or trim when the shopper names two models.
+        if self.router._is_compare_request(user_message):
+            return self._respond_deterministic(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
         # A bare known make/model such as "Honda S2000" is still an inventory
         # lookup. Keep it grounded and traceable instead of allowing the model
         # to answer from memory without emitting a tool call.
