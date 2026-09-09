@@ -195,6 +195,7 @@ class ConversationState:
     preferences: ShopperPreferences = field(default_factory=ShopperPreferences)
     stage: str = "qualifying"
     last_vehicle_ids: list[str] = field(default_factory=list)
+    pending_followup: Literal["service_history"] | None = None
 
     def to_dict(self, *, redact_sensitive: bool = False) -> dict[str, Any]:
         preferences = self.preferences.to_dict()
@@ -207,6 +208,7 @@ class ConversationState:
             "preferences": preferences,
             "stage": self.stage,
             "last_vehicle_ids": self.last_vehicle_ids,
+            "pending_followup": self.pending_followup,
         }
 
 

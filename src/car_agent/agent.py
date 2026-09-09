@@ -88,6 +88,20 @@ class DeterministicRouter:
         with self.profiler.span("agent.inventory_mention_detection"):
             mentioned_vehicles = self.tools.inventory.find_in_text(message)
 
+        affirmative_followup = (
+            state.pending_followup == "service_history"
+            and self._is_affirmative(message)
+        )
+        if state.pending_followup and not affirmative_followup:
+            # A new request supersedes the prior offer. Review requests below
+            # may set a fresh pending follow-up for the new vehicle/context.
+            state.pending_followup = None
+        if affirmative_followup:
+            vehicle_context = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else self._last_vehicle(state)
+            if vehicle_context:
+                return self._service_history_summary(state, vehicle_context, trace)
+            state.pending_followup = None
+
         if self._is_schedule_request(message) or state.stage == "scheduling":
             return self._schedule(state, message, mentioned_vehicles, trace)
 
@@ -613,6 +627,8 @@ class DeterministicRouter:
         message: str,
     ) -> AgentResponse:
         state.preferences.selected_vehicle_id = vehicle.id
+        if vehicle.id not in state.last_vehicle_ids:
+            state.last_vehicle_ids = [vehicle.id]
         state.stage = "recommending"
         facts = self._call(
             trace,
@@ -648,6 +664,8 @@ class DeterministicRouter:
         trace: list[ToolCall],
     ) -> AgentResponse:
         state.preferences.selected_vehicle_id = vehicle.id
+        if vehicle.id not in state.last_vehicle_ids:
+            state.last_vehicle_ids = [vehicle.id]
         state.stage = "recommending"
         result = self._call(
             trace,
@@ -663,6 +681,7 @@ class DeterministicRouter:
                 trace,
             )
 
+        state.pending_followup = "service_history"
         lines = [f"Here’s the magazine-review summary for the {vehicle.name}:"]
         for review in reviews:
             lines.append(
@@ -682,6 +701,7 @@ class DeterministicRouter:
 
         state.preferences.selected_vehicle_id = vehicle.id
         state.stage = "recommending"
+        state.pending_followup = None
         result = self._call(
             trace,
             "get_service_history",
@@ -844,6 +864,21 @@ class DeterministicRouter:
             for token in tokens
         )
         return has_record_term and bool(get_close_matches("maintenance", tokens, n=1, cutoff=0.72))
+
+    @staticmethod
+    def _is_affirmative(message: str) -> bool:
+        normalized = re.sub(r"[.!?]+$", "", message.strip().lower())
+        return normalized in {
+            "yes",
+            "yeah",
+            "yep",
+            "yup",
+            "sure",
+            "please",
+            "please do",
+            "go ahead",
+            "that sounds good",
+        }
 
     @staticmethod
     def _is_compare_request(message: str) -> bool:

@@ -272,6 +272,28 @@ def test_live_facade_routes_typo_service_history_through_traceable_path(monkeypa
     assert "synthetic demo records" in response.message
 
 
+def test_live_facade_routes_affirmative_review_followup_to_service_history(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+    agent.sessions["live-review-followup"] = ConversationState(
+        "live-review-followup",
+        stage="recommending",
+        last_vehicle_ids=["mazda-rx7-1992"],
+        pending_followup="service_history",
+        preferences=ShopperPreferences(selected_vehicle_id="mazda-rx7-1992"),
+    )
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("an affirmative reply should resolve the pending action deterministically")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-review-followup", "yes")
+
+    assert [call.name for call in response.trace] == ["get_service_history"]
+    assert response.trace[0].result["vehicle_id"] == "mazda-rx7-1992"
+    assert response.state.pending_followup is None
+
+
 def test_live_facade_routes_clear_similar_followup_to_grounded_alternatives(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True)
     agent.respond("live-similar", "Do you have a 1999 BMW Z4 in inventory?")

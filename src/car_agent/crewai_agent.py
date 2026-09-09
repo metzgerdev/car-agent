@@ -370,6 +370,20 @@ class CrewAISalesAgent:
         # validation path. This prevents the live model from claiming that a
         # drive was booked without actually calling create_test_drive.
         previous_state = self.sessions.get(conversation_id)
+        # A bare affirmative reply must resolve the explicit next action the
+        # advisor offered on the previous turn. Do not make the model infer
+        # that "yes" means service history from prose alone.
+        if (
+            previous_state
+            and previous_state.pending_followup
+            and self.router._is_affirmative(user_message)
+        ):
+            return self._respond_deterministic(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
         if (
             self.router._is_schedule_request(user_message)
             or (previous_state and previous_state.stage == "scheduling")
@@ -887,11 +901,15 @@ def _state_from_dict(
     last_vehicle_ids = payload.get("last_vehicle_ids", previous.last_vehicle_ids)
     if not isinstance(last_vehicle_ids, list) or not all(isinstance(value, str) for value in last_vehicle_ids):
         last_vehicle_ids = previous.last_vehicle_ids
+    pending_followup = payload.get("pending_followup", previous.pending_followup)
+    if pending_followup not in {None, "service_history"}:
+        pending_followup = previous.pending_followup
     return ConversationState(
         conversation_id=conversation_id,
         preferences=preferences,
         stage=stage,
         last_vehicle_ids=last_vehicle_ids,
+        pending_followup=pending_followup,
     )
 
 

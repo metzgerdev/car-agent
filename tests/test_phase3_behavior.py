@@ -171,6 +171,20 @@ def test_phase3_agent_treats_press_reviews_as_a_magazine_review_request() -> Non
     assert "condition report" in response.message
 
 
+def test_phase3_affirmative_review_followup_retrieves_service_history() -> None:
+    agent = DeterministicRouter()
+
+    review = agent.respond("phase3-review-followup", "What do the magazine reviews say about the Mazda RX-7?")
+    assert review.state.pending_followup == "service_history"
+
+    response = agent.respond("phase3-review-followup", "yes")
+
+    assert [call.name for call in response.trace] == ["get_service_history"]
+    assert "1992 Mazda RX-7" in response.message
+    assert "Would you like details on maintenance history" not in response.message
+    assert response.state.pending_followup is None
+
+
 def test_phase3_agent_retrieves_service_history_for_the_explicit_vehicle() -> None:
     response = DeterministicRouter().respond(
         "phase3-service-history",
