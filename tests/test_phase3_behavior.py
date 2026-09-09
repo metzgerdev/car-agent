@@ -104,6 +104,7 @@ def test_phase3_explicit_make_browse_returns_grounded_inventory_options() -> Non
     assert response.trace[0].arguments == {"filters": {"query": "BMW"}}
     assert "2008 BMW Z4 M Coupe" in response.message
     assert "1998 BMW E36 328is" in response.message
+    assert "Specs: coupe, 6-speed manual, RWD, 343 hp." in response.message
 
 
 def test_phase3_category_browse_returns_a_search_trace_before_qualification() -> None:

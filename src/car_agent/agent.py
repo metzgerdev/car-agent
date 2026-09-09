@@ -452,24 +452,28 @@ class DeterministicRouter:
 
         state.last_vehicle_ids = [vehicle["id"] for vehicle in vehicles]
         state.stage = "recommending"
-        details = []
+        hydrated_by_id: dict[str, dict[str, Any]] = {}
         for vehicle in vehicles[:2]:
-            details.append(
-                self._call(
-                    trace,
-                    "get_vehicle",
-                    {"vehicle_id": vehicle["id"]},
-                    lambda vehicle_id=vehicle["id"]: self.tools.get_vehicle(vehicle_id),
-                )
+            detail_result = self._call(
+                trace,
+                "get_vehicle",
+                {"vehicle_id": vehicle["id"]},
+                lambda vehicle_id=vehicle["id"]: self.tools.get_vehicle(vehicle_id),
             )
-        top_vehicle = vehicles[0]
+            if detail_result.get("found") and detail_result.get("vehicle"):
+                hydrated_by_id[vehicle["id"]] = detail_result["vehicle"]
+        enriched_vehicles = [
+            {**vehicle, **hydrated_by_id.get(vehicle["id"], {})}
+            for vehicle in vehicles
+        ]
+        top_vehicle = enriched_vehicles[0]
         facts = self._call(
             trace,
             "retrieve_vehicle_facts",
             {"vehicle_id": top_vehicle["id"]},
             lambda: self.tools.retrieve_vehicle_facts(top_vehicle["id"]),
         )
-        return AgentResponse(self._recommendation_message(vehicles, facts), state, trace)
+        return AgentResponse(self._recommendation_message(enriched_vehicles, facts), state, trace)
 
     def _browse_inventory(
         self,
@@ -748,7 +752,21 @@ class DeterministicRouter:
     def _recommendation_message(vehicles: list[dict[str, Any]], facts: dict[str, Any]) -> str:
         lines = [f"{CLASSIC_CAR_PERSONA.recommendation_opening}:"]
         for vehicle in vehicles[:3]:
-            lines.append(f"- {vehicle['name']} — ${vehicle['price']:,}, {vehicle['mileage']:,} miles; {vehicle['description']}")
+            specs = ", ".join(
+                str(value)
+                for value in (
+                    vehicle.get("body_style"),
+                    vehicle.get("transmission"),
+                    vehicle.get("drivetrain"),
+                    f"{vehicle['horsepower']} hp" if vehicle.get("horsepower") is not None else None,
+                )
+                if value
+            )
+            specs_suffix = f" Specs: {specs}." if specs else ""
+            lines.append(
+                f"- {vehicle['name']} — ${vehicle['price']:,}, {vehicle['mileage']:,} miles; "
+                f"{vehicle['description']}{specs_suffix}"
+            )
         if facts.get("facts"):
             fact = facts["facts"][0]
             lines.append(f"One ownership note on the top match: {fact['fact']} ({fact['source']}).")
