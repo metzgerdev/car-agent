@@ -65,14 +65,14 @@ Tool Trace panel. The frontend build is served by FastAPI at `/`.
 
 | Tool | Purpose |
 |---|---|
-| `search_inventory` | Rank listings using shopper preferences and query terms. |
+| `list_inventory` | List ranked inventory records using shopper filters and query terms. |
 | `lookup_vehicle_exact` | Verify exact year, make, and model availability, including family matches. |
 | `get_vehicle` | Load one complete inventory listing. |
-| `retrieve_vehicle_facts` | Retrieve sourced ownership and vehicle facts. |
-| `retrieve_service_history` | Retrieve listing-level service records and provenance. |
-| `retrieve_magazine_reviews` | Retrieve curated magazine reviews and source links. |
-| `compare_vehicles` | Compare two inventory vehicles. |
-| `schedule_test_drive` | Validate and create a test-drive request. |
+| `get_vehicle_facts` | Get sourced ownership and vehicle facts. |
+| `get_service_history` | Get listing-level service records and provenance. |
+| `get_magazine_reviews` | Get curated magazine reviews and source links. |
+| `get_vehicle_comparison` | Get a comparison of two inventory vehicles. |
+| `create_test_drive` | Create a test-drive request after validation. |
 
 ## API endpoints
 
