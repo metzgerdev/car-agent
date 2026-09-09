@@ -46,6 +46,13 @@ Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 The UI provides an assistant-ui chat interface, inventory gallery, and live
 Tool Trace panel. The frontend build is served by FastAPI at `/`.
 
+## UI preview
+
+Example run covering inventory search, vehicle details, ownership facts, and a
+comparison. The right rail shows the accumulated Tool Trace.
+
+![Grand Prix Motors chat UI](docs/ui-demo.png)
+
 ## Architecture and design
 
 - React and assistant-ui provide the chat and inventory gallery.
