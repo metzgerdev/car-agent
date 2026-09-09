@@ -28,4 +28,18 @@ test("starter prompts remain enabled on an empty composer and send their text", 
   assert.match(starterPromptSource, /setText\(prompt\);\s*aui\.composer\.send\(\);/);
   assert.match(starterPromptSource, /disabled=\{isDisabled\}/);
   assert.doesNotMatch(starterPromptSource, /disabled=\{!canSend\}/);
+
+  for (const prompt of [
+    "Find a weekend sports car",
+    "Show me classic BMWs",
+    "Tell me about the Honda S2000",
+    "What ownership notes do you have on the Honda S2000?",
+    "What do the magazine reviews say about the Mazda RX-7?",
+    "Show me the service history for the BMW Z4 M Coupe",
+    "Compare the Honda S2000 and Porsche 911 Carrera",
+    "Do you have a 2011 BMW M3 in inventory?",
+    "Tell me more about the 1999 Porsche 911 Carrera",
+  ]) {
+    assert.match(starterPromptSource, new RegExp(prompt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
 });
