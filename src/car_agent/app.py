@@ -1,4 +1,4 @@
-"""HTTP interface for the text-first demo."""
+"""FastAPI interface for chat and inventory."""
 
 from __future__ import annotations
 

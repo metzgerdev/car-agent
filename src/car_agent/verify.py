@@ -1,4 +1,4 @@
-"""Run the interactive Phase 1 verifier with ``python -m car_agent.verify``."""
+"""Run the Phase 1 verifier."""
 
 from .verify_cli import main
 

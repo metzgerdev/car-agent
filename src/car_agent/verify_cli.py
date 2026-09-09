@@ -19,7 +19,7 @@ class VerificationCheck:
 
 
 class Phase1Verifier:
-    """Runs real agent turns and accumulates Phase 1 acceptance evidence."""
+    """Run Phase 1 acceptance checks."""
 
     def __init__(self, agent: CrewAISalesAgent | None = None, conversation_id: str = "phase1-cli") -> None:
         self.agent = agent or CrewAISalesAgent(use_live_model=False)

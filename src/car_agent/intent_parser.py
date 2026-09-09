@@ -1,9 +1,4 @@
-"""Validated LLM intent parsing for ambiguous shopper requests.
-
-The parser is deliberately narrow. It can identify a read-only inventory
-search and extract search preferences, but it cannot authorize side effects or
-replace deterministic safety routes.
-"""
+"""Structured intent parsing for ambiguous inventory requests."""
 
 from __future__ import annotations
 

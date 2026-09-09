@@ -1,4 +1,4 @@
-"""Typed conversation memory and bounded context for live model prompts."""
+"""Bounded conversation context for live prompts."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def build_prompt_context(
     state: ConversationState,
     inventory: InventoryRepository,
 ) -> ConversationPromptContext:
-    """Build bounded prompt context without replaying the entire transcript."""
+    """Build prompt context from recent turns and state."""
 
     recent_start = max(0, len(history) - RECENT_TURN_LIMIT)
     recent_turns = [

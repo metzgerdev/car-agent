@@ -1,4 +1,4 @@
-"""Small, dependency-free timing primitives for inspectable latency profiles."""
+"""Timing utilities."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ class TimingSummary:
 
 
 class TimingRecorder:
-    """Record nested spans when enabled, with a no-op mode for normal requests."""
+    """Record timing spans when enabled."""
 
     def __init__(self, *, enabled: bool = True) -> None:
         self.enabled = enabled

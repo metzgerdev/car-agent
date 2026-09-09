@@ -1,4 +1,4 @@
-"""CLI latency profile for offline and live sales-agent paths."""
+"""CLI latency profile."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def run_profile(iterations: int = 25) -> tuple[TimingRecorder, int]:
 
 
 def run_live_profile(iterations: int = 1) -> tuple[TimingRecorder, int, str]:
-    """Run a deliberately small live workload that makes real provider calls."""
+    """Run a live latency profile."""
 
     if iterations < 1:
         raise ValueError("iterations must be at least 1")

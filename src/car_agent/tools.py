@@ -116,7 +116,7 @@ class SalesTools:
         }
 
     def get_service_history(self, vehicle_id: str) -> dict[str, Any]:
-        """Return listing-level service records, including their demo provenance."""
+        """Return listing-level service records and provenance."""
 
         vehicle = self.inventory.get(vehicle_id)
         if not vehicle:
@@ -138,7 +138,7 @@ class SalesTools:
         }
 
     def get_magazine_reviews(self, vehicle_id: str) -> dict[str, Any]:
-        """Return curated editorial summaries and links for one inventory vehicle."""
+        """Return curated editorial summaries and links."""
 
         vehicle = self.inventory.get(vehicle_id)
         if not vehicle:

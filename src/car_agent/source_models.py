@@ -1,9 +1,4 @@
-"""Pydantic contracts for external vehicle data sources.
-
-The source models intentionally preserve the shape of each provider at the
-boundary.  Adapters then map those validated payloads into the small domain
-models used by the sales agent.
-"""
+"""Pydantic models for external vehicle data sources."""
 
 from __future__ import annotations
 

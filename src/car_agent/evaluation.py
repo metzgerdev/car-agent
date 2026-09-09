@@ -1,4 +1,4 @@
-"""Repeatable Phase 3 scenario evaluation for the deterministic router."""
+"""Scenario evaluation for the deterministic router."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from .agent import DeterministicRouter
 
 
 class Phase3Scenario(BaseModel):
-    """One scripted conversation and its observable acceptance contract."""
+    """One scripted conversation and its expected result."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -24,7 +24,7 @@ class Phase3Scenario(BaseModel):
 
 
 class ScenarioResult(BaseModel):
-    """Observable result of one Phase 3 evaluation scenario."""
+    """Result of one scenario evaluation."""
 
     scenario_id: str
     passed: bool
@@ -36,7 +36,7 @@ class ScenarioResult(BaseModel):
 
 
 class Phase3EvaluationReport(BaseModel):
-    """Aggregate Phase 3 evaluation result."""
+    """Aggregate scenario evaluation result."""
 
     results: list[ScenarioResult]
     passed_count: int
@@ -50,7 +50,7 @@ class Phase3EvaluationReport(BaseModel):
 def run_phase3_evaluation(
     scenarios: list[Phase3Scenario] | None = None,
 ) -> Phase3EvaluationReport:
-    """Run scripted scenarios against fresh offline agent sessions."""
+    """Run scripted scenarios against offline agent sessions."""
 
     cases = scenarios or phase3_scenarios()
     results: list[ScenarioResult] = []
@@ -121,7 +121,7 @@ def run_phase3_evaluation(
 
 
 def phase3_scenarios() -> list[Phase3Scenario]:
-    """Return the checked-in 20-conversation Phase 3 evaluation set."""
+    """Return the scenario evaluation set."""
 
     return [
         Phase3Scenario(

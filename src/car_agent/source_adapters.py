@@ -58,11 +58,7 @@ def nhtsa_recalls_to_facts(
     retrieved_at: datetime | str,
     vin_specific: bool = False,
 ) -> list[VehicleFact]:
-    """Convert NHTSA recall records into explicit safety facts.
-
-    Model/year recall searches are not proof that a particular VIN is affected
-    or that a repair is outstanding, so the default fact says to verify by VIN.
-    """
+    """Convert NHTSA recall records into safety facts with VIN verification."""
 
     response = NHTSARecallResponse.model_validate(payload)
     timestamp = _timestamp(retrieved_at)

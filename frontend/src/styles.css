@@ -99,7 +99,7 @@ a { color: #65b8a2; }
 .gallery-error { color: #f6b5a8; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-/* Real source photos are preferred; CSS visuals remain the explicit fallback. */
+/* Listing image and fallback styles. */
 .listing-visual { position: relative; min-height: 118px; overflow: hidden; isolation: isolate; background: #252b31; }
 .listing-visual-large { min-height: 330px; border-radius: 8px; }
 .listing-photo { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; object-fit: cover; background: #252b31; }
@@ -166,7 +166,7 @@ a { color: #65b8a2; }
   background: var(--chat-bg);
 }
 
-/* assistant-ui styled Thread surface */
+/* Chat thread surface. */
 .aui-styled-thread { display: flex; height: 100%; min-height: 0; flex-direction: column; background: var(--chat-bg); }
 .aui-styled-viewport { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow-x: hidden; overflow-y: auto; }
 .aui-thread-content { display: flex; min-height: 100%; flex: 1; flex-direction: column; }

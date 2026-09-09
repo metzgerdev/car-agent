@@ -1,8 +1,4 @@
-"""Deterministic grounding and safety router for the sales conversation.
-
-The router owns inspectable inventory, side-effect, and context decisions that
-must remain reliable when the live CrewAI/LLM facade is enabled.
-"""
+"""Deterministic router for grounded sales responses."""
 
 from __future__ import annotations
 
@@ -93,8 +89,7 @@ class DeterministicRouter:
             and self._is_affirmative(message)
         )
         if state.pending_followup and not affirmative_followup:
-            # A new request supersedes the prior offer. Review requests below
-            # may set a fresh pending follow-up for the new vehicle/context.
+            # Clear the previous follow-up for a new request.
             state.pending_followup = None
         if affirmative_followup:
             vehicle_context = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else self._last_vehicle(state)
@@ -224,7 +219,7 @@ class DeterministicRouter:
         vehicle: Vehicle,
         trace: list[ToolCall],
     ) -> AgentResponse:
-        """Ground a bare make/model mention before asking the live model to respond."""
+        """Ground a bare make/model reference."""
 
         filters = {"query": f"{vehicle.make} {vehicle.model}"}
         search = self._call(
@@ -242,9 +237,7 @@ class DeterministicRouter:
                 trace,
             )
 
-        # `list_inventory` intentionally returns a ranked slice, so it may
-        # include nearby alternatives after the direct model hit. The
-        # identity detected from the shopper's text remains authoritative.
+        # Keep the detected vehicle as the authoritative match.
         state.last_vehicle_ids = [vehicle.id]
         state.preferences.selected_vehicle_id = vehicle.id
         state.stage = "recommending"
@@ -262,7 +255,7 @@ class DeterministicRouter:
         mentioned_vehicles: list[Vehicle],
         trace: list[ToolCall],
     ) -> AgentResponse:
-        """Explain grounded alternatives when a shopper asks for similar cars."""
+        """Return grounded alternatives."""
 
         excluded_ids = {
             vehicle.id for vehicle in mentioned_vehicles
@@ -271,8 +264,7 @@ class DeterministicRouter:
             excluded_ids.add(state.preferences.selected_vehicle_id)
         candidate_ids = [vehicle_id for vehicle_id in state.last_vehicle_ids if vehicle_id not in excluded_ids]
 
-        # A successful exact lookup only leaves the selected vehicle in state,
-        # so fall back to an inventory search for other grounded options.
+        # Search inventory when no alternative IDs remain.
         if not candidate_ids:
             preferences = state.preferences
             filters = {
@@ -496,7 +488,7 @@ class DeterministicRouter:
         mentioned_vehicles: list[Vehicle],
         trace: list[ToolCall],
     ) -> AgentResponse:
-        """Complete an explicit browse request with a grounded inventory search."""
+        """Handle an explicit inventory browse request."""
 
         query = self._inventory_search_query(message, mentioned_vehicles)
         return self._recommend(state, trace, query=query)
@@ -697,7 +689,7 @@ class DeterministicRouter:
         vehicle: Vehicle,
         trace: list[ToolCall],
     ) -> AgentResponse:
-        """Return listing records through the dedicated service-history tool."""
+        """Return listing service records."""
 
         state.preferences.selected_vehicle_id = vehicle.id
         state.stage = "recommending"
@@ -855,9 +847,7 @@ class DeterministicRouter:
         ):
             return True
 
-        # Treat common spelling mistakes as the same records request while
-        # requiring a records/history term so a general maintenance objection
-        # does not trigger a service-history lookup.
+        # Require a record term with the fuzzy maintenance match.
         tokens = re.findall(r"[a-z]+", lowered)
         has_record_term = any(
             token in {"history", "record", "records", "receipt", "receipts", "done", "work"}
@@ -927,7 +917,7 @@ class DeterministicRouter:
         message: str,
         mentioned_vehicles: list[Vehicle] | None = None,
     ) -> bool:
-        """Identify a bare known make/model such as ``honda s2000``."""
+        """Identify a known make/model reference."""
 
         vehicles = mentioned_vehicles if mentioned_vehicles is not None else self.tools.inventory.find_in_text(message)
         if len(vehicles) != 1:
@@ -967,8 +957,7 @@ class DeterministicRouter:
             return None
         year = int(year_match.group(0))
 
-        # Prefer a complete known inventory name so multi-word models such as
-        # "Z4 M Coupe" remain exact instead of being truncated to "Z4".
+        # Prefer complete inventory names for multi-word models.
         inventory = self.tools.inventory.all()
         normalized_message = _normalize_vehicle_identity(message)
         for vehicle in inventory:
@@ -984,8 +973,7 @@ class DeterministicRouter:
             if model_tokens:
                 return ExactVehicleQuery(year=year, make=make, model=" ".join(model_tokens))
 
-        # Keep the fallback useful for a make that is not currently represented
-        # in the seed inventory (for example, a future BMW M3 fixture).
+        # Build a make-only fallback for unknown models.
         generic = re.search(
             r"\b(?:19|20)\d{2}\s+([A-Za-z][A-Za-z0-9-]*)\s+([A-Za-z0-9][A-Za-z0-9-]*)",
             message,
@@ -1012,10 +1000,7 @@ class DeterministicRouter:
             )
         ):
             return True
-        # The UI starts with a broad question, so shoppers commonly reply with
-        # only an identity such as "2001 BMW M3". Treat that complete compact
-        # identity as an availability request instead of delegating it to a
-        # model that might return a progress sentence as its final answer.
+        # Treat a compact year/make/model identity as an availability request.
         return re.fullmatch(
             r"\s*(?:19|20)\d{2}\s+[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z0-9][A-Za-z0-9-]*){1,5}\s*(?:[?.!]\s*)?$",
             message,
@@ -1107,7 +1092,7 @@ class DeterministicRouter:
         lowered = message.lower()
         makes = sorted({vehicle.make for vehicle in self.tools.inventory.all()}, key=len, reverse=True)
         for make in makes:
-            # Shoppers commonly pluralize a make: "BMWs", "Porsches", etc.
+            # Match singular and plural make names.
             if re.search(rf"\b{re.escape(make.lower())}s?\b", lowered):
                 return make
         return None

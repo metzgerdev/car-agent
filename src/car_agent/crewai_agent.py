@@ -1,9 +1,4 @@
-"""CrewAI orchestration for the classic-car sales conversation.
-
-CrewAI owns the live agent/task/crew boundary in this module. The deterministic
-policy remains available as the offline execution mode so the product can keep
-its current acceptance tests independent of API keys and network access.
-"""
+"""CrewAI live facade and deterministic routing."""
 
 from __future__ import annotations
 
@@ -306,9 +301,7 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        # Exact availability is a deterministic inventory contract. Handle it
-        # before CrewAI so a live model cannot end a turn with "one moment"
-        # without returning the lookup result and a complete next step.
+        # Route exact availability deterministically.
         if self.router._exact_vehicle_query(user_message.strip()):
             return self._respond_deterministic(
                 conversation_id,
@@ -316,8 +309,7 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        # Comparisons are a read-only resource operation, but the model must
-        # not invent a shared year or trim when the shopper names two models.
+        # Route comparisons deterministically.
         if self.router._is_compare_request(user_message):
             return self._respond_deterministic(
                 conversation_id,
@@ -325,9 +317,7 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        # A bare known make/model such as "Honda S2000" is still an inventory
-        # lookup. Keep it grounded and traceable instead of allowing the model
-        # to answer from memory without emitting a tool call.
+        # Route bare model references through inventory grounding.
         if self.router._is_model_reference_request(user_message):
             return self._respond_deterministic(
                 conversation_id,
@@ -335,9 +325,7 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        # An explicit detail request such as "Tell me about the Honda S2000"
-        # is also an inventory lookup, even when it is the first turn and
-        # therefore has no prior conversation context.
+        # Route explicit vehicle detail requests through inventory grounding.
         mentioned_vehicles = self.tools.inventory.find_in_text(user_message)
         if len(mentioned_vehicles) == 1 and self.router._is_vehicle_detail_request(user_message):
             return self._respond_deterministic(
@@ -346,9 +334,7 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        # Explicit browse requests such as "Show me classic BMWs" must finish
-        # with grounded inventory results. Keep them out of the open-ended
-        # model path so the model cannot stop at an unfulfilled progress claim.
+        # Route explicit browse requests through grounded inventory search.
         if self.router._is_inventory_browse_request(user_message):
             return self._respond_deterministic(
                 conversation_id,
@@ -356,9 +342,7 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        # Service-history requests are always grounded. The deterministic
-        # router either retrieves records for the selected vehicle or asks the
-        # shopper to identify one; the live model must not invent records.
+        # Route service-history requests through deterministic retrieval.
         if self.router._is_service_history_request(user_message):
             return self._respond_deterministic(
                 conversation_id,
@@ -366,13 +350,9 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        # Scheduling is a side effect, so it must go through the deterministic
-        # validation path. This prevents the live model from claiming that a
-        # drive was booked without actually calling create_test_drive.
+        # Route scheduling through deterministic validation.
         previous_state = self.sessions.get(conversation_id)
-        # A bare affirmative reply must resolve the explicit next action the
-        # advisor offered on the previous turn. Do not make the model infer
-        # that "yes" means service history from prose alone.
+        # Resolve affirmative replies against pending follow-ups.
         if (
             previous_state
             and previous_state.pending_followup
@@ -394,10 +374,7 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        # A follow-up such as "tell me about similar sports cars" refers to
-        # grounded alternatives already stored by an unavailable lookup. Keep
-        # this contextual handoff deterministic so the model cannot ask the
-        # shopper to restate a clear request.
+        # Route grounded alternative follow-ups deterministically.
         if (
             previous_state
             and previous_state.last_vehicle_ids
@@ -512,8 +489,7 @@ class CrewAISalesAgent:
             )
             result = intent.model_dump()
         except Exception:
-            # An unavailable or malformed classifier must not make the live
-            # conversation unavailable. Continue to the normal CrewAI path.
+            # Continue to CrewAI when parsing fails.
             intent = None
             result = {
                 "intent": "general_conversation",
@@ -787,7 +763,7 @@ class CrewAISalesAgent:
         try:
             message_stream.finish(_coerce_crew_output(final_result).message)
         except ValueError:
-            # Preserve the normal output-normalization error at the caller.
+            # Let the caller normalize the final result.
             pass
         return final_result
 

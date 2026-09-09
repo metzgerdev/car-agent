@@ -1,4 +1,4 @@
-"""Small local repositories used by the first vertical slice."""
+"""Local inventory, review, and scheduling repositories."""
 
 from __future__ import annotations
 
@@ -36,10 +36,7 @@ class InventoryRepository:
             ):
                 matches.append(vehicle)
 
-        # A short follow-up such as "911" can be the unique leading token of
-        # a multi-word model such as "911 Carrera". Only accept this shorthand
-        # when it identifies one inventory vehicle, so ambiguous tokens do not
-        # become accidental vehicle selections.
+        # Accept a unique leading model token.
         bare_token = re.sub(r"[^a-z0-9-]+", " ", normalized).strip()
         if len(bare_token.split()) == 1 and not matches:
             bare_matches = []
@@ -77,11 +74,7 @@ class InventoryRepository:
                 [vehicle.make, vehicle.model, vehicle.body_style, vehicle.description, *vehicle.tags]
             ).lower()
             query_matches = sum(1 for term in query_terms if term in searchable)
-            # A query such as "BMW Z4" is an identity hint, not a request to
-            # rank every BMW above unrelated but affordable alternatives. Only
-            # award lexical relevance when the complete query is represented.
-            # This keeps unavailable exact lookups useful as a source of broad,
-            # grounded alternatives as the inventory grows.
+            # Award lexical relevance only for complete identity queries.
             if query_matches == len(query_terms):
                 score += query_matches
             scored.append((score, vehicle))
@@ -141,7 +134,7 @@ class ReviewRepository:
 
 
 class TestDriveScheduler:
-    """In-memory scheduler used to make the conversion workflow demonstrable."""
+    """In-memory test-drive scheduler."""
 
     def __init__(self, inventory: InventoryRepository) -> None:
         self.inventory = inventory

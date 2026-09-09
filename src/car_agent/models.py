@@ -112,7 +112,7 @@ class Provenance:
 
 @dataclass(frozen=True)
 class ServiceRecord:
-    """A listing-level service event; demo records are explicitly synthetic."""
+    """A listing-level service event."""
 
     date: str
     mileage: int

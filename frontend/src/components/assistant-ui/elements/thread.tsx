@@ -11,12 +11,7 @@ import { useCallback } from "react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
 
-/**
- * The official assistant-ui Thread element is a composed surface: primitives
- * provide the runtime behavior and the element owns the presentation. This
- * Vite app keeps that same boundary, with local CSS tokens instead of a
- * shadcn/Tailwind build step so the FastAPI bundle stays self-contained.
- */
+/** Render the chat thread. */
 export function Thread() {
   return (
     <ThreadPrimitive.Root className="aui-styled-thread">

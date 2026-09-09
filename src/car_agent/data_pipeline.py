@@ -119,7 +119,7 @@ def _parse_service_history(
     mileage: Any,
     errors: list[str],
 ) -> tuple[ServiceRecord, ...]:
-    """Validate supplied records and synthesize a clearly labeled fallback."""
+    """Validate supplied records and generate fallback history."""
 
     if value is None:
         if isinstance(mileage, (int, float)) and not isinstance(mileage, bool):
@@ -163,7 +163,7 @@ def _parse_service_history(
 
 
 def _synthetic_service_history(vehicle_id: str, mileage: int) -> tuple[ServiceRecord, ...]:
-    """Create deterministic placeholder history for source rows without records."""
+    """Generate deterministic history for rows without records."""
 
     first_mileage = max(1_000, int(mileage * 0.55))
     second_mileage = max(first_mileage, int(mileage * 0.82))

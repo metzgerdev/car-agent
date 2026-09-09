@@ -1,9 +1,4 @@
-"""Shared salesperson character contract.
-
-The live CrewAI agent receives this contract as prompt context.  The
-deterministic policy uses the short, user-facing phrases as well, so the
-offline demo and the model-backed demo sound like the same advisor.
-"""
+"""Shared salesperson persona contract."""
 
 from __future__ import annotations
 
