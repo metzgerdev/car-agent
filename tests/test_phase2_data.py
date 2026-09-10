@@ -6,7 +6,7 @@ from car_agent.data_pipeline import (
     InventoryValidationError,
     load_inventory_fixture,
 )
-from car_agent.repositories import InventoryRepository, KnowledgeRepository
+from car_agent.repositories import DATA_ROOT, InventoryRepository, KnowledgeRepository
 from scripts.generate_mock_inventory import CATALOG, generate_record
 
 
@@ -105,6 +105,13 @@ def test_phase2_knowledge_retrieval_is_model_specific() -> None:
     assert facts
     assert all(fact.vehicle_id == "honda-s2000-2004" for fact in facts)
     assert all(fact.source for fact in facts)
+
+
+def test_runtime_fixtures_are_resolvable() -> None:
+    assert all(
+        (DATA_ROOT / name).is_file()
+        for name in ("inventory.json", "knowledge.json", "reviews.json")
+    )
 
 
 def test_phase2_checked_in_inventory_has_50_typed_records_and_real_photos() -> None:

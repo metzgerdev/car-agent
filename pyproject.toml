@@ -36,6 +36,13 @@ where = ["src"]
 [tool.setuptools.package-data]
 car_agent = ["web/*.html", "web/*.css", "web/*.js", "web/assets/*"]
 
+[tool.setuptools.data-files]
+"share/classic-car-agent/data" = [
+    "data/inventory.json",
+    "data/knowledge.json",
+    "data/reviews.json",
+]
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]

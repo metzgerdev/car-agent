@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -12,12 +14,49 @@ from .models import ShopperPreferences, Vehicle, VehicleFact
 from .review_models import MagazineReview
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_FIXTURE_NAMES = ("inventory.json", "knowledge.json", "reviews.json")
+_SOURCE_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _has_fixtures(path: Path) -> bool:
+    return all((path / name).is_file() for name in _FIXTURE_NAMES)
+
+
+def _resolve_project_root() -> Path:
+    configured_root = os.getenv("CAR_AGENT_PROJECT_ROOT")
+    candidates = [Path(configured_root)] if configured_root else []
+    candidates.extend((_SOURCE_ROOT, Path.cwd()))
+    for candidate in candidates:
+        if (candidate / "data").is_dir() or (candidate / ".env").is_file():
+            return candidate
+    return Path.cwd()
+
+
+def _resolve_data_root(project_root: Path) -> Path:
+    configured_data = os.getenv("CAR_AGENT_DATA_DIR")
+    candidates = [Path(configured_data)] if configured_data else []
+    candidates.extend(
+        (
+            project_root / "data",
+            _SOURCE_ROOT / "data",
+            Path.cwd() / "data",
+            Path(sys.prefix) / "share" / "classic-car-agent" / "data",
+        )
+    )
+    for candidate in candidates:
+        if _has_fixtures(candidate):
+            return candidate
+    searched = ", ".join(str(candidate) for candidate in candidates)
+    raise FileNotFoundError(f"Car-agent data fixtures were not found. Searched: {searched}")
+
+
+PROJECT_ROOT = _resolve_project_root()
+DATA_ROOT = _resolve_data_root(PROJECT_ROOT)
 
 
 class InventoryRepository:
     def __init__(self, path: str | Path | None = None) -> None:
-        inventory_path = Path(path) if path else PROJECT_ROOT / "data" / "inventory.json"
+        inventory_path = Path(path) if path else DATA_ROOT / "inventory.json"
         self._vehicles = load_inventory_fixture(inventory_path)
 
     def all(self) -> list[Vehicle]:
@@ -107,7 +146,7 @@ class InventoryRepository:
 
 class KnowledgeRepository:
     def __init__(self, path: str | Path | None = None) -> None:
-        knowledge_path = Path(path) if path else PROJECT_ROOT / "data" / "knowledge.json"
+        knowledge_path = Path(path) if path else DATA_ROOT / "knowledge.json"
         records = json.loads(knowledge_path.read_text())
         self._facts = [VehicleFact(**record) for record in records]
 
@@ -125,7 +164,7 @@ class ReviewRepository:
     """Curated editorial links matched to inventory make/model pairs."""
 
     def __init__(self, path: str | Path | None = None) -> None:
-        review_path = Path(path) if path else PROJECT_ROOT / "data" / "reviews.json"
+        review_path = Path(path) if path else DATA_ROOT / "reviews.json"
         records = json.loads(review_path.read_text())
         self._reviews = [MagazineReview.model_validate(record) for record in records]
 
