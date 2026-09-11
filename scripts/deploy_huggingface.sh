@@ -7,10 +7,12 @@ usage() {
   cat <<'EOF'
 Usage: scripts/deploy_huggingface.sh [owner/space-name]
 
-Pushes the current Git branch to the metzgerdev/car-sales-agent Hugging Face
-Space by default. Pass an owner/space-name to override it. Authenticate Git
-with an SSH key registered with Hugging Face before running this command. To
-skip the local Docker preflight build, set SKIP_DOCKER_BUILD=1.
+Creates a single-commit Space snapshot from the current Git branch and pushes
+it to metzgerdev/car-sales-agent by default. The snapshot omits the
+documentation screenshot that Hugging Face rejects as a raw binary file. Pass
+an owner/space-name to override it. Authenticate Git with an SSH key registered
+with Hugging Face before running this command. To skip the local Docker
+preflight build, set SKIP_DOCKER_BUILD=1.
 
 Example:
   scripts/deploy_huggingface.sh
@@ -104,7 +106,39 @@ if [[ -z "$branch" ]]; then
   exit 1
 fi
 
-git push "$remote_name" "HEAD:refs/heads/main"
+source_commit="$(git rev-parse --short HEAD)"
+author_name="$(git log -1 --format=%an HEAD)"
+author_email="$(git log -1 --format=%ae HEAD)"
+snapshot_dir="$(mktemp -d "${TMPDIR:-/tmp}/car-agent-space.XXXXXX")"
+
+cleanup() {
+  rm -rf "$snapshot_dir"
+}
+trap cleanup EXIT
+
+git archive --format=tar HEAD | tar -x -C "$snapshot_dir"
+rm -f "$snapshot_dir/docs/ui-demo.png"
+sed '/^!\[Grand Prix Motors chat UI\](docs\/ui-demo\.png)$/d' "$snapshot_dir/README.md" \
+  > "$snapshot_dir/README.md.snapshot"
+mv "$snapshot_dir/README.md.snapshot" "$snapshot_dir/README.md"
+
+git -C "$snapshot_dir" init --initial-branch=main --quiet
+git -C "$snapshot_dir" config user.name "$author_name"
+git -C "$snapshot_dir" config user.email "$author_email"
+git -C "$snapshot_dir" add --all
+git -C "$snapshot_dir" commit --quiet -m "Deploy ${source_commit}"
+git -C "$snapshot_dir" remote add "$remote_name" "$space_url"
+
+# A Space snapshot is intentionally unrelated to the source repository's
+# history, so every deployment replaces the previous snapshot. Fetch first and
+# use an explicit lease to avoid overwriting a simultaneous remote update.
+git fetch "$remote_name" main
+remote_tip="$(git rev-parse "refs/remotes/${remote_name}/main")"
+git -C "$snapshot_dir" push \
+  --force-with-lease="refs/heads/main:${remote_tip}" \
+  "$remote_name" "HEAD:refs/heads/main"
+git fetch "$remote_name" main
 
 printf '\nDeployment submitted: https://huggingface.co/spaces/%s\n' "$space_repo"
+printf 'Published Space snapshot for source commit %s.\n' "$source_commit"
 printf 'Confirm OPENROUTER_API_KEY is set as a Space secret before using live chat.\n'

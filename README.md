@@ -69,10 +69,14 @@ git commit -m "Configure Hugging Face Space"
 ./scripts/deploy_huggingface.sh
 ```
 
-The script runs a local Docker build before pushing the current branch to the
-Space. If Docker Desktop is unavailable, omit that optional preflight build
-with `SKIP_DOCKER_BUILD=1 ./scripts/deploy_huggingface.sh`; Hugging Face will
-still build the image after the push. The application keeps conversations and
+The script runs a local Docker build before publishing a single-commit snapshot
+to the Space. This keeps the primary Git history local while avoiding the
+raw-binary `docs/ui-demo.png` that Hugging Face rejects. The screenshot is
+documentation-only and is not required by the app. The snapshot intentionally
+replaces the Space's prior snapshot with a guarded force push. If Docker
+Desktop is unavailable, omit that optional preflight build with
+`SKIP_DOCKER_BUILD=1 ./scripts/deploy_huggingface.sh`; Hugging Face will still
+build the image after the push. The application keeps conversations and
 test-drive requests in memory, so that state resets when the Space restarts or
 sleeps.
 
