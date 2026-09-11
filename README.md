@@ -1,14 +1,20 @@
+---
+title: Classic Car Advisor
+emoji: 🚗
+colorFrom: red
+colorTo: gray
+sdk: docker
+app_port: 7860
+fullWidth: true
+---
+
 # Classic Sports Car Sales Agent
 
 ## What it is
 
-A text-first sales assistant for classic and modern-classic enthusiast sports
+A sales agent for classic and modern-classic enthusiast sports
 cars. It combines deterministic business logic, typed domain tools, inventory
 retrieval, curated vehicle reviews, and CrewAI orchestration.
-
-The application includes a checked-in 50-car illustrative inventory. Service
-history records are synthetic and clearly labeled; magazine reviews include
-source links and summaries.
 
 ## Install
 
@@ -45,6 +51,26 @@ Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
 The UI provides an assistant-ui chat interface, inventory gallery, and live
 Tool Trace panel. The frontend build is served by FastAPI at `/`.
+
+## Deploy to Hugging Face Spaces
+
+This project is packaged as a Docker Space. Create a Docker Space in Hugging
+Face with your preferred visibility, then add `OPENROUTER_API_KEY` as a Space
+**Secret** under **Settings → Variables and secrets**. You may also set the
+optional `CAR_AGENT_CREWAI_MODEL` variable.
+
+Commit the deployment files, authenticate Git with Hugging Face, and deploy:
+
+```bash
+git add README.md Dockerfile .dockerignore .gitignore scripts/deploy_huggingface.sh
+git commit -m "Configure Hugging Face Space"
+./scripts/deploy_huggingface.sh
+```
+
+The script runs a local Docker build before pushing the current branch to the
+Space. Set `SKIP_DOCKER_BUILD=1` to omit that preflight build. The application
+keeps conversations and test-drive requests in memory, so that state resets
+when the Space restarts or sleeps.
 
 ## UI preview
 
