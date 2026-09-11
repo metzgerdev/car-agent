@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Thread } from "./components/assistant-ui/elements/thread";
 import { mergeTraceHistory } from "./trace-history.js";
+import { summarizeTrace } from "./trace-metrics.js";
 import "./styles.css";
 
 type ToolCall = {
@@ -22,7 +23,14 @@ type ToolCall = {
 
 type ChatPayload = {
   message: string;
+  state: ConversationState;
   trace: ToolCall[];
+};
+
+type ConversationState = {
+  stage: string;
+  shown_vehicle_ids: string[];
+  focused_vehicle_id: string | null;
 };
 
 type InventoryVehicle = {
@@ -67,12 +75,14 @@ type Dashboard = {
   trace: ToolCall[];
   activeTrace: ActiveTrace[];
   turnTraceCount: number;
+  lastTurnTrace: ToolCall[];
 };
 
 const EMPTY_DASHBOARD: Dashboard = {
   trace: [],
   activeTrace: [],
   turnTraceCount: 0,
+  lastTurnTrace: [],
 };
 
 function newConversationId() {
@@ -202,14 +212,14 @@ function traceProgressLabel(event: ActiveTrace): string {
   const query = typeof filters?.query === "string" ? ` for “${filters.query}”` : "";
   const vehicle = vehicleLabel(args.vehicle_id);
   switch (event.name) {
-    case "search_inventory": return `Searching inventory${query}…`;
+    case "list_inventory": return `Searching inventory${query}…`;
     case "lookup_vehicle_exact": return `Checking exact availability for ${args.year ?? "the requested"} ${args.make ?? "vehicle"} ${args.model ?? ""}…`;
     case "get_vehicle": return `Loading listing details for ${vehicle}…`;
-    case "retrieve_vehicle_facts": return `Retrieving sourced facts for ${vehicle}…`;
-    case "retrieve_service_history": return `Retrieving service history for ${vehicle}…`;
-    case "retrieve_magazine_reviews": return `Retrieving magazine reviews for ${vehicle}…`;
-    case "compare_vehicles": return "Comparing the grounded vehicle options…";
-    case "schedule_test_drive": return `Validating the test-drive request for ${vehicle}…`;
+    case "get_vehicle_facts": return `Retrieving sourced facts for ${vehicle}…`;
+    case "get_service_history": return `Retrieving service history for ${vehicle}…`;
+    case "get_magazine_reviews": return `Retrieving magazine reviews for ${vehicle}…`;
+    case "get_vehicle_comparison": return "Comparing the grounded vehicle options…";
+    case "create_test_drive": return `Validating the test-drive request for ${vehicle}…`;
     default: return `Running ${event.name}…`;
   }
 }
@@ -302,7 +312,7 @@ function ListingVisual({
   );
 }
 
-function InventoryGallery() {
+function InventoryGallery({ focusedVehicleId }: { focusedVehicleId: string | null }) {
   const pageSize = 6;
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
   const [query, setQuery] = useState("");
@@ -383,12 +393,17 @@ function InventoryGallery() {
         {!loading && !error && !visibleVehicles.length ? <p className="gallery-state">No featured listings match that filter.</p> : null}
         <div className="gallery-grid">
           {pageVehicles.map((vehicle, index) => (
-            <article className="inventory-card" key={vehicle.id}>
-              <button className="inventory-card-hit" type="button" onClick={() => selectVehicle(vehicle)}>
+            <article className={`inventory-card${vehicle.id === focusedVehicleId ? " inventory-card-focused" : ""}`} key={vehicle.id}>
+              <button
+                className="inventory-card-hit"
+                type="button"
+                onClick={() => selectVehicle(vehicle)}
+                aria-current={vehicle.id === focusedVehicleId ? "true" : undefined}
+              >
                 <ListingVisual vehicle={vehicle} shot={index % 2} />
                 <div className="inventory-card-body">
                   <div className="inventory-card-kicker">
-                    <span>{vehicle.body_style}</span>
+                    <span>{vehicle.id === focusedVehicleId ? "Focused" : vehicle.body_style}</span>
                     <span>{vehicle.transmission}</span>
                   </div>
                   <h3>{vehicle.name}</h3>
@@ -535,15 +550,70 @@ function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
   );
 }
 
-function AdvisorWorkspace({ dashboard }: { dashboard: Dashboard }) {
+function TraceMetricsPanel({ dashboard }: { dashboard: Dashboard }) {
+  const conversation = summarizeTrace(dashboard.trace);
+  const latestTurn = summarizeTrace(dashboard.lastTurnTrace);
+
+  return (
+    <section className="panel evidence-card trace-metrics-panel" aria-label="Evaluation and trace metrics">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">AI engineering</p>
+          <h2>Evaluation &amp; Trace Metrics</h2>
+        </div>
+        <span className="step-count">live</span>
+      </div>
+      <div className="metrics-grid">
+        <div className="metric-cell">
+          <span>Grounded retrievals</span>
+          <strong>{conversation.groundedCallCount}</strong>
+        </div>
+        <div className="metric-cell">
+          <span>Trace latency</span>
+          <strong>{formatDuration(conversation.durationMs)}</strong>
+        </div>
+        <div className="metric-cell">
+          <span>Current-turn calls</span>
+          <strong>{latestTurn.callCount}</strong>
+        </div>
+      </div>
+      <p className="metrics-summary">
+        {conversation.callCount
+          ? `${conversation.callCount} grounded call${conversation.callCount === 1 ? "" : "s"} across this conversation.`
+          : "Metrics populate as the advisor grounds a response with tools."}
+      </p>
+    </section>
+  );
+}
+
+function AdvisorWorkspace({
+  dashboard,
+  conversationState,
+  hasConversation,
+  onBackToHome,
+}: {
+  dashboard: Dashboard;
+  conversationState: ConversationState | null;
+  hasConversation: boolean;
+  onBackToHome: () => void;
+}) {
   return (
     <main className="shell">
-      <InventoryGallery />
+      <InventoryGallery focusedVehicleId={conversationState?.focused_vehicle_id ?? null} />
       <div className="workspace">
         <section className="conversation-card panel" aria-label="Conversation">
-        <Thread />
+          {hasConversation ? (
+            <nav className="conversation-back-bar" aria-label="Conversation navigation">
+              <button className="conversation-back-button" type="button" onClick={onBackToHome}>
+                <span aria-hidden="true">←</span>
+                Back to starter prompts
+              </button>
+            </nav>
+          ) : null}
+          <Thread />
         </section>
         <aside className="sidebar" aria-label="Agent evidence">
+          <TraceMetricsPanel dashboard={dashboard} />
           <ToolTracePanel dashboard={dashboard} />
         </aside>
       </div>
@@ -556,6 +626,9 @@ function RuntimeShell({
   onStreamStarted,
   onResponse,
   dashboard,
+  conversationState,
+  hasConversation,
+  onBackToHome,
   onTrace,
   onStreamFinished,
 }: {
@@ -565,6 +638,9 @@ function RuntimeShell({
   onTrace: (event: TraceStreamEvent) => void;
   onStreamFinished: () => void;
   dashboard: Dashboard;
+  conversationState: ConversationState | null;
+  hasConversation: boolean;
+  onBackToHome: () => void;
 }) {
   const adapter = useMemo(
     () => createChatAdapter(conversationId, onStreamStarted, onResponse, onTrace, onStreamFinished),
@@ -573,27 +649,36 @@ function RuntimeShell({
   const runtime = useLocalRuntime(adapter);
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <AdvisorWorkspace dashboard={dashboard} />
+      <AdvisorWorkspace
+        dashboard={dashboard}
+        conversationState={conversationState}
+        hasConversation={hasConversation}
+        onBackToHome={onBackToHome}
+      />
     </AssistantRuntimeProvider>
   );
 }
 
 function App() {
-  const [conversationId] = useState(newConversationId);
+  const [conversationId, setConversationId] = useState(newConversationId);
   const [dashboard, setDashboard] = useState<Dashboard>(EMPTY_DASHBOARD);
+  const [conversationState, setConversationState] = useState<ConversationState | null>(null);
+  const [hasConversation, setHasConversation] = useState(false);
   const handleStreamStarted = useCallback(() => {
+    setHasConversation(true);
     setDashboard((current) => ({ ...current, activeTrace: [], turnTraceCount: 0 }));
   }, []);
-  const handleResponse = useCallback(
-    (payload: ChatPayload) => setDashboard((current) => {
+  const handleResponse = useCallback((payload: ChatPayload) => {
+    setConversationState(payload.state);
+    setDashboard((current) => {
       return {
         trace: mergeTraceHistory(current.trace, current.turnTraceCount, payload.trace),
         activeTrace: [],
         turnTraceCount: 0,
+        lastTurnTrace: payload.trace,
       };
-    }),
-    [],
-  );
+    });
+  }, []);
   const handleTrace = useCallback((event: TraceStreamEvent) => {
     setDashboard((current) => {
       if (event.status === "running") {
@@ -622,6 +707,12 @@ function App() {
       return { ...current, activeTrace: [] };
     });
   }, []);
+  const handleBackToHome = useCallback(() => {
+    setConversationId(newConversationId());
+    setDashboard(EMPTY_DASHBOARD);
+    setConversationState(null);
+    setHasConversation(false);
+  }, []);
 
   return (
     <RuntimeShell
@@ -632,6 +723,9 @@ function App() {
       onTrace={handleTrace}
       onStreamFinished={handleStreamFinished}
       dashboard={dashboard}
+      conversationState={conversationState}
+      hasConversation={hasConversation}
+      onBackToHome={handleBackToHome}
     />
   );
 }

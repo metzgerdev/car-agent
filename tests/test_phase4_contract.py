@@ -59,10 +59,12 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("--chat-bg" in css for css in css_assets)
     assert any("color-scheme:dark" in css.replace(" ", "") for css in css_assets)
     assert any("trace-phase" in css for css in css_assets)
-    assert any("tool-trace-panel" in css and "min-height:720px" in css.replace(" ", "") for css in css_assets)
+    assert any("trace-metrics-panel" in css and "metrics-grid" in css for css in css_assets)
     assert any("cursor:not-allowed" in css.replace(" ", "") for css in css_assets)
     assert all(".aui-styled-send:disabled{cursor:wait" not in css.replace(" ", "") for css in css_assets)
     assert any("Tool Trace" in javascript for javascript in javascript_assets)
+    assert any("Evaluation & Trace Metrics" in javascript for javascript in javascript_assets)
+    assert any("inventory-card-focused" in javascript for javascript in javascript_assets)
     assert any(">GP<" in javascript or "children:`GP`" in javascript for javascript in javascript_assets)
     assert any("trace-purpose" in javascript for javascript in javascript_assets)
     assert any("listing-photo" in javascript for javascript in javascript_assets)
@@ -543,6 +545,5 @@ def test_p4_t5_browser_is_text_only() -> None:
     assert "/voice/" not in thread_source
     assert "/voice/" not in main_source
     assert "modality" not in main_source
-    assert "evaluation" not in main_source.lower()
     assert client.get("/voice/scribe-token").status_code == 404
     assert client.post("/voice/speak", json={"text": "Hello"}).status_code == 404
