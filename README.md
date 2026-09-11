@@ -68,9 +68,11 @@ git commit -m "Configure Hugging Face Space"
 ```
 
 The script runs a local Docker build before pushing the current branch to the
-Space. Set `SKIP_DOCKER_BUILD=1` to omit that preflight build. The application
-keeps conversations and test-drive requests in memory, so that state resets
-when the Space restarts or sleeps.
+Space. If Docker Desktop is unavailable, omit that optional preflight build
+with `SKIP_DOCKER_BUILD=1 ./scripts/deploy_huggingface.sh`; Hugging Face will
+still build the image after the push. The application keeps conversations and
+test-drive requests in memory, so that state resets when the Space restarts or
+sleeps.
 
 ## UI preview
 

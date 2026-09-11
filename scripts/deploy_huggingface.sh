@@ -55,7 +55,30 @@ if [[ "${SKIP_DOCKER_BUILD:-0}" != "1" ]]; then
     echo "Error: Docker is required for the preflight build. Set SKIP_DOCKER_BUILD=1 to skip it." >&2
     exit 1
   fi
-  docker build --tag classic-car-advisor:space .
+  if ! docker info >/dev/null 2>&1; then
+    cat >&2 <<'EOF'
+Error: Docker Desktop is not reachable.
+
+Start or restart Docker Desktop, wait until it reports that the engine is
+running, then retry. To deploy without the optional local Docker preflight
+build, run:
+
+  SKIP_DOCKER_BUILD=1 ./scripts/deploy_huggingface.sh
+EOF
+    exit 1
+  fi
+  if ! docker buildx inspect --bootstrap >/dev/null 2>&1; then
+    cat >&2 <<'EOF'
+Error: Docker's active buildx builder is unavailable.
+
+Restart Docker Desktop, then retry. To deploy without the optional local
+Docker preflight build, run:
+
+  SKIP_DOCKER_BUILD=1 ./scripts/deploy_huggingface.sh
+EOF
+    exit 1
+  fi
+  docker build --load --tag classic-car-advisor:space .
 fi
 
 remote_name="huggingface"
