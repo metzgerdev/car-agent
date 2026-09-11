@@ -147,7 +147,7 @@ def phase3_scenarios() -> list[Phase3Scenario]:
                 "It will be a weekend car for spirited driving, preferably a coupe.",
             ],
             expected_stage="recommending",
-            required_tools=["list_inventory", "get_vehicle", "get_vehicle_facts"],
+            required_tools=["list_inventory", "get_vehicle_facts"],
             required_phrases=["I found"],
             budget_max=45_000,
         ),

@@ -100,7 +100,7 @@ def test_phase3_unique_bare_model_token_checks_inventory() -> None:
 def test_phase3_explicit_make_browse_returns_grounded_inventory_options() -> None:
     response = DeterministicRouter().respond("phase3-browse-make", "Show me classic BMWs")
 
-    assert response.trace[0].name == "list_inventory"
+    assert [call.name for call in response.trace] == ["list_inventory"]
     assert response.trace[0].arguments == {"filters": {"query": "BMW"}}
     assert "2008 BMW Z4 M Coupe" in response.message
     assert "1998 BMW E36 328is" in response.message

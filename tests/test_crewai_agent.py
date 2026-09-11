@@ -5,7 +5,7 @@ from crewai.types.streaming import CrewStreamingOutput, StreamChunk, StreamChunk
 
 from car_agent.agent import DeterministicRouter
 from car_agent.conversation_context import ConversationTurn
-from car_agent.crewai_agent import CrewAISalesAgent, CrewTurnOutput
+from car_agent.crewai_agent import CrewAISalesAgent, CrewTurnOutput, _state_from_dict
 from car_agent.intent_parser import IntentEnvelope, InventoryIntentFilters
 from car_agent.models import ConversationState, ShopperPreferences
 from car_agent.profiling import TimingRecorder
@@ -61,8 +61,6 @@ def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
     assert second.state.stage == "recommending"
     assert [call.name for call in second.trace] == [
         "list_inventory",
-        "get_vehicle",
-        "get_vehicle",
         "get_vehicle_facts",
     ]
 
@@ -72,6 +70,52 @@ def test_live_facade_exposes_a_deterministic_router_boundary() -> None:
 
     assert isinstance(agent.router, DeterministicRouter)
     assert not hasattr(agent, "deterministic_agent")
+
+
+def test_live_facade_routes_contextual_notes_to_the_selected_vehicle() -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    agent.respond("live-contextual-notes", "Show me classic BMWs")
+    agent.respond("live-contextual-notes", "Tell me about the BMW 2002")
+    response = agent.respond("live-contextual-notes", "Notes")
+
+    assert [call.name for call in response.trace] == ["get_vehicle_facts"]
+    assert response.trace[0].arguments == {"vehicle_id": "mock-0037"}
+    assert "1971 BMW 2002" in response.message
+    assert response.state.focused_vehicle_id == "mock-0037"
+    assert "2008 BMW Z4 M Coupe" not in response.message
+
+
+def test_live_facade_routes_unscoped_notes_without_an_llm_call(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("unscoped factual follow-ups must not call the live model")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_if_called)
+
+    response = agent.respond("live-unscoped-notes", "Notes")
+
+    assert response.trace == []
+    assert "which specific vehicle" in response.message.lower()
+
+
+def test_live_model_failure_falls_back_to_the_deterministic_router(monkeypatch) -> None:
+    class GeneralIntentParser:
+        def parse(self, message, *, known_makes):
+            return IntentEnvelope(intent="general_conversation", confidence=1.0)
+
+    agent = CrewAISalesAgent(use_live_model=True, intent_parser=GeneralIntentParser())
+
+    def fail_live_model(*args, **kwargs):
+        raise TypeError("simulated provider failure")
+
+    monkeypatch.setattr(agent, "_respond_live", fail_live_model)
+
+    response = agent.respond("live-fallback", "I want a classic car under $45k.")
+
+    assert response.state.stage == "qualifying"
+    assert "use" in response.message.lower() or "driving" in response.message.lower()
 
 
 def test_deterministic_facade_emits_response_deltas() -> None:
@@ -464,6 +508,24 @@ def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) ->
         "crewai.crew_kickoff",
         "crewai.output_normalization",
     }
+
+
+def test_live_state_rejects_unknown_inventory_vehicle_ids() -> None:
+    state = _state_from_dict(
+        "live-state-validation",
+        {
+            "last_vehicle_ids": ["not-in-inventory"],
+            "focused_vehicle_id": "not-in-inventory",
+            "preferences": {"selected_vehicle_id": "not-in-inventory"},
+        },
+        ConversationState("live-state-validation"),
+        valid_vehicle_ids={"honda-s2000-2004"},
+    )
+
+    assert state.shown_vehicle_ids == []
+    assert state.last_vehicle_ids == []
+    assert state.focused_vehicle_id is None
+    assert state.preferences.selected_vehicle_id is None
 
 
 def test_live_turn_receives_bounded_history_and_grounded_context(monkeypatch) -> None:

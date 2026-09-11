@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from time import perf_counter
@@ -29,6 +30,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 
 ResponseObserver = Callable[[str], None]
+LOGGER = logging.getLogger(__name__)
 
 
 class ListInventoryInput(BaseModel):
@@ -277,12 +279,27 @@ class CrewAISalesAgent:
         trace_observer: TraceObserver | None = None,
         response_observer: ResponseObserver | None = None,
     ) -> AgentResponse:
-        response = self._respond(
-            conversation_id,
-            user_message,
-            trace_observer=trace_observer,
-            response_observer=response_observer,
-        )
+        try:
+            response = self._respond(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
+        except Exception:
+            if not self.use_live_model:
+                raise
+            LOGGER.warning(
+                "Live model turn failed; returning the deterministic fallback for conversation %s",
+                conversation_id,
+                exc_info=True,
+            )
+            response = self._respond_deterministic(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
         self._record_turn(conversation_id, user_message, response)
         return response
 
@@ -301,6 +318,18 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
+        previous_state = self.sessions.get(conversation_id)
+        scope_vehicle_ids = (
+            self.router._shown_vehicle_ids(previous_state)
+            if previous_state
+            else None
+        )
+        mentioned_vehicles = list(
+            self.tools.inventory.resolve_reference(
+                user_message,
+                scope_vehicle_ids=scope_vehicle_ids,
+            ).candidates
+        )
         # Route exact availability deterministically.
         if self.router._exact_vehicle_query(user_message.strip()):
             return self._respond_deterministic(
@@ -318,16 +347,25 @@ class CrewAISalesAgent:
                 response_observer=response_observer,
             )
         # Route bare model references through inventory grounding.
-        if self.router._is_model_reference_request(user_message):
+        if self.router._is_model_reference_request(user_message, mentioned_vehicles):
             return self._respond_deterministic(
                 conversation_id,
                 user_message,
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
-        # Route explicit vehicle detail requests through inventory grounding.
-        mentioned_vehicles = self.tools.inventory.find_in_text(user_message)
-        if len(mentioned_vehicles) == 1 and self.router._is_vehicle_detail_request(user_message):
+        # Factual follow-ups must be resolved from inventory context. This also
+        # gives a safe clarification after a browser reload instead of calling
+        # the live model with an ungrounded request such as "notes".
+        if self.router._is_fact_question(user_message):
+            return self._respond_deterministic(
+                conversation_id,
+                user_message,
+                trace_observer=trace_observer,
+                response_observer=response_observer,
+            )
+        # Route explicit vehicle details through inventory grounding.
+        if mentioned_vehicles and self.router._is_vehicle_detail_request(user_message):
             return self._respond_deterministic(
                 conversation_id,
                 user_message,
@@ -351,7 +389,6 @@ class CrewAISalesAgent:
                 response_observer=response_observer,
             )
         # Route scheduling through deterministic validation.
-        previous_state = self.sessions.get(conversation_id)
         # Resolve affirmative replies against pending follow-ups.
         if (
             previous_state
@@ -377,7 +414,7 @@ class CrewAISalesAgent:
         # Route grounded alternative follow-ups deterministically.
         if (
             previous_state
-            and previous_state.last_vehicle_ids
+            and self.router._shown_vehicle_ids(previous_state)
             and self.router._is_alternative_request(user_message)
         ):
             return self._respond_deterministic(
@@ -395,7 +432,7 @@ class CrewAISalesAgent:
             )
         if (
             previous_state
-            and previous_state.last_vehicle_ids
+            and self.router._shown_vehicle_ids(previous_state)
             and self.router._is_contextual_followup(user_message)
         ):
             return self._respond_deterministic(
@@ -669,7 +706,12 @@ class CrewAISalesAgent:
                 )
             with self.profiler.span("crewai.output_normalization"):
                 output = _coerce_crew_output(result)
-                state = _state_from_dict(conversation_id, output.state, previous_state)
+                state = _state_from_dict(
+                    conversation_id,
+                    output.state,
+                    previous_state,
+                    valid_vehicle_ids=self._inventory_vehicle_ids(),
+                )
                 self._pin_explicit_vehicle(state, user_message)
             self.sessions[conversation_id] = state
             return AgentResponse(output.message.strip(), state, trace)
@@ -677,12 +719,17 @@ class CrewAISalesAgent:
     def _pin_explicit_vehicle(self, state: ConversationState, user_message: str) -> None:
         """Keep an explicitly named vehicle authoritative across live turns."""
 
-        mentioned_vehicles = self.tools.inventory.find_in_text(user_message)
+        mentioned_vehicles = self.tools.inventory.resolve_reference(
+            user_message,
+            scope_vehicle_ids=self.router._shown_vehicle_ids(state),
+        ).candidates
         if len(mentioned_vehicles) != 1:
             return
         vehicle = mentioned_vehicles[0]
-        state.preferences.selected_vehicle_id = vehicle.id
-        state.last_vehicle_ids = [vehicle.id]
+        self.router._focus_vehicle(state, vehicle.id)
+
+    def _inventory_vehicle_ids(self) -> set[str]:
+        return {vehicle.id for vehicle in self.tools.inventory.all()}
 
     def _respond_live_review(
         self,
@@ -737,7 +784,12 @@ class CrewAISalesAgent:
                 )
             with self.profiler.span("crewai.output_normalization"):
                 output = _coerce_crew_output(result)
-                state = _state_from_dict(conversation_id, output.state, prepared.state)
+                state = _state_from_dict(
+                    conversation_id,
+                    output.state,
+                    prepared.state,
+                    valid_vehicle_ids=self._inventory_vehicle_ids(),
+                )
         self.sessions[conversation_id] = state
         message = _ensure_review_citations(output.message.strip(), reviews)
         return AgentResponse(message, state, trace)
@@ -865,6 +917,8 @@ def _state_from_dict(
     conversation_id: str,
     payload: dict[str, Any],
     previous: ConversationState,
+    *,
+    valid_vehicle_ids: set[str] | None = None,
 ) -> ConversationState:
     preferences_payload = payload.get("preferences", {})
     if not isinstance(preferences_payload, dict):
@@ -877,6 +931,20 @@ def _state_from_dict(
     last_vehicle_ids = payload.get("last_vehicle_ids", previous.last_vehicle_ids)
     if not isinstance(last_vehicle_ids, list) or not all(isinstance(value, str) for value in last_vehicle_ids):
         last_vehicle_ids = previous.last_vehicle_ids
+    shown_vehicle_ids = payload.get("shown_vehicle_ids", last_vehicle_ids)
+    if not isinstance(shown_vehicle_ids, list) or not all(isinstance(value, str) for value in shown_vehicle_ids):
+        shown_vehicle_ids = previous.shown_vehicle_ids or last_vehicle_ids
+    shown_vehicle_ids = list(dict.fromkeys(shown_vehicle_ids))
+    focused_vehicle_id = payload.get("focused_vehicle_id", preferences.selected_vehicle_id)
+    if focused_vehicle_id is not None and not isinstance(focused_vehicle_id, str):
+        focused_vehicle_id = previous.focused_vehicle_id
+    if valid_vehicle_ids is not None:
+        shown_vehicle_ids = [vehicle_id for vehicle_id in shown_vehicle_ids if vehicle_id in valid_vehicle_ids]
+        if focused_vehicle_id not in valid_vehicle_ids:
+            focused_vehicle_id = None
+    # `selected_vehicle_id` is retained for compatibility, but it represents
+    # the same concrete focus as the explicit state field.
+    preferences.selected_vehicle_id = focused_vehicle_id
     pending_followup = payload.get("pending_followup", previous.pending_followup)
     if pending_followup not in {None, "service_history"}:
         pending_followup = previous.pending_followup
@@ -884,7 +952,9 @@ def _state_from_dict(
         conversation_id=conversation_id,
         preferences=preferences,
         stage=stage,
-        last_vehicle_ids=last_vehicle_ids,
+        last_vehicle_ids=list(shown_vehicle_ids),
+        shown_vehicle_ids=shown_vehicle_ids,
+        focused_vehicle_id=focused_vehicle_id,
         pending_followup=pending_followup,
     )
 

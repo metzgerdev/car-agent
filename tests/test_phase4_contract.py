@@ -164,7 +164,7 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert trace_events[0]["purpose"]
     assert trace_events[0]["outcome"] == "Running…"
     assert trace_events[0]["duration_ms"] is None
-    assert len(completed) == 4
+    assert len(completed) == 2
     assert all(payload["call"]["name"] for payload in completed)
     assert all(payload["phase"] for payload in completed)
     assert all(payload["purpose"] for payload in completed)
@@ -173,12 +173,10 @@ def test_p4_t10_chat_can_stream_trace_progress_over_sse() -> None:
     assert all(payload["call"]["duration_ms"] >= 0 for payload in completed)
     assert [payload["call"]["name"] for payload in completed] == [
         "list_inventory",
-        "get_vehicle",
-        "get_vehicle",
         "get_vehicle_facts",
     ]
     assert len(response_events) == 1
-    assert len(response_events[0]["trace"]) == 4
+    assert len(response_events[0]["trace"]) == 2
     assert len(deltas) > 1
     response_index = next(index for index, (name, _) in enumerate(events) if name == "response")
     assert all(name == "response_delta" for name, _ in events[:response_index] if name != "trace")

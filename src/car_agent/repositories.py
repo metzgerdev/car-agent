@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -54,10 +55,110 @@ PROJECT_ROOT = _resolve_project_root()
 DATA_ROOT = _resolve_data_root(PROJECT_ROOT)
 
 
+@dataclass(frozen=True)
+class InventoryReferenceResolution:
+    """Inventory-backed candidates for a shopper's vehicle reference."""
+
+    candidates: tuple[Vehicle, ...]
+    source: str
+
+    @property
+    def vehicle_id(self) -> str | None:
+        return self.candidates[0].id if len(self.candidates) == 1 else None
+
+
+class InventoryReferenceIndex:
+    """Resolve vehicle references exclusively against the loaded inventory."""
+
+    def __init__(self, vehicles: list[Vehicle]) -> None:
+        self._vehicles = tuple(vehicles)
+        self._by_id = {vehicle.id: vehicle for vehicle in vehicles}
+        self._inventory_ids: dict[str, set[str]] = {}
+        self._exact_identities: dict[str, set[str]] = {}
+        self._make_models: dict[str, set[str]] = {}
+        self._make_families: dict[str, set[str]] = {}
+        self._models: dict[str, set[str]] = {}
+        self._model_families: dict[str, set[str]] = {}
+
+        for vehicle in vehicles:
+            family = vehicle.model.split(maxsplit=1)[0]
+            self._add(self._inventory_ids, vehicle.id, vehicle.id)
+            self._add(self._exact_identities, vehicle.name, vehicle.id)
+            self._add(self._make_models, f"{vehicle.make} {vehicle.model}", vehicle.id)
+            self._add(self._make_families, f"{vehicle.make} {family}", vehicle.id)
+            self._add(self._models, vehicle.model, vehicle.id)
+            if self._is_distinct_family_alias(family):
+                self._add(self._model_families, family, vehicle.id)
+
+    @staticmethod
+    def _add(index: dict[str, set[str]], alias: str, vehicle_id: str) -> None:
+        index.setdefault(alias.casefold(), set()).add(vehicle_id)
+
+    @staticmethod
+    def _is_distinct_family_alias(alias: str) -> bool:
+        """Avoid treating common short prose tokens as vehicle model references."""
+
+        normalized = re.sub(r"[^a-z0-9]", "", alias.casefold())
+        return any(character.isdigit() for character in normalized) or len(normalized) >= 3
+
+    def resolve(
+        self,
+        text: str,
+        *,
+        scope_vehicle_ids: list[str] | tuple[str, ...] | None = None,
+    ) -> InventoryReferenceResolution:
+        """Return canonical candidates, preferring an exact identity over context."""
+
+        for source, aliases, exact_identity in (
+            ("inventory_id", self._inventory_ids, True),
+            ("exact_identity", self._exact_identities, True),
+            ("make_model", self._make_models, False),
+            ("make_family", self._make_families, False),
+            ("model", self._models, False),
+            ("model_family", self._model_families, False),
+        ):
+            matched_ids = self._matching_ids(text, aliases)
+            if not matched_ids:
+                continue
+            candidates = self._ordered_candidates(matched_ids)
+            if not exact_identity:
+                scoped_candidates = self._scoped_candidates(matched_ids, scope_vehicle_ids)
+                if scoped_candidates:
+                    return InventoryReferenceResolution(tuple(scoped_candidates), "recent_results")
+            return InventoryReferenceResolution(tuple(candidates), source)
+        return InventoryReferenceResolution((), "none")
+
+    @staticmethod
+    def _matching_ids(text: str, aliases: dict[str, set[str]]) -> set[str]:
+        normalized = text.casefold()
+        matched: set[str] = set()
+        for alias, vehicle_ids in aliases.items():
+            if re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", normalized):
+                matched.update(vehicle_ids)
+        return matched
+
+    def _ordered_candidates(self, vehicle_ids: set[str]) -> list[Vehicle]:
+        return [vehicle for vehicle in self._vehicles if vehicle.id in vehicle_ids]
+
+    def _scoped_candidates(
+        self,
+        vehicle_ids: set[str],
+        scope_vehicle_ids: list[str] | tuple[str, ...] | None,
+    ) -> list[Vehicle]:
+        if not scope_vehicle_ids:
+            return []
+        return [
+            self._by_id[vehicle_id]
+            for vehicle_id in scope_vehicle_ids
+            if vehicle_id in vehicle_ids and vehicle_id in self._by_id
+        ]
+
+
 class InventoryRepository:
     def __init__(self, path: str | Path | None = None) -> None:
         inventory_path = Path(path) if path else DATA_ROOT / "inventory.json"
         self._vehicles = load_inventory_fixture(inventory_path)
+        self._reference_index = InventoryReferenceIndex(self._vehicles)
 
     def all(self) -> list[Vehicle]:
         return list(self._vehicles)
@@ -65,37 +166,16 @@ class InventoryRepository:
     def get(self, vehicle_id: str) -> Vehicle | None:
         return next((vehicle for vehicle in self._vehicles if vehicle.id == vehicle_id), None)
 
+    def resolve_reference(
+        self,
+        text: str,
+        *,
+        scope_vehicle_ids: list[str] | tuple[str, ...] | None = None,
+    ) -> InventoryReferenceResolution:
+        return self._reference_index.resolve(text, scope_vehicle_ids=scope_vehicle_ids)
+
     def find_in_text(self, text: str) -> list[Vehicle]:
-        normalized = text.lower()
-        matches = []
-        for vehicle in self._vehicles:
-            identifiers = (vehicle.id, vehicle.model, vehicle.name, f"{vehicle.make} {vehicle.model}")
-            if any(identifier.lower() in normalized for identifier in identifiers) or self._model_family_in_text(
-                normalized, vehicle
-            ):
-                matches.append(vehicle)
-
-        # Accept a unique leading model token.
-        bare_token = re.sub(r"[^a-z0-9-]+", " ", normalized).strip()
-        if len(bare_token.split()) == 1 and not matches:
-            bare_matches = []
-            for vehicle in self._vehicles:
-                model_family = re.match(r"[a-z0-9][a-z0-9-]*", vehicle.model.lower())
-                if model_family and model_family.group(0) == bare_token:
-                    bare_matches.append(vehicle)
-            if len(bare_matches) == 1:
-                return bare_matches
-        return matches
-
-    @staticmethod
-    def _model_family_in_text(text: str, vehicle: Vehicle) -> bool:
-        """Recognize a make plus the leading model token as a family reference."""
-
-        model_family = re.match(r"[A-Za-z0-9][A-Za-z0-9-]*", vehicle.model)
-        if not model_family:
-            return False
-        identity = f"{vehicle.make} {model_family.group(0)}"
-        return re.search(rf"\b{re.escape(identity)}\b", text, re.IGNORECASE) is not None
+        return list(self.resolve_reference(text).candidates)
 
     def search(self, preferences: ShopperPreferences, query: str | None = None) -> list[Vehicle]:
         candidates = self._vehicles

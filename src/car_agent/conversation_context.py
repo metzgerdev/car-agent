@@ -70,7 +70,12 @@ def build_prompt_context(
         for turn in history[recent_start:]
     ]
     earlier_summary = _summarize_earlier_turns(history[:recent_start])
-    active_id = state.preferences.selected_vehicle_id or (state.last_vehicle_ids[0] if state.last_vehicle_ids else None)
+    active_id = (
+        state.focused_vehicle_id
+        or state.preferences.selected_vehicle_id
+        or (state.shown_vehicle_ids[0] if state.shown_vehicle_ids else None)
+        or (state.last_vehicle_ids[0] if state.last_vehicle_ids else None)
+    )
     active_vehicle = (
         inventory.get(active_id).to_dict(include_service_history=False)
         if active_id and inventory.get(active_id)

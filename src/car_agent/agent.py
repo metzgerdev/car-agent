@@ -82,7 +82,11 @@ class DeterministicRouter:
         with self.profiler.span("agent.preference_parsing"):
             preference_changed = self._update_preferences(state.preferences, message)
         with self.profiler.span("agent.inventory_mention_detection"):
-            mentioned_vehicles = self.tools.inventory.find_in_text(message)
+            reference = self.tools.inventory.resolve_reference(
+                message,
+                scope_vehicle_ids=self._shown_vehicle_ids(state),
+            )
+            mentioned_vehicles = list(reference.candidates)
 
         affirmative_followup = (
             state.pending_followup == "service_history"
@@ -92,7 +96,9 @@ class DeterministicRouter:
             # Clear the previous follow-up for a new request.
             state.pending_followup = None
         if affirmative_followup:
-            vehicle_context = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else self._last_vehicle(state)
+            vehicle_context = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else None
+            if not mentioned_vehicles and self._has_vehicle_focus(state):
+                vehicle_context = self._last_vehicle(state)
             if vehicle_context:
                 return self._service_history_summary(state, vehicle_context, trace)
             state.pending_followup = None
@@ -107,7 +113,7 @@ class DeterministicRouter:
         if exact_query:
             return self._lookup_exact(state, exact_query, trace)
 
-        if self._is_alternative_request(message) and state.last_vehicle_ids:
+        if self._is_alternative_request(message) and self._shown_vehicle_ids(state):
             return self._similar_options(state, mentioned_vehicles, trace)
 
         if self._is_inventory_browse_request(message):
@@ -118,7 +124,18 @@ class DeterministicRouter:
             state.stage = "qualifying"
             return AgentResponse(ambiguous_make, state, trace)
 
-        vehicle_context = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else self._last_vehicle(state)
+        vehicle_context = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else None
+        if not mentioned_vehicles and (
+            self._has_vehicle_focus(state) or self._has_anaphoric_vehicle_reference(message)
+        ):
+            vehicle_context = self._last_vehicle(state)
+        if len(mentioned_vehicles) > 1 and self._requires_specific_vehicle(message):
+            state.stage = "qualifying"
+            return AgentResponse(
+                self._ambiguous_vehicle_message(mentioned_vehicles),
+                state,
+                trace,
+            )
         if self._is_review_request(message):
             if not vehicle_context:
                 state.stage = "qualifying"
@@ -140,7 +157,7 @@ class DeterministicRouter:
             return self._service_history_summary(state, vehicle_context, trace)
 
         if vehicle_context and self._is_unsupported_spec_question(message):
-            state.preferences.selected_vehicle_id = vehicle_context.id
+            self._focus_vehicle(state, vehicle_context.id)
             state.stage = "recommending"
             return AgentResponse(
                 f"I don’t have a sourced answer for that specification on the {vehicle_context.name}, so I won’t guess. I can check an official source or arrange an inspection and test drive.",
@@ -151,18 +168,23 @@ class DeterministicRouter:
         if vehicle_context and self._is_objection(message):
             return self._handle_objection(state, vehicle_context, trace, message)
 
-        if self._is_fact_question(message) and (mentioned_vehicles or state.last_vehicle_ids):
-            vehicle = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else self._last_vehicle(state)
-            if vehicle:
-                state.preferences.selected_vehicle_id = vehicle.id
-                facts = self._call(
+        if self._is_fact_question(message):
+            if not vehicle_context:
+                state.stage = "qualifying"
+                return AgentResponse(
+                    "Which specific vehicle would you like notes for? Please name the year and model.",
+                    state,
                     trace,
-                    "get_vehicle_facts",
-                    {"vehicle_id": vehicle.id},
-                    lambda: self.tools.get_vehicle_facts(vehicle.id),
                 )
-                state.stage = "recommending"
-                return AgentResponse(self._facts_message(vehicle, facts), state, trace)
+            self._focus_vehicle(state, vehicle_context.id)
+            facts = self._call(
+                trace,
+                "get_vehicle_facts",
+                {"vehicle_id": vehicle_context.id},
+                lambda: self.tools.get_vehicle_facts(vehicle_context.id),
+            )
+            state.stage = "recommending"
+            return AgentResponse(self._facts_message(vehicle_context, facts), state, trace)
 
         if vehicle_context and self._is_vehicle_detail_request(message):
             return self._vehicle_details(state, vehicle_context, trace)
@@ -174,11 +196,11 @@ class DeterministicRouter:
             state.stage = "qualifying"
             return AgentResponse(self._qualification_question(state.preferences), state, trace)
 
-        if preference_changed or not state.last_vehicle_ids:
+        if preference_changed or not self._shown_vehicle_ids(state):
             return self._recommend(state, trace)
 
         if len(mentioned_vehicles) == 1:
-            state.preferences.selected_vehicle_id = mentioned_vehicles[0].id
+            self._focus_vehicle(state, mentioned_vehicles[0].id)
             vehicle_result = self._call(
                 trace,
                 "get_vehicle",
@@ -201,9 +223,7 @@ class DeterministicRouter:
     ) -> AgentResponse:
         """Resolve a vehicle reference such as "it" and return its listing."""
 
-        state.preferences.selected_vehicle_id = vehicle.id
-        if vehicle.id not in state.last_vehicle_ids:
-            state.last_vehicle_ids = [vehicle.id]
+        self._focus_vehicle(state, vehicle.id)
         state.stage = "recommending"
         result = self._call(
             trace,
@@ -238,8 +258,8 @@ class DeterministicRouter:
             )
 
         # Keep the detected vehicle as the authoritative match.
-        state.last_vehicle_ids = [vehicle.id]
-        state.preferences.selected_vehicle_id = vehicle.id
+        self._set_shown_vehicles(state, [vehicle.id])
+        self._focus_vehicle(state, vehicle.id)
         state.stage = "recommending"
         result = self._call(
             trace,
@@ -262,7 +282,11 @@ class DeterministicRouter:
         }
         if state.preferences.selected_vehicle_id:
             excluded_ids.add(state.preferences.selected_vehicle_id)
-        candidate_ids = [vehicle_id for vehicle_id in state.last_vehicle_ids if vehicle_id not in excluded_ids]
+        candidate_ids = [
+            vehicle_id
+            for vehicle_id in self._shown_vehicle_ids(state)
+            if vehicle_id not in excluded_ids
+        ]
 
         # Search inventory when no alternative IDs remain.
         if not candidate_ids:
@@ -309,7 +333,7 @@ class DeterministicRouter:
                 trace,
             )
 
-        state.last_vehicle_ids = [vehicle["id"] for vehicle in vehicles]
+        self._set_shown_vehicles(state, [vehicle["id"] for vehicle in vehicles])
         state.stage = "recommending"
         lines = ["Absolutely—here are similar sports cars currently in inventory:"]
         for vehicle in vehicles:
@@ -345,15 +369,15 @@ class DeterministicRouter:
 
         if result.get("exact_match") and result.get("vehicle"):
             vehicle = result["vehicle"]
-            state.preferences.selected_vehicle_id = vehicle["id"]
-            state.last_vehicle_ids = [vehicle["id"]]
+            self._set_shown_vehicles(state, [vehicle["id"]])
+            self._focus_vehicle(state, vehicle["id"])
             state.stage = "recommending"
             return AgentResponse(self._vehicle_message({"found": True, "vehicle": vehicle}), state, trace)
 
         if result.get("status") == "family_match" and result.get("vehicle"):
             vehicle = result["vehicle"]
-            state.preferences.selected_vehicle_id = vehicle["id"]
-            state.last_vehicle_ids = [vehicle["id"]]
+            self._set_shown_vehicles(state, [vehicle["id"]])
+            self._focus_vehicle(state, vehicle["id"])
             state.stage = "recommending"
             return AgentResponse(
                 f"I found the {vehicle['name']} in inventory. Your request names the {query.make} {query.model} model family; this listing includes the full trim name.\n"
@@ -364,7 +388,7 @@ class DeterministicRouter:
 
         if result.get("status") == "ambiguous":
             matches = result.get("matches", [])
-            state.last_vehicle_ids = [vehicle["id"] for vehicle in matches if vehicle.get("id")]
+            self._set_shown_vehicles(state, [vehicle["id"] for vehicle in matches if vehicle.get("id")])
             state.stage = "qualifying"
             names = ", ".join(vehicle.get("name", vehicle.get("id", "unknown")) for vehicle in matches)
             return AgentResponse(
@@ -392,7 +416,7 @@ class DeterministicRouter:
             lambda: self.tools.list_inventory(filters),
         )
         alternatives = search.get("vehicles", [])
-        state.last_vehicle_ids = [vehicle["id"] for vehicle in alternatives]
+        self._set_shown_vehicles(state, [vehicle["id"] for vehicle in alternatives])
         state.stage = "recommending" if alternatives else "qualifying"
 
         if not alternatives:
@@ -414,9 +438,16 @@ class DeterministicRouter:
         trace: list[ToolCall],
         query: str | None = None,
         filter_overrides: dict[str, Any] | None = None,
+        include_ownership_note: bool = True,
     ) -> AgentResponse:
         with self.profiler.span("agent.recommendation_flow"):
-            return self._recommend_impl(state, trace, query=query, filter_overrides=filter_overrides)
+            return self._recommend_impl(
+                state,
+                trace,
+                query=query,
+                filter_overrides=filter_overrides,
+                include_ownership_note=include_ownership_note,
+            )
 
     def _recommend_impl(
         self,
@@ -425,6 +456,7 @@ class DeterministicRouter:
         *,
         query: str | None = None,
         filter_overrides: dict[str, Any] | None = None,
+        include_ownership_note: bool = True,
     ) -> AgentResponse:
         preferences = state.preferences
         filters = {
@@ -449,37 +481,28 @@ class DeterministicRouter:
         )
         vehicles = search["vehicles"]
         if not vehicles:
-            state.last_vehicle_ids = []
+            self._set_shown_vehicles(state, [])
             return AgentResponse(
                 "I don’t have a vehicle in the current inventory that fits that budget. Would you like to raise the budget or relax the body-style preference?",
                 state,
                 trace,
             )
 
-        state.last_vehicle_ids = [vehicle["id"] for vehicle in vehicles]
+        self._set_shown_vehicles(state, [vehicle["id"] for vehicle in vehicles])
         state.stage = "recommending"
-        hydrated_by_id: dict[str, dict[str, Any]] = {}
-        for vehicle in vehicles[:2]:
-            detail_result = self._call(
+        facts: dict[str, Any] = {}
+        if include_ownership_note:
+            top_vehicle = vehicles[0]
+            facts = self._call(
                 trace,
-                "get_vehicle",
-                {"vehicle_id": vehicle["id"]},
-                lambda vehicle_id=vehicle["id"]: self.tools.get_vehicle(vehicle_id),
+                "get_vehicle_facts",
+                {"vehicle_id": top_vehicle["id"]},
+                lambda: self.tools.get_vehicle_facts(top_vehicle["id"]),
             )
-            if detail_result.get("found") and detail_result.get("vehicle"):
-                hydrated_by_id[vehicle["id"]] = detail_result["vehicle"]
-        enriched_vehicles = [
-            {**vehicle, **hydrated_by_id.get(vehicle["id"], {})}
-            for vehicle in vehicles
-        ]
-        top_vehicle = enriched_vehicles[0]
-        facts = self._call(
-            trace,
-            "get_vehicle_facts",
-            {"vehicle_id": top_vehicle["id"]},
-            lambda: self.tools.get_vehicle_facts(top_vehicle["id"]),
-        )
-        return AgentResponse(self._recommendation_message(enriched_vehicles, facts), state, trace)
+            # The response names this as the top match and supplies its facts,
+            # so it is the only implicit vehicle follow-up can safely target.
+            self._focus_vehicle(state, top_vehicle["id"])
+        return AgentResponse(self._recommendation_message(vehicles, facts), state, trace)
 
     def _browse_inventory(
         self,
@@ -491,7 +514,7 @@ class DeterministicRouter:
         """Handle an explicit inventory browse request."""
 
         query = self._inventory_search_query(message, mentioned_vehicles)
-        return self._recommend(state, trace, query=query)
+        return self._recommend(state, trace, query=query, include_ownership_note=False)
 
     def _schedule(
         self,
@@ -510,7 +533,9 @@ class DeterministicRouter:
         mentioned_vehicles: list[Vehicle],
         trace: list[ToolCall],
     ) -> AgentResponse:
-        vehicle = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else self._last_vehicle(state)
+        vehicle = mentioned_vehicles[0] if len(mentioned_vehicles) == 1 else None
+        if not mentioned_vehicles and self._has_vehicle_focus(state):
+            vehicle = self._last_vehicle(state)
         if not vehicle:
             return AgentResponse(
                 "Which specific car would you like to drive? Please include its year and model.",
@@ -518,7 +543,7 @@ class DeterministicRouter:
                 trace,
             )
 
-        state.preferences.selected_vehicle_id = vehicle.id
+        self._focus_vehicle(state, vehicle.id)
         self._update_contact(state.preferences, message)
         missing = []
         if not state.preferences.name:
@@ -578,7 +603,10 @@ class DeterministicRouter:
     ) -> AgentResponse:
         vehicles = mentioned_vehicles[:2]
         if len(vehicles) < 2:
-            vehicles = [self.tools.inventory.get(vehicle_id) for vehicle_id in state.last_vehicle_ids[:2]]
+            vehicles = [
+                self.tools.inventory.get(vehicle_id)
+                for vehicle_id in self._shown_vehicle_ids(state)[:2]
+            ]
             vehicles = [vehicle for vehicle in vehicles if vehicle]
         if len(vehicles) < 2:
             return AgentResponse(
@@ -593,7 +621,7 @@ class DeterministicRouter:
             lambda: self.tools.get_vehicle_comparison([vehicle.id for vehicle in vehicles]),
         )
         state.stage = "recommending"
-        state.last_vehicle_ids = [vehicle.id for vehicle in vehicles]
+        self._set_shown_vehicles(state, [vehicle.id for vehicle in vehicles])
         first, second = result["vehicles"]
         return AgentResponse(
             f"Here’s the short version: the {first['name']} is ${first['price']:,} and {first['description'].lower()} The {second['name']} is ${second['price']:,} and {second['description'].lower()} Based on your stated preferences, I’d start with the {first['name']}. Want to inspect one or schedule a drive?",
@@ -618,9 +646,7 @@ class DeterministicRouter:
         trace: list[ToolCall],
         message: str,
     ) -> AgentResponse:
-        state.preferences.selected_vehicle_id = vehicle.id
-        if vehicle.id not in state.last_vehicle_ids:
-            state.last_vehicle_ids = [vehicle.id]
+        self._focus_vehicle(state, vehicle.id)
         state.stage = "recommending"
         facts = self._call(
             trace,
@@ -655,9 +681,7 @@ class DeterministicRouter:
         vehicle: Vehicle,
         trace: list[ToolCall],
     ) -> AgentResponse:
-        state.preferences.selected_vehicle_id = vehicle.id
-        if vehicle.id not in state.last_vehicle_ids:
-            state.last_vehicle_ids = [vehicle.id]
+        self._focus_vehicle(state, vehicle.id)
         state.stage = "recommending"
         result = self._call(
             trace,
@@ -691,7 +715,7 @@ class DeterministicRouter:
     ) -> AgentResponse:
         """Return listing service records."""
 
-        state.preferences.selected_vehicle_id = vehicle.id
+        self._focus_vehicle(state, vehicle.id)
         state.stage = "recommending"
         state.pending_followup = None
         result = self._call(
@@ -801,7 +825,12 @@ class DeterministicRouter:
 
     @staticmethod
     def _facts_question(message: str) -> bool:
-        return bool(re.search(r"\b(ownership|maintenance|inspect|inspection|service|spec|reliable|reliability|common)\b", message.lower()))
+        return bool(
+            re.search(
+                r"\b(ownership|maintenance|inspect|inspection|service|spec|reliable|reliability|common|notes?)\b",
+                message.lower(),
+            )
+        )
 
     @classmethod
     def _is_fact_question(cls, message: str) -> bool:
@@ -1112,6 +1141,64 @@ class DeterministicRouter:
         return None
 
     @staticmethod
+    def _shown_vehicle_ids(state: ConversationState) -> list[str]:
+        """Return the current result set, including state created before focus support."""
+
+        return state.shown_vehicle_ids or state.last_vehicle_ids
+
+    @staticmethod
+    def _set_shown_vehicles(state: ConversationState, vehicle_ids: list[str]) -> None:
+        """Replace the visible result set and clear any prior single-vehicle focus."""
+
+        unique_ids = list(dict.fromkeys(vehicle_id for vehicle_id in vehicle_ids if vehicle_id))
+        state.shown_vehicle_ids = unique_ids
+        # Keep the legacy field synchronized for existing clients and persisted sessions.
+        state.last_vehicle_ids = list(unique_ids)
+        state.focused_vehicle_id = None
+        state.preferences.selected_vehicle_id = None
+
+    @staticmethod
+    def _focus_vehicle(state: ConversationState, vehicle_id: str) -> None:
+        """Pin subsequent contextual requests to an inventory-backed vehicle ID."""
+
+        state.focused_vehicle_id = vehicle_id
+        state.preferences.selected_vehicle_id = vehicle_id
+        if not state.shown_vehicle_ids and not state.last_vehicle_ids:
+            state.shown_vehicle_ids = [vehicle_id]
+            state.last_vehicle_ids = [vehicle_id]
+
+    @staticmethod
+    def _has_vehicle_focus(state: ConversationState) -> bool:
+        return bool(
+            state.focused_vehicle_id
+            or state.preferences.selected_vehicle_id
+            # Legacy persisted state had one vehicle list serving as the focus.
+            # A single current result is similarly unambiguous.
+            or len(DeterministicRouter._shown_vehicle_ids(state)) == 1
+        )
+
+    @staticmethod
+    def _has_anaphoric_vehicle_reference(message: str) -> bool:
+        return re.search(r"\b(it|that one|that car|the car|the vehicle)\b", message.lower()) is not None
+
+    @staticmethod
+    def _ambiguous_vehicle_message(vehicles: list[Vehicle]) -> str:
+        names = ", ".join(vehicle.name for vehicle in vehicles)
+        return f"I found multiple listings matching that model: {names}. Which year or listing would you like to explore?"
+
+    def _requires_specific_vehicle(self, message: str) -> bool:
+        return any(
+            (
+                self._is_review_request(message),
+                self._is_service_history_request(message),
+                self._is_fact_question(message),
+                self._is_vehicle_detail_request(message),
+                self._is_unsupported_spec_question(message),
+                self._is_objection(message),
+            )
+        )
+
+    @staticmethod
     def _is_unsupported_spec_question(message: str) -> bool:
         lowered = message.lower()
         unsupported = (
@@ -1146,10 +1233,12 @@ class DeterministicRouter:
         )
 
     def _last_vehicle(self, state: ConversationState) -> Vehicle | None:
-        if state.preferences.selected_vehicle_id:
-            return self.tools.inventory.get(state.preferences.selected_vehicle_id)
-        if state.last_vehicle_ids:
-            return self.tools.inventory.get(state.last_vehicle_ids[0])
+        vehicle_id = state.focused_vehicle_id or state.preferences.selected_vehicle_id
+        if vehicle_id:
+            return self.tools.inventory.get(vehicle_id)
+        shown_vehicle_ids = self._shown_vehicle_ids(state)
+        if shown_vehicle_ids:
+            return self.tools.inventory.get(shown_vehicle_ids[0])
         return None
 
     @classmethod

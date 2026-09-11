@@ -18,8 +18,6 @@ def test_agent_qualifies_then_searches_with_trace() -> None:
     assert second.state.preferences.driving_style == "spirited"
     assert [call.name for call in second.trace] == [
         "list_inventory",
-        "get_vehicle",
-        "get_vehicle",
         "get_vehicle_facts",
     ]
     assert second.state.last_vehicle_ids
@@ -66,6 +64,83 @@ def test_service_history_is_a_separate_grounded_tool_call() -> None:
     listing = agent.tools.get_vehicle("honda-s2000-2004")
     assert "service_history" not in listing["vehicle"]
     assert "synthetic demo records" in response.message
+
+
+def test_service_history_prefers_an_explicit_year_make_model_over_prior_context() -> None:
+    agent = DeterministicRouter()
+
+    agent.respond("service-history-explicit", "Show me classic BMWs")
+    response = agent.respond(
+        "service-history-explicit",
+        "What is the maintenance history on the 1971 BMW 2002?",
+    )
+
+    assert [call.name for call in response.trace] == ["get_service_history"]
+    assert response.trace[0].arguments == {"vehicle_id": "mock-0037"}
+    assert "1971 BMW 2002" in response.message
+    assert "2008 BMW Z4 M Coupe" not in response.message
+
+
+def test_detail_request_resolves_a_broad_model_to_one_recent_match() -> None:
+    agent = DeterministicRouter()
+
+    browse = agent.respond("recent-model-detail", "Show me classic BMWs")
+    shown_vehicle_ids = list(browse.state.shown_vehicle_ids)
+    assert shown_vehicle_ids == browse.state.last_vehicle_ids
+    assert browse.state.focused_vehicle_id is None
+
+    response = agent.respond("recent-model-detail", "Tell me about the BMW 2002.")
+
+    assert [call.name for call in response.trace] == ["get_vehicle"]
+    assert response.trace[0].arguments == {"vehicle_id": "mock-0037"}
+    assert "1971 BMW 2002" in response.message
+    assert "2008 BMW Z4 M Coupe" not in response.message
+    assert response.state.shown_vehicle_ids == shown_vehicle_ids
+    assert response.state.focused_vehicle_id == "mock-0037"
+
+
+def test_detail_request_clarifies_when_a_broad_model_is_still_ambiguous() -> None:
+    response = DeterministicRouter().respond("ambiguous-model-detail", "Tell me about the BMW 2002.")
+
+    assert response.trace == []
+    assert "multiple listings" in response.message
+    assert "1970 BMW 2002" in response.message
+    assert "1971 BMW 2002" in response.message
+
+
+def test_inventory_reference_index_scopes_broad_names_but_keeps_exact_names_global() -> None:
+    inventory = InventoryRepository()
+
+    ambiguous = inventory.resolve_reference("Tell me about the BMW 2002")
+    assert ambiguous.source == "make_model"
+    assert {vehicle.id for vehicle in ambiguous.candidates} == {"mock-0005", "mock-0037"}
+
+    recent = inventory.resolve_reference(
+        "Tell me about the BMW 2002",
+        scope_vehicle_ids=["bmw-z4-m-2008", "mock-0037"],
+    )
+    assert recent.source == "recent_results"
+    assert recent.vehicle_id == "mock-0037"
+
+    exact = inventory.resolve_reference(
+        "Tell me about the 1970 BMW 2002",
+        scope_vehicle_ids=["bmw-z4-m-2008", "mock-0037"],
+    )
+    assert exact.source == "exact_identity"
+    assert exact.vehicle_id == "mock-0005"
+
+    assert inventory.resolve_reference("Why is this a good fit for a long trip?").candidates == ()
+
+
+def test_unqualified_notes_after_a_multi_vehicle_browse_require_a_selection() -> None:
+    agent = DeterministicRouter()
+
+    agent.respond("unqualified-notes", "Show me classic BMWs")
+    response = agent.respond("unqualified-notes", "Notes")
+
+    assert response.trace == []
+    assert "which specific vehicle" in response.message.lower()
+    assert response.state.focused_vehicle_id is None
 
 
 def test_schedule_request_collects_details_then_creates_request() -> None:

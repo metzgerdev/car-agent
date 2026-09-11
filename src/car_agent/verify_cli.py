@@ -32,7 +32,7 @@ class Phase1Verifier:
     def _new_checks() -> dict[str, VerificationCheck]:
         return {
             "P1-T1": VerificationCheck("P1-T1", "qualification happens before tool use"),
-            "P1-T2": VerificationCheck("P1-T2", "recommendation emits the ordered multi-tool trace"),
+            "P1-T2": VerificationCheck("P1-T2", "recommendation emits the lean grounded tool trace"),
             "P1-T3": VerificationCheck("P1-T3", "vehicle facts are grounded and sourced"),
             "P1-T4": VerificationCheck("P1-T4", "valid details create exactly one test-drive request"),
             "P1-T5": VerificationCheck("P1-T5", "recommendation results respect the budget cap"),
@@ -72,8 +72,6 @@ class Phase1Verifier:
 
         expected_trace = [
             "list_inventory",
-            "get_vehicle",
-            "get_vehicle",
             "get_vehicle_facts",
         ]
         if response.state.stage == "recommending" and trace_names == expected_trace:
