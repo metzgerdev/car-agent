@@ -9,8 +9,8 @@ Usage: scripts/deploy_huggingface.sh [owner/space-name]
 
 Pushes the current Git branch to the metzgerdev/car-sales-agent Hugging Face
 Space by default. Pass an owner/space-name to override it. Authenticate Git
-with Hugging Face before running this command. To skip the local Docker
-preflight build, set SKIP_DOCKER_BUILD=1.
+with an SSH key registered with Hugging Face before running this command. To
+skip the local Docker preflight build, set SKIP_DOCKER_BUILD=1.
 
 Example:
   scripts/deploy_huggingface.sh
@@ -35,7 +35,8 @@ if [[ ! "$space_repo" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$
 fi
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(cd -- "$script_dir/.." && pwd)"
-space_url="https://huggingface.co/spaces/${space_repo}.git"
+space_url="git@hf.co:spaces/${space_repo}.git"
+legacy_https_url="https://huggingface.co/spaces/${space_repo}.git"
 
 cd "$project_root"
 
@@ -85,8 +86,13 @@ remote_name="huggingface"
 if git remote get-url "$remote_name" >/dev/null 2>&1; then
   configured_url="$(git remote get-url "$remote_name")"
   if [[ "$configured_url" != "$space_url" ]]; then
-    echo "Error: remote '$remote_name' points to $configured_url, not $space_url." >&2
-    exit 1
+    if [[ "$configured_url" == "$legacy_https_url" ]]; then
+      git remote set-url "$remote_name" "$space_url"
+      printf "Updated '%s' remote to use SSH.\n" "$remote_name"
+    else
+      echo "Error: remote '$remote_name' points to $configured_url, not $space_url." >&2
+      exit 1
+    fi
   fi
 else
   git remote add "$remote_name" "$space_url"

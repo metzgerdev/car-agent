@@ -59,7 +59,9 @@ Face with your preferred visibility, then add `OPENROUTER_API_KEY` as a Space
 **Secret** under **Settings → Variables and secrets**. You may also set the
 optional `CAR_AGENT_CREWAI_MODEL` variable.
 
-Commit the deployment files, authenticate Git with Hugging Face, and deploy:
+Commit the deployment files, add your SSH public key in [Hugging Face SSH
+settings](https://huggingface.co/settings/keys), then verify the connection
+with `ssh -T git@hf.co` before deploying:
 
 ```bash
 git add README.md Dockerfile .dockerignore .gitignore scripts/deploy_huggingface.sh
