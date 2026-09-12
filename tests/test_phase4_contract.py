@@ -34,9 +34,47 @@ def test_p4_t1_api_contract_and_validation() -> None:
     assert health.status_code == 200
     assert health.json() == {"status": "ok"}
     assert chat.status_code == 200
-    assert {"message", "state", "trace"} <= chat.json().keys()
+    assert {"message", "state", "trace", "metrics"} <= chat.json().keys()
     assert chat.json()["state"]["stage"] == "recommending"
+    assert chat.json()["metrics"] == {
+        "llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+    }
     assert malformed.status_code == 422
+
+
+def test_buyer_dossier_api_requires_the_conversation_focused_vehicle() -> None:
+    client, agent = _offline_client()
+    conversation_id = "buyer-dossier-api"
+    agent.sessions[conversation_id] = ConversationState(
+        conversation_id,
+        focused_vehicle_id="mock-0037",
+    )
+
+    dossier = client.post(
+        "/buyer-dossier",
+        json={"conversation_id": conversation_id, "vehicle_id": "mock-0037"},
+    )
+    mismatch = client.post(
+        "/buyer-dossier",
+        json={"conversation_id": conversation_id, "vehicle_id": "bmw-z4-m-2008"},
+    )
+    unknown_conversation = client.post(
+        "/buyer-dossier",
+        json={"conversation_id": "not-focused", "vehicle_id": "mock-0037"},
+    )
+
+    assert dossier.status_code == 200
+    payload = dossier.json()
+    assert payload["vehicle_id"] == "mock-0037"
+    assert payload["vehicle_name"] == "1971 BMW 2002"
+    assert payload["mode"] == "grounded_fallback"
+    assert payload["recommendation"] == "investigate"
+    assert payload["metrics"]["llm_calls"] == 0
+    assert mismatch.status_code == 409
+    assert unknown_conversation.status_code == 409
 
 
 def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
@@ -57,7 +95,7 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     javascript_assets = [asset.text for asset in assets if "javascript" in asset.headers.get("content-type", "")]
     vite_config_source = (Path(__file__).parents[1] / "frontend" / "vite.config.ts").read_text()
     assert any("--chat-bg" in css for css in css_assets)
-    assert any("color-scheme:dark" in css.replace(" ", "") for css in css_assets)
+    assert any("color-scheme:light" in css.replace(" ", "") for css in css_assets)
     assert any("trace-phase" in css for css in css_assets)
     assert any("trace-metrics-panel" in css and "metrics-grid" in css for css in css_assets)
     assert any("cursor:not-allowed" in css.replace(" ", "") for css in css_assets)
@@ -66,12 +104,12 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("Evaluation & Trace Metrics" in javascript for javascript in javascript_assets)
     assert any("inventory-card-focused" in javascript for javascript in javascript_assets)
     assert any(">GP<" in javascript or "children:`GP`" in javascript for javascript in javascript_assets)
-    assert any("trace-purpose" in javascript for javascript in javascript_assets)
+    assert any("trace-summary-purpose" in javascript for javascript in javascript_assets)
     assert any("listing-photo" in javascript for javascript in javascript_assets)
     assert any("image-credit" in javascript for javascript in javascript_assets)
     assert any("Grand Prix Motors Inventory" in javascript for javascript in javascript_assets)
     assert any("Specializing in classic/modern-classic enthusiast sports cars" in javascript for javascript in javascript_assets)
-    assert any("aui-welcome-tagline" in javascript for javascript in javascript_assets)
+    assert any("elevenlabs-empty-state" in javascript for javascript in javascript_assets)
     assert any("aui-starter-prompts" in javascript for javascript in javascript_assets)
     assert any("Find a weekend sports car" in javascript for javascript in javascript_assets)
     assert any("/inventory?limit=100" in javascript for javascript in javascript_assets)

@@ -1,15 +1,25 @@
 import {
   AuiIf,
   ComposerPrimitive,
-  MessagePartPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
   useAui,
   unstable_useComposerInput,
 } from "@assistant-ui/react";
-import { useCallback } from "react";
+import { useCallback, type ComponentPropsWithoutRef } from "react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
+import { Conversation, ConversationContent } from "../../elevenlabs-ui/conversation";
+import { ConversationEmptyState } from "../../elevenlabs-ui/conversation-empty-state";
+import { Matrix, type Frame } from "../../elevenlabs-ui/matrix";
+import { Message, MessageContent } from "../../elevenlabs-ui/message";
+import { ShimmeringText } from "../../elevenlabs-ui/shimmering-text";
+
+function SourceLink({ href, children, ...props }: ComponentPropsWithoutRef<"a">) {
+  return <a {...props} href={href} target="_blank" rel="noreferrer">{href}</a>;
+}
+
+const markdownComponents = { a: SourceLink };
 
 /** Render the chat thread. */
 export function Thread() {
@@ -22,25 +32,30 @@ export function Thread() {
         scrollToBottomOnRunStart
         scrollToBottomOnInitialize
       >
-        <div className="aui-thread-content">
-          <AuiIf condition={(state) => state.thread.isEmpty}>
-            <div className="aui-thread-welcome">
-              <div className="aui-welcome-mark" aria-hidden="true">GP</div>
-              <p className="aui-welcome-tagline">Specializing in classic/modern-classic enthusiast sports cars</p>
-              <StarterPrompts />
-            </div>
-          </AuiIf>
+        <Conversation className="elevenlabs-conversation min-h-full flex-none overflow-visible">
+          <ConversationContent className="aui-thread-content p-0">
+            <AuiIf condition={(state) => state.thread.isEmpty}>
+              <ConversationEmptyState
+                className="aui-thread-welcome elevenlabs-empty-state"
+                icon={<div className="aui-welcome-mark" aria-hidden="true">GP</div>}
+                title="Grand Prix Motors"
+                description="Specializing in classic/modern-classic enthusiast sports cars"
+              >
+                <StarterPrompts />
+              </ConversationEmptyState>
+            </AuiIf>
 
-          <ThreadPrimitive.Messages>
-            {({ message }) => {
-              if (message.role === "user") return <UserMessage />;
-              if (message.status?.type === "running" && message.parts.length === 0) {
-                return <ThinkingPlaceholder />;
-              }
-              return <AssistantMessage />;
-            }}
-          </ThreadPrimitive.Messages>
-        </div>
+            <ThreadPrimitive.Messages>
+              {({ message }) => {
+                if (message.role === "user") return <UserMessage />;
+                if (message.status?.type === "running" && message.parts.length === 0) {
+                  return <ThinkingPlaceholder />;
+                }
+                return <AssistantMessage />;
+              }}
+            </ThreadPrimitive.Messages>
+          </ConversationContent>
+        </Conversation>
       </ThreadPrimitive.Viewport>
       <div className="aui-styled-footer">
         <Composer />
@@ -89,61 +104,88 @@ function StarterPrompts() {
 
 function ThinkingPlaceholder() {
   return (
-    <div className="aui-styled-message aui-styled-assistant-message aui-thinking-message" role="status" aria-label="Thinking...">
-      <div className="aui-styled-avatar aui-assistant-avatar" aria-hidden="true">GP</div>
-      <div className="aui-styled-message-body">
-        <div className="aui-styled-message-label">Advisor</div>
+    <Message from="assistant" className="elevenlabs-message" role="status" aria-label="Thinking...">
+      <MessageContent variant="flat" className="elevenlabs-message-content">
+        <div className="elevenlabs-message-label">Advisor</div>
         <div className="aui-thinking-indicator">
-          <span>Thinking</span>
-          <span className="aui-thinking-dots" aria-hidden="true">
-            <span>.</span>
-            <span>.</span>
-            <span>.</span>
-          </span>
+          <ShimmeringText text="Grounding your response…" duration={1.6} repeatDelay={0.35} startOnView={false} />
         </div>
-      </div>
-    </div>
+      </MessageContent>
+      <AdvisorAvatar />
+    </Message>
   );
 }
 
 function UserMessage() {
   return (
-    <MessagePrimitive.Root className="aui-styled-message aui-styled-user-message">
-      <div className="aui-styled-avatar aui-user-avatar" aria-hidden="true">You</div>
-      <div className="aui-styled-message-body">
-        <div className="aui-styled-message-label">You</div>
-        <div className="aui-styled-message-text">
-          <MessagePrimitive.Parts>
-            {({ part }) => (part.type === "text" ? <MessagePartPrimitive.Text /> : null)}
-          </MessagePrimitive.Parts>
-        </div>
-      </div>
+    <MessagePrimitive.Root>
+      <Message from="user" className="elevenlabs-message">
+        <MessageContent variant="flat" className="elevenlabs-message-content">
+          <div className="elevenlabs-message-text aui-styled-markdown">
+            <MessagePrimitive.Parts>
+              {({ part }) => (part.type === "text" ? <MarkdownTextPrimitive remarkPlugins={[remarkGfm]} components={markdownComponents} /> : null)}
+            </MessagePrimitive.Parts>
+          </div>
+        </MessageContent>
+        <div className="elevenlabs-message-avatar elevenlabs-user-avatar" aria-hidden="true">You</div>
+      </Message>
     </MessagePrimitive.Root>
   );
 }
 
 function AssistantMessage() {
   return (
-    <MessagePrimitive.Root className="aui-styled-message aui-styled-assistant-message">
-      <div className="aui-styled-avatar aui-assistant-avatar" aria-hidden="true">GP</div>
-      <div className="aui-styled-message-body">
-        <div className="aui-styled-message-label">Advisor</div>
-        <div className="aui-styled-message-text aui-styled-markdown">
-          <MessagePrimitive.Parts>
-            {({ part }) => {
-              if (part.type === "text") {
-                return <MarkdownTextPrimitive remarkPlugins={[remarkGfm]} />;
-              }
-              if (part.type === "tool-call") {
-                return part.toolUI ?? <span className="aui-tool-note">Checking grounded evidence…</span>;
-              }
-              return null;
-            }}
-          </MessagePrimitive.Parts>
-          <MessagePrimitive.Error />
-        </div>
-      </div>
+    <MessagePrimitive.Root>
+      <Message from="assistant" className="elevenlabs-message">
+        <MessageContent variant="flat" className="elevenlabs-message-content">
+          <div className="elevenlabs-message-label">Advisor</div>
+          <div className="elevenlabs-message-text aui-styled-markdown">
+            <MessagePrimitive.Parts>
+              {({ part }) => {
+                if (part.type === "text") {
+                  return <MarkdownTextPrimitive remarkPlugins={[remarkGfm]} components={markdownComponents} />;
+                }
+                if (part.type === "tool-call") {
+                  return part.toolUI ?? <span className="aui-tool-note">Checking grounded evidence…</span>;
+                }
+                return null;
+              }}
+            </MessagePrimitive.Parts>
+            <MessagePrimitive.Error />
+          </div>
+        </MessageContent>
+        <AdvisorAvatar />
+      </Message>
     </MessagePrimitive.Root>
+  );
+}
+
+const gpMark: Frame = [
+  [0, 1, 1, 0, 0, 1, 1, 1, 0],
+  [1, 0, 0, 1, 0, 1, 0, 0, 1],
+  [1, 0, 0, 0, 0, 1, 0, 0, 1],
+  [1, 0, 1, 1, 0, 1, 1, 1, 0],
+  [1, 0, 0, 1, 0, 1, 0, 0, 0],
+  [1, 0, 0, 1, 0, 1, 0, 0, 0],
+  [0, 1, 1, 0, 0, 1, 0, 0, 0],
+];
+const gpMarkFrames = [gpMark, gpMark.map((row) => row.map((pixel) => pixel * 0.72))];
+
+function AdvisorAvatar() {
+  return (
+    <div className="elevenlabs-message-avatar elevenlabs-assistant-avatar" aria-hidden="true">
+      <Matrix
+        className="gp-matrix"
+        rows={7}
+        cols={9}
+        frames={gpMarkFrames}
+        fps={1.4}
+        size={2.15}
+        gap={0.45}
+        palette={{ on: "#ffffff", off: "#52525b" }}
+        ariaLabel="Grand Prix Motors"
+      />
+    </div>
   );
 }
 

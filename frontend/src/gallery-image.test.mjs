@@ -24,10 +24,61 @@ test("gallery exposes the inventory-backed conversation focus", () => {
   assert.doesNotMatch(mainSource, /Conversation focus/);
 });
 
+test("gallery shows the inventory without a client-side make or model filter", () => {
+  assert.doesNotMatch(mainSource, /Filter make, model, or tag/);
+  assert.doesNotMatch(mainSource, /visibleVehicles/);
+  assert.doesNotMatch(stylesSource, /gallery-search/);
+});
+
+test("desktop layout uses inventory as a vertical rail beside the conversation", () => {
+  assert.match(mainSource, /<div className="workspace">\s*<InventoryGallery/);
+  assert.match(stylesSource, /grid-template-columns: minmax\(220px, 250px\) minmax\(0, 1fr\) minmax\(280px, 320px\)/);
+  assert.match(stylesSource, /workspace > \.inventory-gallery \.gallery-grid\s*\{[\s\S]*overflow-y: auto/);
+  assert.match(stylesSource, /workspace > \.inventory-gallery \.inventory-card-kicker\s*\{ display: none/);
+  assert.match(stylesSource, /workspace > \.inventory-gallery \.inventory-card\s*\{ display: flex;/);
+  assert.match(stylesSource, /workspace > \.inventory-gallery \.inventory-card-hit\s*\{ display: grid; flex: 1;/);
+  assert.match(stylesSource, /workspace > \.inventory-gallery \.listing-visual\s*\{ align-self: stretch; height: auto; min-height: 0;/);
+  assert.match(stylesSource, /workspace > \.inventory-gallery \.listing-photo\s*\{ max-width: none;/);
+});
+
+test("desktop rails fit within a scroll-free viewport canvas", () => {
+  assert.match(stylesSource, /@media \(min-width: 901px\) \{\s*html, body, #root \{ height: 100%; overflow: hidden; \}/);
+  assert.match(stylesSource, /\.shell \{ width: 100%; height: 100vh; height: 100dvh; min-height: 0; padding: 24px 20px 40px; margin: 0; overflow: hidden; \}/);
+  assert.match(stylesSource, /\.workspace \{ height: 100%; min-height: 0; grid-template-columns:/);
+  assert.match(stylesSource, /\.sidebar \{ height: 100%; min-height: 0; align-content: start; overflow-y: auto;/);
+});
+
+test("trace summaries show a readable outcome before raw tool data", () => {
+  assert.match(mainSource, /function traceStatusLabel\(result: unknown\)/);
+  assert.match(mainSource, /function traceResultCount\(result: unknown\)/);
+  assert.match(mainSource, /className="trace-summary-purpose"/);
+  assert.match(mainSource, /className="trace-result-count"/);
+  assert.match(mainSource, /className="trace-raw-data"/);
+  assert.match(stylesSource, /\.trace-raw-data > summary\s*\{[\s\S]*font-size: 0\.64rem/);
+});
+
 test("the conversation offers a reset path back to starter prompts", () => {
   assert.match(mainSource, /Back to starter prompts/);
   assert.match(mainSource, /setConversationId\(newConversationId\(\)\)/);
   assert.match(stylesSource, /\.conversation-back-bar\s*\{/);
+});
+
+test("trace metrics surface conversation-level LLM calls and token usage", () => {
+  assert.match(mainSource, /Token budget used/);
+  assert.match(mainSource, /LLM calls/);
+  assert.match(mainSource, /llmUsage: payload\.metrics/);
+});
+
+test("buyer dossiers are on-demand and scoped to the focused inventory vehicle", () => {
+  assert.match(mainSource, /function BuyerDossierPanel/);
+  assert.match(mainSource, /fetch\("\/buyer-dossier"/);
+  assert.match(mainSource, /conversation_id: conversationId, vehicle_id: requestedVehicleId/);
+  assert.match(mainSource, /activeVehicleId\.current !== requestedVehicleId/);
+  assert.match(mainSource, /conversationState\?\.focused_vehicle_id/);
+  assert.match(mainSource, /Buyer Dossier/);
+  assert.match(mainSource, /onMetrics\(resolved\.metrics\)/);
+  assert.match(stylesSource, /\.sidebar\.sidebar-with-dossier\s*\{/);
+  assert.match(stylesSource, /\.buyer-dossier-panel\s*\{ max-height: min\(360px, 45vh\); overflow: auto;/);
 });
 
 test("live trace labels use the backend's canonical tool names", () => {

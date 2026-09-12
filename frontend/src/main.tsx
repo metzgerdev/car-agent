@@ -4,7 +4,7 @@ import {
   type ChatModelAdapter,
   type ThreadMessage,
 } from "@assistant-ui/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Thread } from "./components/assistant-ui/elements/thread";
 import { mergeTraceHistory } from "./trace-history.js";
@@ -25,6 +25,29 @@ type ChatPayload = {
   message: string;
   state: ConversationState;
   trace: ToolCall[];
+  metrics: LLMUsage;
+};
+
+type BuyerDossier = {
+  vehicle_id: string;
+  vehicle_name: string;
+  summary: string;
+  fit_reasons: string[];
+  watchouts: string[];
+  seller_questions: string[];
+  inspection_priorities: string[];
+  recommendation: "buy" | "investigate" | "pass";
+  confidence: "low" | "medium" | "high";
+  evidence_note: string;
+  mode: "llm" | "grounded_fallback";
+  metrics: LLMUsage;
+};
+
+type LLMUsage = {
+  llm_calls: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
 };
 
 type ConversationState = {
@@ -76,6 +99,7 @@ type Dashboard = {
   activeTrace: ActiveTrace[];
   turnTraceCount: number;
   lastTurnTrace: ToolCall[];
+  llmUsage: LLMUsage;
 };
 
 const EMPTY_DASHBOARD: Dashboard = {
@@ -83,6 +107,7 @@ const EMPTY_DASHBOARD: Dashboard = {
   activeTrace: [],
   turnTraceCount: 0,
   lastTurnTrace: [],
+  llmUsage: { llm_calls: 0, prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
 };
 
 function newConversationId() {
@@ -235,9 +260,46 @@ function traceToolLabel(name: string): string {
     .join(" ");
 }
 
+function traceStatusLabel(result: unknown): string {
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    const payload = result as Record<string, unknown>;
+    if (payload.ok === false || payload.found === false || payload.error) return "No result";
+  }
+  return "Complete";
+}
+
+function traceResultCount(result: unknown): number | null {
+  if (Array.isArray(result)) return result.length;
+  if (!result || typeof result !== "object") return null;
+
+  const payload = result as Record<string, unknown>;
+  for (const key of ["record_count", "match_count", "vehicle_count", "count"]) {
+    if (typeof payload[key] === "number") return Math.max(0, payload[key] as number);
+  }
+  for (const key of ["matches", "vehicles", "reviews", "records", "items", "results"]) {
+    if (Array.isArray(payload[key])) return payload[key].length;
+  }
+  if (typeof payload.found === "boolean") return payload.found ? 1 : 0;
+  if (typeof payload.ok === "boolean") return payload.ok ? 1 : 0;
+  return null;
+}
+
+function traceResultLabel(result: unknown): string | null {
+  const count = traceResultCount(result);
+  if (count === null) return null;
+  return `${count} ${count === 1 ? "result" : "results"}`;
+}
+
 function formatDuration(durationMs: number | null | undefined): string {
   if (typeof durationMs !== "number") return "—";
   return durationMs < 1 ? "<1 ms" : `${Math.round(durationMs)} ms`;
+}
+
+function formatTokenCount(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(Math.max(0, value));
 }
 
 function formatPrice(value: number): string {
@@ -315,7 +377,6 @@ function ListingVisual({
 function InventoryGallery({ focusedVehicleId }: { focusedVehicleId: string | null }) {
   const pageSize = 6;
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
-  const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [selectedVehicle, setSelectedVehicle] = useState<InventoryVehicle | null>(null);
   const [activeShot, setActiveShot] = useState(0);
@@ -353,20 +414,9 @@ function InventoryGallery({ focusedVehicleId }: { focusedVehicleId: string | nul
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedVehicle]);
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const visibleVehicles = inventory.filter((vehicle) => {
-    if (!normalizedQuery) return true;
-    return `${vehicle.name} ${vehicle.body_style} ${vehicle.tags.join(" ")}`
-      .toLowerCase()
-      .includes(normalizedQuery);
-  });
-  const totalPages = Math.max(1, Math.ceil(visibleVehicles.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(inventory.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pageVehicles = visibleVehicles.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  useEffect(() => {
-    setPage(1);
-  }, [normalizedQuery]);
+  const pageVehicles = inventory.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const selectVehicle = (vehicle: InventoryVehicle) => {
     setSelectedVehicle(vehicle);
@@ -376,21 +426,10 @@ function InventoryGallery({ focusedVehicleId }: { focusedVehicleId: string | nul
   return (
     <>
       <section className="inventory-gallery panel" aria-label="Featured inventory gallery">
-        <div className="gallery-controls">
-          <p className="eyebrow gallery-title">Grand Prix Motors Inventory</p>
-          <label className="gallery-search">
-            <span className="sr-only">Filter featured inventory</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filter make, model, or tag"
-              type="search"
-            />
-          </label>
-        </div>
+        <p className="eyebrow">Grand Prix Motors Inventory</p>
         {loading ? <p className="gallery-state">Loading featured inventory…</p> : null}
         {error ? <p className="gallery-state gallery-error">Featured inventory is unavailable. The chat remains available.</p> : null}
-        {!loading && !error && !visibleVehicles.length ? <p className="gallery-state">No featured listings match that filter.</p> : null}
+        {!loading && !error && !inventory.length ? <p className="gallery-state">No featured inventory is currently available.</p> : null}
         <div className="gallery-grid">
           {pageVehicles.map((vehicle, index) => (
             <article className={`inventory-card${vehicle.id === focusedVehicleId ? " inventory-card-focused" : ""}`} key={vehicle.id}>
@@ -419,7 +458,7 @@ function InventoryGallery({ focusedVehicleId }: { focusedVehicleId: string | nul
             </article>
           ))}
         </div>
-        {!loading && !error && visibleVehicles.length > pageSize ? (
+        {!loading && !error && inventory.length > pageSize ? (
           <nav className="gallery-pagination" aria-label="Inventory pages">
             <button
               className="gallery-page-button"
@@ -507,6 +546,97 @@ function InventoryGallery({ focusedVehicleId }: { focusedVehicleId: string | nul
   );
 }
 
+function BuyerDossierPanel({
+  conversationId,
+  vehicleId,
+  onMetrics,
+}: {
+  conversationId: string;
+  vehicleId: string;
+  onMetrics: (metrics: LLMUsage) => void;
+}) {
+  const [dossier, setDossier] = useState<BuyerDossier | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const activeVehicleId = useRef(vehicleId);
+
+  useEffect(() => {
+    activeVehicleId.current = vehicleId;
+    setDossier(null);
+    setError(null);
+    setLoading(false);
+  }, [vehicleId, conversationId]);
+
+  const generate = useCallback(async () => {
+    const requestedVehicleId = vehicleId;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/buyer-dossier", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversation_id: conversationId, vehicle_id: requestedVehicleId }),
+      });
+      const payload = await response.json() as BuyerDossier | { detail?: string };
+      if (!response.ok) {
+        throw new Error("detail" in payload ? payload.detail : "The buyer dossier is unavailable.");
+      }
+      if (activeVehicleId.current !== requestedVehicleId) return;
+      const resolved = payload as BuyerDossier;
+      setDossier(resolved);
+      onMetrics(resolved.metrics);
+    } catch (requestError) {
+      if (activeVehicleId.current !== requestedVehicleId) return;
+      setError(requestError instanceof Error ? requestError.message : "The buyer dossier is unavailable.");
+    } finally {
+      if (activeVehicleId.current === requestedVehicleId) setLoading(false);
+    }
+  }, [conversationId, onMetrics, vehicleId]);
+
+  const lists: Array<[string, string[]]> = dossier ? [
+    ["Fit for your brief", dossier.fit_reasons],
+    ["Watchouts", dossier.watchouts],
+    ["Ask the seller", dossier.seller_questions],
+    ["Inspection priorities", dossier.inspection_priorities],
+  ] : [];
+
+  return (
+    <section className="panel evidence-card buyer-dossier-panel" aria-labelledby="buyer-dossier-title">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Evidence-bound synthesis</p>
+          <h2 id="buyer-dossier-title">Buyer Dossier</h2>
+        </div>
+        <button className="button button-secondary dossier-action" type="button" onClick={generate} disabled={loading}>
+          {loading ? "Building…" : dossier ? "Refresh" : "Generate"}
+        </button>
+      </div>
+      {!dossier && !loading && !error ? (
+        <p className="dossier-intro">Create a structured buying brief for this resolved listing.</p>
+      ) : null}
+      {loading ? <p className="dossier-status" aria-live="polite">Reviewing the listing evidence…</p> : null}
+      {error ? <p className="dossier-error" role="alert">{error}</p> : null}
+      {dossier ? (
+        <div className="dossier-content">
+          <div className="dossier-verdict">
+            <span className={`dossier-recommendation dossier-recommendation-${dossier.recommendation}`}>{dossier.recommendation}</span>
+            <span>{dossier.confidence} confidence</span>
+          </div>
+          <p className="dossier-vehicle">{dossier.vehicle_name}</p>
+          <p className="dossier-summary">{dossier.summary}</p>
+          {lists.map(([heading, items]) => items.length ? (
+            <section className="dossier-section" key={heading}>
+              <h3>{heading}</h3>
+              <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul>
+            </section>
+          ) : null)}
+          <p className="dossier-evidence-note">{dossier.evidence_note}</p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
   return (
     <section className="panel evidence-card tool-trace-panel">
@@ -532,16 +662,27 @@ function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
             <details key={`${call.name}-${index}`} className="trace-item">
               <summary>
                 <span className="trace-summary-main">
-                  <span className={`trace-phase trace-phase-${call.phase}`}>{tracePhaseLabel(call.phase)}</span>
-                  <span>{index + 1}. {traceToolLabel(call.name)}</span>
+                  <span className="trace-summary-title">
+                    <span className={`trace-phase trace-phase-${call.phase}`}>{tracePhaseLabel(call.phase)}</span>
+                    <span>{index + 1}. {traceToolLabel(call.name)}</span>
+                  </span>
+                  <span className="trace-summary-purpose">{call.purpose}</span>
                 </span>
-                <span className="trace-duration">{formatDuration(call.duration_ms)}</span>
+                <span className="trace-summary-meta">
+                  <span className={`trace-status trace-status-${traceStatusLabel(call.result) === "Complete" ? "complete" : "empty"}`}>
+                    {traceStatusLabel(call.result)}
+                  </span>
+                  {traceResultLabel(call.result) ? <span className="trace-result-count">{traceResultLabel(call.result)}</span> : null}
+                  <span className="trace-duration">{formatDuration(call.duration_ms)}</span>
+                </span>
               </summary>
               <div className="trace-explanation">
-                <p className="trace-purpose">{call.purpose}</p>
                 <p className="trace-outcome"><strong>Outcome:</strong> {call.outcome}</p>
+                <details className="trace-raw-data">
+                  <summary>View raw tool data</summary>
+                  <pre>{JSON.stringify({ arguments: call.arguments, result: call.result }, null, 2)}</pre>
+                </details>
               </div>
-              <pre>{JSON.stringify({ arguments: call.arguments, result: call.result }, null, 2)}</pre>
             </details>
           ))}
         </div>
@@ -553,6 +694,7 @@ function ToolTracePanel({ dashboard }: { dashboard: Dashboard }) {
 function TraceMetricsPanel({ dashboard }: { dashboard: Dashboard }) {
   const conversation = summarizeTrace(dashboard.trace);
   const latestTurn = summarizeTrace(dashboard.lastTurnTrace);
+  const { llmUsage } = dashboard;
 
   return (
     <section className="panel evidence-card trace-metrics-panel" aria-label="Evaluation and trace metrics">
@@ -569,17 +711,21 @@ function TraceMetricsPanel({ dashboard }: { dashboard: Dashboard }) {
           <strong>{conversation.groundedCallCount}</strong>
         </div>
         <div className="metric-cell">
-          <span>Trace latency</span>
-          <strong>{formatDuration(conversation.durationMs)}</strong>
-        </div>
-        <div className="metric-cell">
           <span>Current-turn calls</span>
           <strong>{latestTurn.callCount}</strong>
         </div>
+        <div className="metric-cell">
+          <span>LLM calls</span>
+          <strong>{llmUsage.llm_calls}</strong>
+        </div>
+        <div className="metric-cell">
+          <span>Token budget used</span>
+          <strong>{formatTokenCount(llmUsage.total_tokens)}</strong>
+        </div>
       </div>
       <p className="metrics-summary">
-        {conversation.callCount
-          ? `${conversation.callCount} grounded call${conversation.callCount === 1 ? "" : "s"} across this conversation.`
+        {conversation.callCount || llmUsage.llm_calls
+          ? `${conversation.callCount} grounded call${conversation.callCount === 1 ? "" : "s"} · ${llmUsage.llm_calls} provider-reported LLM call${llmUsage.llm_calls === 1 ? "" : "s"} · ${formatTokenCount(llmUsage.total_tokens)} tokens used.`
           : "Metrics populate as the advisor grounds a response with tools."}
       </p>
     </section>
@@ -588,19 +734,25 @@ function TraceMetricsPanel({ dashboard }: { dashboard: Dashboard }) {
 
 function AdvisorWorkspace({
   dashboard,
+  conversationId,
   conversationState,
   hasConversation,
   onBackToHome,
+  onDossierMetrics,
 }: {
   dashboard: Dashboard;
+  conversationId: string;
   conversationState: ConversationState | null;
   hasConversation: boolean;
   onBackToHome: () => void;
+  onDossierMetrics: (metrics: LLMUsage) => void;
 }) {
+  const focusedVehicleId = conversationState?.focused_vehicle_id ?? null;
+
   return (
     <main className="shell">
-      <InventoryGallery focusedVehicleId={conversationState?.focused_vehicle_id ?? null} />
       <div className="workspace">
+        <InventoryGallery focusedVehicleId={conversationState?.focused_vehicle_id ?? null} />
         <section className="conversation-card panel" aria-label="Conversation">
           {hasConversation ? (
             <nav className="conversation-back-bar" aria-label="Conversation navigation">
@@ -612,8 +764,15 @@ function AdvisorWorkspace({
           ) : null}
           <Thread />
         </section>
-        <aside className="sidebar" aria-label="Agent evidence">
+        <aside className={`sidebar${focusedVehicleId ? " sidebar-with-dossier" : ""}`} aria-label="Agent evidence">
           <TraceMetricsPanel dashboard={dashboard} />
+          {focusedVehicleId ? (
+            <BuyerDossierPanel
+              conversationId={conversationId}
+              vehicleId={focusedVehicleId}
+              onMetrics={onDossierMetrics}
+            />
+          ) : null}
           <ToolTracePanel dashboard={dashboard} />
         </aside>
       </div>
@@ -631,6 +790,7 @@ function RuntimeShell({
   onBackToHome,
   onTrace,
   onStreamFinished,
+  onDossierMetrics,
 }: {
   conversationId: string;
   onStreamStarted: () => void;
@@ -641,6 +801,7 @@ function RuntimeShell({
   conversationState: ConversationState | null;
   hasConversation: boolean;
   onBackToHome: () => void;
+  onDossierMetrics: (metrics: LLMUsage) => void;
 }) {
   const adapter = useMemo(
     () => createChatAdapter(conversationId, onStreamStarted, onResponse, onTrace, onStreamFinished),
@@ -651,9 +812,11 @@ function RuntimeShell({
     <AssistantRuntimeProvider runtime={runtime}>
       <AdvisorWorkspace
         dashboard={dashboard}
+        conversationId={conversationId}
         conversationState={conversationState}
         hasConversation={hasConversation}
         onBackToHome={onBackToHome}
+        onDossierMetrics={onDossierMetrics}
       />
     </AssistantRuntimeProvider>
   );
@@ -676,6 +839,7 @@ function App() {
         activeTrace: [],
         turnTraceCount: 0,
         lastTurnTrace: payload.trace,
+        llmUsage: payload.metrics,
       };
     });
   }, []);
@@ -713,6 +877,9 @@ function App() {
     setConversationState(null);
     setHasConversation(false);
   }, []);
+  const handleDossierMetrics = useCallback((metrics: LLMUsage) => {
+    setDashboard((current) => ({ ...current, llmUsage: metrics }));
+  }, []);
 
   return (
     <RuntimeShell
@@ -722,6 +889,7 @@ function App() {
       onResponse={handleResponse}
       onTrace={handleTrace}
       onStreamFinished={handleStreamFinished}
+      onDossierMetrics={handleDossierMetrics}
       dashboard={dashboard}
       conversationState={conversationState}
       hasConversation={hasConversation}

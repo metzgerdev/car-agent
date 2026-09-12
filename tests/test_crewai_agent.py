@@ -5,7 +5,7 @@ from crewai.types.streaming import CrewStreamingOutput, StreamChunk, StreamChunk
 
 from car_agent.agent import DeterministicRouter
 from car_agent.conversation_context import ConversationTurn
-from car_agent.crewai_agent import CrewAISalesAgent, CrewTurnOutput, _state_from_dict
+from car_agent.crewai_agent import BuyerDossierOutput, CrewAISalesAgent, CrewTurnOutput, _state_from_dict
 from car_agent.intent_parser import IntentEnvelope, InventoryIntentFilters
 from car_agent.models import ConversationState, ShopperPreferences
 from car_agent.profiling import TimingRecorder
@@ -63,6 +63,78 @@ def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
         "list_inventory",
         "get_vehicle_facts",
     ]
+
+
+def test_buyer_dossier_is_tied_to_the_focused_listing_and_has_a_grounded_fallback() -> None:
+    agent = CrewAISalesAgent(use_live_model=False)
+    conversation_id = "buyer-dossier-offline"
+    agent.sessions[conversation_id] = ConversationState(
+        conversation_id,
+        preferences=ShopperPreferences(budget_max=60_000, intended_use="weekend driving"),
+        focused_vehicle_id="mock-0037",
+    )
+
+    dossier = agent.generate_buyer_dossier(conversation_id, "mock-0037")
+
+    assert dossier["vehicle_id"] == "mock-0037"
+    assert dossier["vehicle_name"] == "1971 BMW 2002"
+    assert dossier["mode"] == "grounded_fallback"
+    assert dossier["recommendation"] == "investigate"
+    assert dossier["confidence"] == "low"
+    assert "synthetic demo" in dossier["evidence_note"].lower()
+    assert any("$54,228" in reason for reason in dossier["fit_reasons"])
+    assert all("2008 BMW Z4 M Coupe" not in item for item in dossier["watchouts"])
+
+
+def test_live_buyer_dossier_uses_only_the_focused_listing_and_records_usage(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
+    conversation_id = "buyer-dossier-live"
+    agent.sessions[conversation_id] = ConversationState(
+        conversation_id,
+        preferences=ShopperPreferences(selected_vehicle_id="honda-s2000-2004"),
+        focused_vehicle_id="honda-s2000-2004",
+    )
+
+    class FakeCrew:
+        def kickoff(self, *, inputs):
+            evidence = json.loads(inputs["evidence_json"])
+            assert inputs["vehicle_name"] == "2004 Honda S2000"
+            assert evidence["vehicle"]["id"] == "honda-s2000-2004"
+            assert "name" not in evidence["shopper_preferences"]
+            return type(
+                "FakeCrewOutput",
+                (),
+                {
+                    "pydantic": BuyerDossierOutput(
+                        summary="The listing is a 2004 Honda S2000.",
+                        fit_reasons=["The listing records a manual RWD roadster."],
+                        watchouts=["Verify the service records."],
+                        seller_questions=["Can you share the invoices?"],
+                        inspection_priorities=["Inspect the soft top."],
+                        recommendation="investigate",
+                        confidence="medium",
+                    ),
+                    "usage_metrics": {
+                        "successful_requests": 1,
+                        "prompt_tokens": 120,
+                        "completion_tokens": 30,
+                        "total_tokens": 150,
+                    },
+                },
+            )()
+
+    monkeypatch.setattr(agent, "build_buyer_dossier_crew", lambda: FakeCrew())
+
+    dossier = agent.generate_buyer_dossier(conversation_id, "honda-s2000-2004")
+
+    assert dossier["mode"] == "llm"
+    assert dossier["vehicle_id"] == "honda-s2000-2004"
+    assert dossier["metrics"] == {
+        "llm_calls": 1,
+        "prompt_tokens": 120,
+        "completion_tokens": 30,
+        "total_tokens": 150,
+    }
 
 
 def test_live_facade_exposes_a_deterministic_router_boundary() -> None:
@@ -400,11 +472,20 @@ def test_live_facade_synthesizes_contextual_magazine_reviews_with_model(monkeypa
                             "[MotorTrend](https://www.motortrend.com/reviews/honda-s2000-3)"
                         ),
                         state={"stage": "recommending", "last_vehicle_ids": ["honda-s2000-2004"]},
-                    )
+                    ),
+                    # Streaming can leave this first shape empty even though
+                    # the finalized usage_metrics payload contains totals.
+                    "token_usage": {},
+                    "usage_metrics": {
+                        "successful_requests": 1,
+                        "prompt_tokens": 180,
+                        "completion_tokens": 45,
+                        "total_tokens": 225,
+                    },
                 },
             )()
 
-    monkeypatch.setattr(agent, "build_crew", lambda trace, review_only=False: FakeCrew())
+    monkeypatch.setattr(agent, "build_crew", lambda trace, review_only=False, trace_observer=None: FakeCrew())
 
     response = agent.respond("live-review", "Summarize magazine reviews of the car.")
 
@@ -412,6 +493,12 @@ def test_live_facade_synthesizes_contextual_magazine_reviews_with_model(monkeypa
     assert "Car and Driver" in response.message
     assert "MotorTrend" in response.message
     assert response.message.count("https://") >= 2
+    assert response.metrics.to_dict() == {
+        "llm_calls": 1,
+        "prompt_tokens": 180,
+        "completion_tokens": 45,
+        "total_tokens": 225,
+    }
 
 
 def test_live_explicit_vehicle_wins_over_stale_state_for_review_followup(monkeypatch) -> None:
@@ -507,6 +594,53 @@ def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) ->
         "crewai.crew_build",
         "crewai.crew_kickoff",
         "crewai.output_normalization",
+    }
+
+
+def test_live_usage_metrics_accumulate_provider_reported_llm_calls_by_conversation(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
+
+    class FakeCrew:
+        def kickoff(self, *, inputs):
+            return type(
+                "FakeCrewOutput",
+                (),
+                {
+                    "pydantic": CrewTurnOutput(
+                        message="I can help you weigh the options.",
+                        state={"stage": "qualifying"},
+                    ),
+                    "token_usage": {
+                        "successful_requests": 2,
+                        "prompt_tokens": 180,
+                        "completion_tokens": 45,
+                        "total_tokens": 225,
+                    },
+                },
+            )()
+
+    monkeypatch.setattr(agent, "build_crew", lambda trace, **kwargs: FakeCrew())
+
+    first = agent._with_conversation_usage(
+        "usage-metrics",
+        agent._respond_live("usage-metrics", "Help me think through a classic-car purchase."),
+    )
+    second = agent._with_conversation_usage(
+        "usage-metrics",
+        agent._respond_live("usage-metrics", "What should I consider first?"),
+    )
+
+    assert first.metrics.to_dict() == {
+        "llm_calls": 2,
+        "prompt_tokens": 180,
+        "completion_tokens": 45,
+        "total_tokens": 225,
+    }
+    assert second.metrics.to_dict() == {
+        "llm_calls": 4,
+        "prompt_tokens": 360,
+        "completion_tokens": 90,
+        "total_tokens": 450,
     }
 
 

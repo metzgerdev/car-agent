@@ -19,7 +19,7 @@ from .agent import DeterministicRouter, TraceObserver
 from .conversation_context import ConversationTurn, build_prompt_context
 from .intent_parser import IntentEnvelope, IntentParser, LLMIntentParser
 from .lookup_models import ExactVehicleQuery
-from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall
+from .models import AgentResponse, ConversationState, LLMUsage, ShopperPreferences, ToolCall
 from .persona import CLASSIC_CAR_PERSONA
 from .profiling import TimingRecorder
 from .repositories import PROJECT_ROOT
@@ -74,6 +74,18 @@ class CrewTurnOutput(BaseModel):
 
     message: str = Field(description="The concise shopper-facing response")
     state: dict[str, Any] = Field(description="Updated conversation state matching the domain schema")
+
+
+class BuyerDossierOutput(BaseModel):
+    """A compact, evidence-bound purchase brief for one resolved listing."""
+
+    summary: str = Field(description="A concise listing summary grounded in the supplied evidence")
+    fit_reasons: list[str] = Field(default_factory=list)
+    watchouts: list[str] = Field(default_factory=list)
+    seller_questions: list[str] = Field(default_factory=list)
+    inspection_priorities: list[str] = Field(default_factory=list)
+    recommendation: str = Field(description="One of: buy, investigate, or pass")
+    confidence: str = Field(description="One of: low, medium, or high")
 
 
 class _CrewSalesTool(BaseTool):
@@ -263,6 +275,7 @@ class CrewAISalesAgent:
         self.tools = self.router.tools
         self.sessions = self.router.sessions
         self.turn_history: dict[str, list[ConversationTurn]] = {}
+        self.conversation_llm_usage: dict[str, LLMUsage] = {}
         self.use_live_model = (
             _env_truthy(os.getenv("CAR_AGENT_USE_CREWAI"))
             if use_live_model is None
@@ -300,6 +313,7 @@ class CrewAISalesAgent:
                 trace_observer=trace_observer,
                 response_observer=response_observer,
             )
+        response = self._with_conversation_usage(conversation_id, response)
         self._record_turn(conversation_id, user_message, response)
         return response
 
@@ -442,7 +456,7 @@ class CrewAISalesAgent:
                 response_observer=response_observer,
             )
         intent_trace: list[ToolCall] = []
-        parsed_intent = self._parse_intent(user_message, intent_trace, trace_observer)
+        parsed_intent = self._parse_intent(conversation_id, user_message, intent_trace, trace_observer)
         if (
             parsed_intent
             and parsed_intent.intent == "list_inventory"
@@ -506,6 +520,7 @@ class CrewAISalesAgent:
 
     def _parse_intent(
         self,
+        conversation_id: str,
         user_message: str,
         trace: list[ToolCall],
         trace_observer: TraceObserver | None,
@@ -516,8 +531,11 @@ class CrewAISalesAgent:
         if trace_observer:
             trace_observer("start", "parse_intent", arguments, None)
         started = perf_counter()
+        parser: IntentParser | None = None
+        usage_before = LLMUsage()
         try:
             parser = self.intent_parser or self._new_intent_parser()
+            usage_before = _llm_usage_snapshot(getattr(parser, "llm", None))
             intent = IntentEnvelope.model_validate(
                 parser.parse(
                     user_message.strip(),
@@ -533,6 +551,13 @@ class CrewAISalesAgent:
                 "confidence": 0.0,
                 "fallback": True,
             }
+        finally:
+            if parser is not None:
+                usage_after = _llm_usage_snapshot(getattr(parser, "llm", None))
+                self._add_conversation_usage(
+                    conversation_id,
+                    _usage_delta(usage_after, usage_before),
+                )
         call = ToolCall(
             name="parse_intent",
             arguments=arguments,
@@ -561,6 +586,166 @@ class CrewAISalesAgent:
                 assistant_message=response.message,
                 tool_calls=[call.to_dict(redact_sensitive=True) for call in response.trace],
             )
+        )
+
+    def _with_conversation_usage(self, conversation_id: str, response: AgentResponse) -> AgentResponse:
+        return AgentResponse(
+            message=response.message,
+            state=response.state,
+            trace=response.trace,
+            metrics=self.conversation_llm_usage.get(conversation_id, LLMUsage()),
+        )
+
+    def _add_conversation_usage(self, conversation_id: str, usage: LLMUsage) -> None:
+        current = self.conversation_llm_usage.get(conversation_id, LLMUsage())
+        self.conversation_llm_usage[conversation_id] = LLMUsage(
+            llm_calls=current.llm_calls + usage.llm_calls,
+            prompt_tokens=current.prompt_tokens + usage.prompt_tokens,
+            completion_tokens=current.completion_tokens + usage.completion_tokens,
+            total_tokens=current.total_tokens + usage.total_tokens,
+        )
+
+    def _record_crew_usage(self, conversation_id: str, result: Any) -> None:
+        self._add_conversation_usage(conversation_id, _crew_result_usage(result))
+
+    def generate_buyer_dossier(self, conversation_id: str, vehicle_id: str) -> dict[str, Any]:
+        """Create an evidence-bound buyer brief for the currently focused listing.
+
+        The target is intentionally validated against conversation state before any
+        model work. This keeps the dossier coupled to the same inventory identity
+        that was resolved in the chat, rather than letting a model select a nearby
+        make/model match from a prompt.
+        """
+
+        state = self.sessions.get(conversation_id)
+        if state is None or state.focused_vehicle_id != vehicle_id:
+            raise ValueError("Resolve this listing in the conversation before generating its dossier.")
+
+        vehicle = self.tools.inventory.get(vehicle_id)
+        if vehicle is None:
+            raise LookupError("Vehicle not found.")
+
+        facts_result = self.tools.get_vehicle_facts(vehicle_id)
+        service_result = self.tools.get_service_history(vehicle_id)
+        reviews_result = self.tools.get_magazine_reviews(vehicle_id)
+        evidence = self._buyer_dossier_evidence(
+            vehicle.to_dict(include_service_history=False),
+            facts_result,
+            service_result,
+            reviews_result,
+            state.preferences,
+        )
+        fallback = _grounded_buyer_dossier(evidence)
+        if not self.use_live_model:
+            return self._with_dossier_metrics(conversation_id, fallback, mode="grounded_fallback")
+
+        try:
+            with self.profiler.span("crewai.buyer_dossier"):
+                crew = self.build_buyer_dossier_crew()
+                result = crew.kickoff(
+                    inputs={
+                        "vehicle_name": vehicle.name,
+                        "evidence_json": json.dumps(evidence, ensure_ascii=False),
+                    }
+                )
+            self._record_crew_usage(conversation_id, result)
+            output = _coerce_buyer_dossier_output(result)
+            normalized = _normalize_buyer_dossier_output(output, fallback)
+            return self._with_dossier_metrics(conversation_id, normalized, mode="llm")
+        except Exception:
+            # The dossier is an enhancement, not a reason to make a grounded
+            # listing unavailable. Preserve the fully sourced deterministic brief.
+            LOGGER.warning(
+                "Buyer dossier synthesis failed; returning grounded fallback for conversation %s",
+                conversation_id,
+                exc_info=True,
+            )
+            return self._with_dossier_metrics(conversation_id, fallback, mode="grounded_fallback")
+
+    def _with_dossier_metrics(
+        self,
+        conversation_id: str,
+        dossier: dict[str, Any],
+        *,
+        mode: str,
+    ) -> dict[str, Any]:
+        return {
+            **dossier,
+            "mode": mode,
+            "metrics": self.conversation_llm_usage.get(conversation_id, LLMUsage()).to_dict(),
+        }
+
+    @staticmethod
+    def _buyer_dossier_evidence(
+        vehicle: dict[str, Any],
+        facts_result: dict[str, Any],
+        service_result: dict[str, Any],
+        reviews_result: dict[str, Any],
+        preferences: ShopperPreferences,
+    ) -> dict[str, Any]:
+        """Limit model input to the exact listing and non-sensitive shopper fit data."""
+
+        return {
+            "vehicle": vehicle,
+            "shopper_preferences": {
+                key: value
+                for key, value in preferences.to_dict().items()
+                if key in {"budget_max", "intended_use", "body_style", "driving_style", "timeline"}
+                and value is not None
+            },
+            "ownership_facts": facts_result.get("facts", []),
+            "service_history": {
+                "records": service_result.get("service_history", []),
+                "record_count": service_result.get("record_count", 0),
+                "synthetic": service_result.get("synthetic", False),
+            },
+            "editorial_reviews": reviews_result.get("reviews", []),
+        }
+
+    def build_buyer_dossier_crew(self) -> Crew:
+        """Build a no-tools CrewAI synthesis that can only see supplied evidence."""
+
+        analyst = Agent(
+            role="Grounded classic-car buyer analyst",
+            goal="Turn one supplied vehicle evidence packet into a cautious purchase brief.",
+            backstory=(
+                "You separate listing claims, maintenance evidence, ownership notes, and editorial "
+                "context. You never fill gaps with automotive lore or assumptions."
+            ),
+            llm=self._live_llm(),
+            tools=[],
+            allow_delegation=False,
+            max_iter=1,
+            verbose=False,
+        )
+        dossier = Task(
+            name="buyer_dossier",
+            description=(
+                "Write a buyer dossier for {vehicle_name} using only this JSON evidence packet:\n"
+                "{evidence_json}\n\n"
+                "Every statement must be directly supported by that packet. Do not invent condition, "
+                "ownership, pricing, rarity, maintenance, or suitability claims. Treat editorial reviews "
+                "as general vehicle context, never as a condition report for this listing. Keep seller "
+                "questions and inspection priorities framed as questions or verification steps. If service "
+                "records are marked synthetic or the listing provenance is illustrative, say that evidence "
+                "needs verification and set recommendation to investigate. Otherwise use buy, investigate, "
+                "or pass only when the supplied evidence supports it. Set confidence to low, medium, or high."
+            ),
+            expected_output=(
+                "JSON with summary, fit_reasons, watchouts, seller_questions, inspection_priorities, "
+                "recommendation, and confidence."
+            ),
+            agent=analyst,
+            output_pydantic=BuyerDossierOutput,
+        )
+        return Crew(
+            name="buyer_dossier_crew",
+            agents=[analyst],
+            tasks=[dossier],
+            process=Process.sequential,
+            verbose=False,
+            share_crew=False,
+            tracing=False,
         )
 
     def build_crew(
@@ -704,6 +889,7 @@ class CrewAISalesAgent:
                     },
                     response_observer,
                 )
+            self._record_crew_usage(conversation_id, result)
             with self.profiler.span("crewai.output_normalization"):
                 output = _coerce_crew_output(result)
                 state = _state_from_dict(
@@ -782,6 +968,7 @@ class CrewAISalesAgent:
                     },
                     response_observer,
                 )
+            self._record_crew_usage(conversation_id, result)
             with self.profiler.span("crewai.output_normalization"):
                 output = _coerce_crew_output(result)
                 state = _state_from_dict(
@@ -820,6 +1007,67 @@ class CrewAISalesAgent:
         return final_result
 
 
+def _llm_usage_snapshot(llm: Any) -> LLMUsage:
+    """Read CrewAI's cumulative usage counter without assuming a provider shape."""
+
+    summary = getattr(llm, "get_token_usage_summary", None)
+    if not callable(summary):
+        return LLMUsage()
+    try:
+        return _coerce_llm_usage(summary())
+    except Exception:  # pragma: no cover - metrics must never fail a shopper turn
+        LOGGER.debug("Could not read LLM usage summary", exc_info=True)
+        return LLMUsage()
+
+
+def _crew_result_usage(result: Any) -> LLMUsage:
+    """Extract per-kickoff usage reported by CrewAI, including streamed outputs."""
+
+    # Some streamed CrewAI results retain an empty ``token_usage`` object while
+    # exposing the finalized provider totals through ``usage_metrics``. Read
+    # both representations so a review synthesis cannot erase metrics simply
+    # because the first shape exists but has no values.
+    token_usage = _coerce_llm_usage(getattr(result, "token_usage", None))
+    usage_metrics = _coerce_llm_usage(getattr(result, "usage_metrics", None))
+    return LLMUsage(
+        llm_calls=max(token_usage.llm_calls, usage_metrics.llm_calls),
+        prompt_tokens=max(token_usage.prompt_tokens, usage_metrics.prompt_tokens),
+        completion_tokens=max(token_usage.completion_tokens, usage_metrics.completion_tokens),
+        total_tokens=max(token_usage.total_tokens, usage_metrics.total_tokens),
+    )
+
+
+def _coerce_llm_usage(value: Any) -> LLMUsage:
+    if value is None:
+        return LLMUsage()
+    if hasattr(value, "model_dump"):
+        value = value.model_dump()
+    if not isinstance(value, dict):
+        return LLMUsage()
+
+    def as_nonnegative_int(name: str) -> int:
+        try:
+            return max(0, int(value.get(name, 0)))
+        except (TypeError, ValueError):
+            return 0
+
+    return LLMUsage(
+        llm_calls=as_nonnegative_int("successful_requests"),
+        prompt_tokens=as_nonnegative_int("prompt_tokens"),
+        completion_tokens=as_nonnegative_int("completion_tokens"),
+        total_tokens=as_nonnegative_int("total_tokens"),
+    )
+
+
+def _usage_delta(after: LLMUsage, before: LLMUsage) -> LLMUsage:
+    return LLMUsage(
+        llm_calls=max(0, after.llm_calls - before.llm_calls),
+        prompt_tokens=max(0, after.prompt_tokens - before.prompt_tokens),
+        completion_tokens=max(0, after.completion_tokens - before.completion_tokens),
+        total_tokens=max(0, after.total_tokens - before.total_tokens),
+    )
+
+
 def _emit_response_chunks(message: str, observer: ResponseObserver, *, chunk_size: int = 32) -> None:
     """Emit deterministic text in the same delta shape as CrewAI streaming."""
 
@@ -843,6 +1091,149 @@ def _coerce_crew_output(result: Any) -> CrewTurnOutput:
         return CrewTurnOutput.model_validate_json(raw)
     except ValueError as exc:
         raise ValueError("CrewAI returned a response that does not match CrewTurnOutput") from exc
+
+
+def _coerce_buyer_dossier_output(result: Any) -> BuyerDossierOutput:
+    """Normalize a CrewAI result without accepting free-form output as evidence."""
+
+    structured = getattr(result, "pydantic", None)
+    if structured is not None:
+        return BuyerDossierOutput.model_validate(structured)
+    raw = getattr(result, "raw", str(result))
+    try:
+        return BuyerDossierOutput.model_validate_json(raw)
+    except ValueError as exc:
+        raise ValueError("CrewAI returned a response that does not match BuyerDossierOutput") from exc
+
+
+def _normalize_buyer_dossier_output(
+    output: BuyerDossierOutput,
+    fallback: dict[str, Any],
+) -> dict[str, Any]:
+    """Keep an LLM brief bounded and retain deterministic provenance language."""
+
+    recommendation = output.recommendation.strip().lower()
+    confidence = output.confidence.strip().lower()
+    if recommendation not in {"buy", "investigate", "pass"}:
+        recommendation = fallback["recommendation"]
+    # A synthetic-only record set never supports a purchase recommendation,
+    # even if a model disregards the task instruction.
+    if fallback["confidence"] == "low":
+        recommendation = fallback["recommendation"]
+    if confidence not in {"low", "medium", "high"}:
+        confidence = fallback["confidence"]
+    if fallback["confidence"] == "low":
+        confidence = "low"
+
+    def compact(items: list[str], default: list[str]) -> list[str]:
+        cleaned = [item.strip() for item in items if isinstance(item, str) and item.strip()]
+        return cleaned[:4] or default
+
+    return {
+        "vehicle_id": fallback["vehicle_id"],
+        "vehicle_name": fallback["vehicle_name"],
+        "summary": output.summary.strip() or fallback["summary"],
+        "fit_reasons": compact(output.fit_reasons, fallback["fit_reasons"]),
+        "watchouts": compact(output.watchouts, fallback["watchouts"]),
+        "seller_questions": compact(output.seller_questions, fallback["seller_questions"]),
+        "inspection_priorities": compact(output.inspection_priorities, fallback["inspection_priorities"]),
+        "recommendation": recommendation,
+        "confidence": confidence,
+        # Generated deterministically so the UI can always distinguish listing
+        # evidence from editorial context, regardless of model wording.
+        "evidence_note": fallback["evidence_note"],
+    }
+
+
+def _grounded_buyer_dossier(evidence: dict[str, Any]) -> dict[str, Any]:
+    """Build a useful no-model buyer dossier from the exact evidence packet."""
+
+    vehicle = evidence["vehicle"]
+    preferences = evidence["shopper_preferences"]
+    facts = evidence["ownership_facts"]
+    service = evidence["service_history"]
+    reviews = evidence["editorial_reviews"]
+    name = str(vehicle["name"])
+    price = int(vehicle["price"])
+    mileage = int(vehicle["mileage"])
+    configuration = ", ".join(
+        str(vehicle[key]) for key in ("body_style", "transmission", "drivetrain") if vehicle.get(key)
+    )
+    summary = (
+        f"{name} is listed at ${price:,.0f} with {mileage:,} miles. "
+        f"The listing identifies it as a {configuration} vehicle."
+    )
+
+    fit_reasons: list[str] = []
+    budget = preferences.get("budget_max")
+    if isinstance(budget, int):
+        relation = "within" if price <= budget else "above"
+        fit_reasons.append(
+            f"The ${price:,.0f} asking price is {relation} the stated ${budget:,.0f} budget."
+        )
+    if preferences.get("intended_use"):
+        fit_reasons.append(
+            f"Your stated use is {preferences['intended_use']}; validate the listing's {configuration} configuration on a drive."
+        )
+    if preferences.get("driving_style"):
+        fit_reasons.append(
+            f"Your stated driving preference is {preferences['driving_style']}; keep the test drive focused on whether this configuration fits it."
+        )
+    if not fit_reasons:
+        fit_reasons.append(
+            f"The current listing records a {configuration} configuration; use a drive to decide whether it fits your needs."
+        )
+
+    watchouts: list[str] = []
+    if service.get("synthetic"):
+        watchouts.append(
+            "The service entries are synthetic demo records, not seller documents or a condition report."
+        )
+    description = str(vehicle.get("description", "")).strip()
+    if description:
+        watchouts.append(f"Listing note: {description}")
+    for fact in facts[:2]:
+        if isinstance(fact, dict) and fact.get("fact"):
+            watchouts.append(f"Sourced ownership note: {fact['fact']}")
+    if not watchouts:
+        watchouts.append("The current packet does not include verified seller documents or an independent condition report.")
+
+    last_record = service.get("records", [])[-1] if service.get("records") else None
+    seller_questions = [
+        "Can you provide itemized invoices and seller documentation for the listed maintenance?",
+        "Are there any condition issues, repairs, or modifications beyond what is described in the listing?",
+    ]
+    inspection_priorities = [
+        "Arrange an independent pre-purchase inspection before relying on the listing or editorial context.",
+    ]
+    if isinstance(last_record, dict) and last_record.get("service_type"):
+        inspection_priorities.append(
+            f"Verify the scope and supporting paperwork for the {last_record['service_type']} recorded on {last_record.get('date', 'the latest entry')}."
+        )
+    else:
+        inspection_priorities.append("Confirm the service history with supporting paperwork and a specialist inspection.")
+
+    fact_count = len(facts)
+    record_count = int(service.get("record_count", 0))
+    review_count = len(reviews)
+    service_provenance = " Service history is marked synthetic demo data." if service.get("synthetic") else ""
+    evidence_note = (
+        f"Grounded in the current inventory listing, {fact_count} ownership fact(s), "
+        f"{record_count} service record(s), and {review_count} editorial review(s)."
+        f"{service_provenance} Editorial reviews describe the model, not this listing's condition."
+    )
+    return {
+        "vehicle_id": vehicle["id"],
+        "vehicle_name": name,
+        "summary": summary,
+        "fit_reasons": fit_reasons,
+        "watchouts": watchouts[:4],
+        "seller_questions": seller_questions,
+        "inspection_priorities": inspection_priorities,
+        "recommendation": "investigate",
+        "confidence": "low" if service.get("synthetic") else "medium",
+        "evidence_note": evidence_note,
+    }
 
 
 class _MessageStream:

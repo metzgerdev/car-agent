@@ -245,16 +245,31 @@ class ToolCall:
 
 
 @dataclass(frozen=True)
+class LLMUsage:
+    """Provider-reported LLM usage accumulated for one shopper conversation."""
+
+    llm_calls: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+    def to_dict(self) -> dict[str, int]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class AgentResponse:
     message: str
     state: ConversationState
     trace: list[ToolCall]
+    metrics: LLMUsage = field(default_factory=LLMUsage)
 
     def to_dict(self, *, redact_sensitive: bool = True) -> dict[str, Any]:
         return {
             "message": self.message,
             "state": self.state.to_dict(redact_sensitive=redact_sensitive),
             "trace": [call.to_dict(redact_sensitive=redact_sensitive) for call in self.trace],
+            "metrics": self.metrics.to_dict(),
         }
 
 

@@ -19,6 +19,43 @@ test("the composer is outside the scrolling message viewport", () => {
   assert.match(stylesSource, /\.aui-styled-footer\s*\{[\s\S]*flex: 0 0 auto;[\s\S]*margin: 0 auto;/);
 });
 
+test("the chat uses ElevenLabs UI message and empty-state primitives", () => {
+  assert.match(threadSource, /ConversationEmptyState/);
+  assert.match(threadSource, /ConversationContent/);
+  assert.match(threadSource, /<Conversation className="elevenlabs-conversation/);
+  assert.match(threadSource, /MessageContent/);
+  assert.match(threadSource, /ShimmeringText/);
+  assert.match(threadSource, /<Message from="user"/);
+  assert.match(threadSource, /<Message from="assistant"/);
+  assert.match(stylesSource, /color-scheme: light/);
+  assert.match(stylesSource, /--chat-bg: #ffffff/);
+});
+
+test("message avatars retain a square, non-shrinking footprint", () => {
+  assert.match(stylesSource, /\.elevenlabs-message-avatar\s*\{[\s\S]*flex: 0 0 30px;[\s\S]*aspect-ratio: 1;/);
+  assert.match(stylesSource, /\.elevenlabs-message-avatar\s*\{ flex-basis: 26px; width: 26px;/);
+});
+
+test("the GP advisor avatar uses the ElevenLabs Matrix component", () => {
+  assert.match(threadSource, /import \{ Matrix, type Frame \} from "\.\.\/\.\.\/elevenlabs-ui\/matrix"/);
+  assert.match(threadSource, /function AdvisorAvatar\(\)[\s\S]*<Matrix[\s\S]*frames=\{gpMarkFrames\}/);
+  assert.doesNotMatch(threadSource, /elevenlabs-assistant-avatar" aria-hidden="true">GP</);
+});
+
+test("both message roles use visible, bordered text cards", () => {
+  const userMessageSource = threadSource.match(/function UserMessage\(\)[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.match(userMessageSource, /<MarkdownTextPrimitive remarkPlugins=\{\[remarkGfm\]\} components=\{markdownComponents\} \/>/);
+  assert.doesNotMatch(userMessageSource, /elevenlabs-message-label">You/);
+  assert.match(stylesSource, /\.elevenlabs-message-content\s*\{[\s\S]*background: #fff;[\s\S]*border: 1px solid var\(--chat-border-strong\);/);
+  assert.match(stylesSource, /\.is-user \.elevenlabs-message-content\s*\{[\s\S]*color: var\(--chat-text\);[\s\S]*background: #fff;[\s\S]*border-color: #a1a1aa;/);
+});
+
+test("Markdown source links keep the full supplied URL visible", () => {
+  assert.match(threadSource, /function SourceLink\(\{ href, children, \.\.\.props \}/);
+  assert.match(threadSource, /target="_blank" rel="noreferrer">\{href\}<\/a>/);
+  assert.match(threadSource, /components=\{markdownComponents\}/);
+});
+
 test("starter prompts remain enabled on an empty composer and send their text", () => {
   const starterPromptSource = threadSource.match(/function StarterPrompts\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
 

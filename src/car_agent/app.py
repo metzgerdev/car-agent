@@ -76,7 +76,36 @@ class ChatResponse(BaseModel):
     message: str
     state: dict[str, Any]
     trace: list[dict[str, Any]]
+    metrics: dict[str, int]
     reviews: list[VehicleReviewsResponse] = Field(default_factory=list)
+
+
+class BuyerDossierRequest(BaseModel):
+    conversation_id: str = Field(min_length=1)
+    vehicle_id: str = Field(min_length=1)
+
+    @field_validator("conversation_id", "vehicle_id")
+    @classmethod
+    def require_nonblank(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("value must not be blank")
+        return cleaned
+
+
+class BuyerDossierResponse(BaseModel):
+    vehicle_id: str
+    vehicle_name: str
+    summary: str
+    fit_reasons: list[str] = Field(default_factory=list)
+    watchouts: list[str] = Field(default_factory=list)
+    seller_questions: list[str] = Field(default_factory=list)
+    inspection_priorities: list[str] = Field(default_factory=list)
+    recommendation: Literal["buy", "investigate", "pass"]
+    confidence: Literal["low", "medium", "high"]
+    evidence_note: str
+    mode: Literal["llm", "grounded_fallback"]
+    metrics: dict[str, int]
 
 
 def create_app(
@@ -134,6 +163,22 @@ def create_app(
         payload = response.to_dict()
         payload["reviews"] = _reviews_for_response(service, response, reviews)
         return ChatResponse.model_validate(payload)
+
+
+    @api.post("/buyer-dossier", response_model=BuyerDossierResponse)
+    def buyer_dossier(request: BuyerDossierRequest) -> BuyerDossierResponse:
+        """Create a purchase brief only for the vehicle focused in this conversation."""
+
+        try:
+            payload = service.generate_buyer_dossier(
+                request.conversation_id,
+                request.vehicle_id,
+            )
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return BuyerDossierResponse.model_validate(payload)
 
 
     @api.get("/vehicles/{vehicle_id}/reviews", response_model=VehicleReviewsResponse)
