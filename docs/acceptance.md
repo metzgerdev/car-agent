@@ -5,8 +5,8 @@ This document is the executable-minded checklist for the phases in [plan.md](../
 The project is a demo of AI engineering rather than a production marketplace.
 The inventory is therefore a checked-in mock fixture; listing freshness and
 availability are intentionally outside the acceptance gate. Phase 2 measures
-typed multi-source ingestion, provenance, normalization, retrieval grounding,
-and deterministic verification.
+typed fixture normalization, provenance, retrieval grounding, and deterministic
+verification.
 
 ## Phase status
 
@@ -14,7 +14,7 @@ and deterministic verification.
 | --- | --- | --- | --- |
 | 0 — Contract and skeleton | complete | Python 3.12.13 compile and serialization checks pass | none |
 | 1 — Thin vertical slice | complete | Guided CLI verifier passes all P1 checks | none |
-| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, recorded NHTSA/EPA adapters, deterministic 50-record fixture generation with model-specific production-year validation, and notebook verification pass; 88 Python tests pass | none |
+| 2 — Data and knowledge | complete | Pydantic mock-inventory normalization, direct JSON fixture loading, deterministic 50-record fixture generation with model-specific production-year validation, and notebook verification pass; 88 Python tests pass | none |
 | 3 — Sales behavior | complete | CrewAI/OpenRouter foundation, persistent qualification, deterministic ranking, REST-style resource tool semantics, exact availability lookup, first-turn comparison grounding, explicit deterministic-router grounding and safety routes, unique bare model-token grounding, first-turn explicit vehicle-detail grounding, guaranteed service-history routing with typo tolerance, context-aware vehicle follow-ups, explicit inventory-browse grounding for make/category requests, validated LLM intent parsing for ambiguous read-only searches, lean grounded recommendation traces, bounded hybrid LLM context, shared consultative salesperson persona, synthetic service-history retrieval, ambiguity/uncertainty handling, grounded objections, and 96 Python tests pass | Phase 4 API and conversion tests |
 | 4 — Conversion and polish | complete | Typed API contract, invalid-schedule protection, idempotent booking, redacted public responses, assistant-ui styled dark browser UI, streamed tool-trace progress, complete multi-turn tool-trace history, phase-aware tool purpose/outcome/timing metadata, streamed deterministic and live CrewAI answer generation, processing-state Thinking placeholder, curated magazine-review context, suggested-vehicle review context pass, text-only composer, deterministic side-effect routing for test-drive scheduling, fixed composer with bottom-following chat scroll, gallery image loading states, and nine varied clickable starter prompts; 88 Python tests, 9 frontend tests, and frontend build pass | none |
 
@@ -31,9 +31,6 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | Date | Phase/checkpoint | Evidence | Commit | Next gate |
 | --- | --- | --- | --- | --- |
 | 2026-09-03 | Phase 0/1 baseline | Python 3.14.7 smoke flow and guided verifier pass | `e5e5c79` | superseded by Python 3.12.13 baseline |
-| 2026-09-03 | Phase 2 local ingestion | Normalization, provenance rejection, idempotent SQLite ingest, and compile checks pass | `282ff33` | Pydantic source adapters |
-| 2026-09-03 | Python 3.12 and notebook verification | Python 3.12.13 environment, 19 tests, and headless Phase 2 notebook pass | `abc390b` | Official NHTSA/EPA adapters |
-| 2026-09-03 | Phase 2 multi-source adapters | 29 tests pass for typed source contracts, NHTSA vPIC/recall fixtures, EPA facts, and provenance-preserving enrichment | `2a3d692` | Phase 3 scenario evaluation |
 | 2026-09-03 | Phase 2 fixture ingestion | Mock inventory records pass typed normalization, canonical SQLite storage, repository loading, and idempotency checks; 45 tests pass | `a48846a` | none |
 | 2026-09-03 | Phase 3 sales behavior | 35 tests pass; `car-agent-evaluate --strict` reports 20/20 scenarios and zero budget violations | `3770b2c` | Phase 4 API and conversion tests |
 | 2026-09-03 | Phase 4 conversion and polish | 41 tests pass; API, scheduling, redaction, modality, and clean-checkout smoke tests pass | `11bfd1b` | none |
@@ -72,7 +69,7 @@ At every phase checkpoint, update this file in the same commit as the implementa
 | 2026-09-06 | Phase 4 text-only simplification | Removed ElevenLabs endpoints, voice transport fields, microphone/TTS controls, modality adapters, and the voice dependency; the app now exposes only the text chat/SSE boundary; 76 Python tests, 4 frontend tests, and frontend build pass | `acd8a0f` | none |
 | 2026-09-06 | Phase 4 trace explanation metadata | Tool traces now expose deterministic `phase`, `purpose`, `outcome`, and measured `duration_ms` fields across offline and CrewAI tool paths; SSE progress events and the browser Tool Trace render the human-readable explanation before expandable raw details; 77 Python tests, 4 frontend tests, and frontend build pass | `b540b9a` | none |
 | 2026-09-06 | Phase 4 dead-code cleanup | Removed stale voice proxy configuration, unused frontend review/profile/prompt/modal state and styles, and the unconsumed CrewAI crew cache while retaining the tested review API and synthesis path; 77 Python tests, 4 frontend tests, and frontend build pass | `4269d55` | none |
-| 2026-09-07 | Phase 2 mock-inventory simplification | Removed the Craigslist CSV ingestion path, boundary models, adapter helpers, CLI, sample files, and tests; the checked-in mock JSON inventory remains the canonical source, with NHTSA/EPA enrichment adapters retained; 71 Python tests, 4 frontend tests, and frontend build pass | `b6fea73` | none |
+| 2026-09-07 | Phase 2 mock-inventory simplification | Removed the Craigslist CSV ingestion path, boundary models, adapter helpers, CLI, sample files, and tests; the checked-in mock JSON inventory remains the canonical source; 71 Python tests, 4 frontend tests, and frontend build pass | `b6fea73` | none |
 | 2026-09-07 | Phase 2 JSON-only simplification | Removed `SQLiteInventoryStore`, `ingest_cli.py`, the `car-agent-ingest` entry point, `CAR_AGENT_INVENTORY_PATH`, SQLite tests, and SQLite documentation; the app and notebook now validate and load mock JSON directly; 71 Python tests, 4 frontend tests, and frontend build pass | `680804c` | none |
 | 2026-09-07 | Phase 2 1,000-record mock inventory | Added a deterministic generator that preserves the six curated demo vehicles and creates 994 synthetic auction-style records; complete fixture validation, generator reproducibility, 72 Python tests, Phase 3 evaluation, and frontend build pass | `2773c51` | none |
 | 2026-09-07 | Phase 3 partial vehicle identity regression | `2008 BMW Z4` now resolves to the unique same-year `2008 BMW Z4 M Coupe` family match with `exact_match: false`, while true misses still route to grounded alternatives; 73 Python tests and the 20-scenario evaluator pass | `ec7da91` | none |
@@ -166,7 +163,6 @@ jupyter nbconvert --to notebook --execute --output /tmp/verify_phase2.executed.i
 | P2-T3 | Load the same fixture twice | The validated mock inventory is deterministic and contains no duplicate IDs | implemented |
 | P2-T4 | Ask for one model’s ownership notes | Only that model’s sourced facts are returned | implemented |
 | P2-T5 | Ingest invalid price/year/mileage/ID | Row is rejected and the error is visible | implemented |
-| P2-T6 | Run official-source adapters against recorded fixtures | NHTSA vPIC, NHTSA recall, and EPA payloads validate with Pydantic and normalize into provenance-backed `VehicleFact` records with source URL and retrieval timestamp | implemented |
 | P2-T7 | Load the checked-in mock inventory | `data/inventory.json` validates into canonical `Vehicle` records with `illustrative_fixture` provenance, repository loading and agent search work | implemented |
 | P2-T8 | Validate the generated inventory scale | The deterministic generator preserves the six curated records and produces 44 additional typed records, for 50 unique IDs with synthetic service history; every generated model/year pair stays within its curated production range, descriptions omit internal synthetic-listing labels, and every record carries typed model-reference photo attribution metadata | implemented |
 

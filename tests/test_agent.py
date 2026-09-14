@@ -151,14 +151,42 @@ def test_schedule_request_collects_details_then_creates_request() -> None:
     missing = agent.respond("schedule", f"Please schedule a test drive for {vehicle_name}.")
     assert missing.state.stage == "scheduling"
     assert "name" in missing.message.lower()
+    assert "comma-separated list: name, email, time, date" in missing.message
 
     booked = agent.respond(
         "schedule",
-        "My name is Alex Rivera, my email is alex@example.com, and Saturday at 10am works.",
+        "Alex Rivera, alex@example.com, 10:00 AM, 2026-09-30",
     )
     assert booked.state.stage == "scheduled"
     assert [call.name for call in booked.trace] == ["create_test_drive"]
     assert "td-0001" in booked.message
+
+
+def test_schedule_form_normalizes_mailto_and_rejects_invalid_calendar_dates() -> None:
+    agent = DeterministicRouter()
+    agent.respond("schedule-form", "I want a weekend car under $40k with spirited driving.")
+
+    prompt = agent.respond("schedule-form", "Arrange a test drive.")
+    invalid_date = agent.respond(
+        "schedule-form",
+        "Joe Bob, mailto:joeboab@yolo.com, 10:00 AM, September 31, 2026",
+    )
+
+    assert "comma-separated list: name, email, time, date" in prompt.message
+    assert invalid_date.state.stage == "scheduling"
+    assert "not a valid calendar date" in invalid_date.message
+    assert invalid_date.trace == []
+    assert invalid_date.state.preferences.name == "Joe Bob"
+    assert invalid_date.state.preferences.email == "joeboab@yolo.com"
+
+    booked = agent.respond(
+        "schedule-form",
+        "Joe Bob, mailto:joeboab@yolo.com, 10:00 AM, September 30, 2026",
+    )
+
+    assert booked.state.stage == "scheduled"
+    assert booked.trace[-1].arguments["email"] == "joeboab@yolo.com"
+    assert booked.trace[-1].arguments["preferred_time"] == "2026-09-30 at 10:00 AM"
 
 
 def test_repository_can_load_a_custom_inventory(tmp_path) -> None:

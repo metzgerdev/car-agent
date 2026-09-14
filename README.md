@@ -1,11 +1,6 @@
 ---
-title: Classic Car Advisor
-emoji: 🚗
-colorFrom: red
-colorTo: gray
 sdk: docker
 app_port: 7860
-fullWidth: true
 ---
 
 # Classic Sports Car Sales Agent
@@ -35,7 +30,7 @@ For live CrewAI/OpenRouter responses, add this to `.env`:
 
 ```env
 OPENROUTER_API_KEY=your-key
-CAR_AGENT_CREWAI_MODEL=openrouter/deepseek/deepseek-chat
+CAR_AGENT_CREWAI_MODEL=openrouter/openai/gpt-5.4-nano
 ```
 
 ## Run the app
@@ -51,34 +46,6 @@ Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
 The UI provides an assistant-ui chat interface, inventory gallery, and live
 Tool Trace panel. The frontend build is served by FastAPI at `/`.
-
-## Deploy to Hugging Face Spaces
-
-This project is packaged as a Docker Space. Create a Docker Space in Hugging
-Face with your preferred visibility, then add `OPENROUTER_API_KEY` as a Space
-**Secret** under **Settings → Variables and secrets**. You may also set the
-optional `CAR_AGENT_CREWAI_MODEL` variable.
-
-Commit the deployment files, add your SSH public key in [Hugging Face SSH
-settings](https://huggingface.co/settings/keys), then verify the connection
-with `ssh -T git@hf.co` before deploying:
-
-```bash
-git add README.md Dockerfile .dockerignore .gitignore scripts/deploy_huggingface.sh
-git commit -m "Configure Hugging Face Space"
-./scripts/deploy_huggingface.sh
-```
-
-The script runs a local Docker build before publishing a single-commit snapshot
-to the Space. This keeps the primary Git history local while avoiding the
-raw-binary `docs/ui-demo.png` that Hugging Face rejects. The screenshot is
-documentation-only and is not required by the app. The snapshot intentionally
-replaces the Space's prior snapshot with a guarded force push. If Docker
-Desktop is unavailable, omit that optional preflight build with
-`SKIP_DOCKER_BUILD=1 ./scripts/deploy_huggingface.sh`; Hugging Face will still
-build the image after the push. The application keeps conversations and
-test-drive requests in memory, so that state resets when the Space restarts or
-sleeps.
 
 ## UI preview
 

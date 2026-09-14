@@ -11,7 +11,15 @@ from pathlib import Path
 from typing import Any
 
 from .data_pipeline import load_inventory_fixture
-from .models import ShopperPreferences, Vehicle, VehicleFact
+from .models import (
+    ScheduledTestDrive,
+    ShopperPreferences,
+    TestDriveFailure,
+    TestDriveRequest,
+    TestDriveSuccess,
+    Vehicle,
+    VehicleFact,
+)
 from .review_models import MagazineReview
 
 
@@ -268,34 +276,59 @@ class TestDriveScheduler:
         email: str,
         preferred_time: str,
     ) -> dict[str, Any]:
-        if not self.inventory.get(vehicle_id):
-            return {"ok": False, "error": "That vehicle is not in the current inventory."}
-        if not name.strip():
-            return {"ok": False, "error": "A name is required."}
-        if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
-            return {"ok": False, "error": "Please provide a valid email address."}
-        if not preferred_time.strip():
-            return {"ok": False, "error": "A preferred day and time are required."}
+        try:
+            request_input = TestDriveRequest(
+                vehicle_id=vehicle_id,
+                name=name,
+                email=email,
+                preferred_time=preferred_time,
+            )
+        except ValueError as exc:
+            return TestDriveFailure(ok=False, error=_test_drive_validation_message(exc)).model_dump()
+        if not self.inventory.get(request_input.vehicle_id):
+            return TestDriveFailure(
+                ok=False,
+                error="That vehicle is not in the current inventory.",
+            ).model_dump()
 
         request_key = (
-            vehicle_id,
-            name.strip().casefold(),
-            email.strip().casefold(),
-            preferred_time.strip().casefold(),
+            request_input.vehicle_id,
+            request_input.name.casefold(),
+            request_input.email.casefold(),
+            request_input.preferred_time.casefold(),
         )
         existing = self._request_index.get(request_key)
         if existing:
-            return {"ok": True, "duplicate": True, "request": dict(existing)}
+            return TestDriveSuccess(
+                ok=True,
+                duplicate=True,
+                request=ScheduledTestDrive.model_validate(existing),
+            ).model_dump()
 
         request_id = f"td-{len(self.requests) + 1:04d}"
-        request = {
-            "request_id": request_id,
-            "vehicle_id": vehicle_id,
-            "name": name.strip(),
-            "email": email.strip(),
-            "preferred_time": preferred_time.strip(),
-            "status": "requested",
-        }
-        self.requests.append(request)
-        self._request_index[request_key] = request
-        return {"ok": True, "duplicate": False, "request": request}
+        request = ScheduledTestDrive(
+            request_id=request_id,
+            vehicle_id=request_input.vehicle_id,
+            name=request_input.name,
+            email=request_input.email,
+            preferred_time=request_input.preferred_time,
+            status="requested",
+        )
+        request_payload = request.model_dump()
+        self.requests.append(request_payload)
+        self._request_index[request_key] = request_payload
+        return TestDriveSuccess(ok=True, duplicate=False, request=request).model_dump()
+
+
+def _test_drive_validation_message(error: ValueError) -> str:
+    """Keep validation failures actionable without exposing Pydantic internals."""
+
+    errors = getattr(error, "errors", lambda: [])()
+    fields = {entry["loc"][0] for entry in errors if entry.get("loc")}
+    if "email" in fields:
+        return "Please provide a valid email address."
+    if "name" in fields:
+        return "A name is required."
+    if "preferred_time" in fields:
+        return "A preferred day and time are required."
+    return "The test-drive request has invalid details."

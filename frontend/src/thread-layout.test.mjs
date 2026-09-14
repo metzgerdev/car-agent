@@ -66,17 +66,29 @@ test("starter prompts remain enabled on an empty composer and send their text", 
   assert.match(starterPromptSource, /disabled=\{isDisabled\}/);
   assert.doesNotMatch(starterPromptSource, /disabled=\{!canSend\}/);
 
-  for (const prompt of [
+  const expectedPrompts = [
     "Find a weekend sports car",
+    "What do the magazine reviews say about the 1992 Mazda RX-7?",
     "Show me classic BMWs",
+    "What do the magazine reviews say about the 2004 Honda S2000?",
     "Tell me about the Honda S2000",
     "What ownership notes do you have on the Honda S2000?",
-    "What do the magazine reviews say about the Mazda RX-7?",
+    "What do the magazine reviews say about the 2008 BMW Z4 M Coupe?",
     "Show me the service history for the BMW Z4 M Coupe",
+    "What do the magazine reviews say about the 1999 Porsche 911 Carrera?",
     "Compare the Honda S2000 and Porsche 911 Carrera",
+    "What do the magazine reviews say about the 2012 Nissan GT-R?",
     "Do you have a 2011 BMW M3 in inventory?",
+    "What do the magazine reviews say about the 2018 Porsche 718 Cayman GTS?",
     "Tell me more about the 1999 Porsche 911 Carrera",
-  ]) {
+  ];
+
+  for (const prompt of expectedPrompts) {
     assert.match(starterPromptSource, new RegExp(prompt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  for (const reviewPrompt of expectedPrompts.filter((prompt) => prompt.includes("magazine reviews"))) {
+    const promptIndex = expectedPrompts.indexOf(reviewPrompt);
+    assert.notEqual(promptIndex, expectedPrompts.length - 1);
+    assert.doesNotMatch(expectedPrompts[promptIndex + 1], /magazine reviews/);
   }
 });

@@ -4,13 +4,22 @@ from __future__ import annotations
 
 import re
 from contextvars import ContextVar
+from datetime import datetime
 from difflib import get_close_matches
 from time import perf_counter
 from typing import Any, Callable, Literal
 
 from .intent_parser import IntentEnvelope
 from .lookup_models import ExactVehicleQuery
-from .models import AgentResponse, ConversationState, ShopperPreferences, ToolCall, Vehicle
+from .models import (
+    AgentResponse,
+    ConversationState,
+    ShopperPreferences,
+    ToolCall,
+    Vehicle,
+    is_valid_email_address,
+    normalize_email_address,
+)
 from .persona import CLASSIC_CAR_PERSONA
 from .profiling import TimingRecorder
 from .tools import SalesTools
@@ -18,6 +27,10 @@ from .tools import SalesTools
 
 TraceObserver = Callable[[Literal["start", "complete"], str, dict[str, Any], ToolCall | None], None]
 _trace_observer: ContextVar[TraceObserver | None] = ContextVar("trace_observer", default=None)
+_SCHEDULING_FORM_INSTRUCTION = (
+    "Reply with a comma-separated list: name, email, time, date "
+    "(for example, Alex Rivera, alex@example.com, 10:00 AM, 2026-09-30)."
+)
 
 
 class DeterministicRouter:
@@ -544,7 +557,15 @@ class DeterministicRouter:
             )
 
         self._focus_vehicle(state, vehicle.id)
-        self._update_contact(state.preferences, message)
+        contact_error = self._update_contact(state.preferences, message)
+        if contact_error:
+            state.stage = "scheduling"
+            return AgentResponse(
+                f"I couldn't use that appointment detail: {contact_error} "
+                f"{_SCHEDULING_FORM_INSTRUCTION}",
+                state,
+                trace,
+            )
         missing = []
         if not state.preferences.name:
             missing.append("your name")
@@ -555,7 +576,8 @@ class DeterministicRouter:
         if missing:
             state.stage = "scheduling"
             return AgentResponse(
-                f"I can help with the {vehicle.name}. To request it, I still need {self._join(missing)}.",
+                f"I can help with the {vehicle.name}. To request it, I still need "
+                f"{self._join(missing)}. {_SCHEDULING_FORM_INSTRUCTION}",
                 state,
                 trace,
             )
@@ -1285,10 +1307,40 @@ class DeterministicRouter:
         return None
 
     @staticmethod
-    def _update_contact(preferences: ShopperPreferences, message: str) -> None:
-        email = re.search(r"[^\s@]+@[^\s@]+\.[^\s@]+", message)
+    def _update_contact(preferences: ShopperPreferences, message: str) -> str | None:
+        """Update scheduling details, preferring the explicit comma-separated form."""
+
+        form_parts = [part.strip() for part in message.split(",", maxsplit=3)]
+        is_explicit_form = (
+            len(form_parts) == 4
+            and not re.search(r"\b(?:schedule|arrange|book|test drive)\b", form_parts[0], re.IGNORECASE)
+        )
+        if is_explicit_form:
+            name, email, appointment_time, appointment_date = form_parts
+            if not name:
+                return "The name field is blank."
+            preferences.name = name
+
+            normalized_email = normalize_email_address(email)
+            if not is_valid_email_address(normalized_email):
+                return "The email address is not valid."
+            preferences.email = normalized_email
+
+            normalized_time = DeterministicRouter._parse_appointment_time(appointment_time)
+            if not normalized_time:
+                return "The time must look like 10:00 AM or 14:00."
+            normalized_date = DeterministicRouter._parse_appointment_date(appointment_date)
+            if not normalized_date:
+                return f"{appointment_date!r} is not a valid calendar date."
+            preferences.preferred_time = f"{normalized_date} at {normalized_time}"
+            return None
+
+        email = re.search(
+            r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+",
+            message,
+        )
         if email:
-            preferences.email = email.group(0).rstrip(".,")
+            preferences.email = normalize_email_address(email.group(0).rstrip(".,"))
         name = re.search(r"(?:my name is|i am|i'm|im)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)", message, re.IGNORECASE)
         if name and name.group(1).lower().split()[0] not in {"looking", "interested", "hoping", "trying"}:
             preferences.name = name.group(1).strip(" .,!?")
@@ -1299,6 +1351,31 @@ class DeterministicRouter:
         )
         if time:
             preferences.preferred_time = " ".join(part for part in time.groups() if part).strip()
+        return None
+
+    @staticmethod
+    def _parse_appointment_time(value: str) -> str | None:
+        candidate = re.sub(
+            r"(?i)\b([0-9]{1,2}(?::[0-9]{2})?)\s*(am|pm)\b",
+            r"\1 \2",
+            value.strip(),
+        ).upper()
+        for time_format in ("%I:%M %p", "%I %p", "%H:%M"):
+            try:
+                return datetime.strptime(candidate, time_format).strftime("%I:%M %p").lstrip("0")
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _parse_appointment_date(value: str) -> str | None:
+        candidate = value.strip()
+        for date_format in ("%Y-%m-%d", "%B %d, %Y", "%b %d, %Y", "%B %d %Y", "%b %d %Y", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(candidate, date_format).date().isoformat()
+            except ValueError:
+                continue
+        return None
 
     @staticmethod
     def _join(items: list[str]) -> str:

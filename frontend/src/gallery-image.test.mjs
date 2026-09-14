@@ -41,11 +41,13 @@ test("desktop layout uses inventory as a vertical rail beside the conversation",
   assert.match(stylesSource, /workspace > \.inventory-gallery \.listing-photo\s*\{ max-width: none;/);
 });
 
-test("desktop rails fit within a scroll-free viewport canvas", () => {
+test("desktop evidence rail stays visible while long card content scrolls internally", () => {
   assert.match(stylesSource, /@media \(min-width: 901px\) \{\s*html, body, #root \{ height: 100%; overflow: hidden; \}/);
   assert.match(stylesSource, /\.shell \{ width: 100%; height: 100vh; height: 100dvh; min-height: 0; padding: 24px 20px 40px; margin: 0; overflow: hidden; \}/);
   assert.match(stylesSource, /\.workspace \{ height: 100%; min-height: 0; grid-template-columns:/);
-  assert.match(stylesSource, /\.sidebar \{ height: 100%; min-height: 0; align-content: start; overflow-y: auto;/);
+  assert.match(stylesSource, /\.sidebar \{ display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: hidden;/);
+  assert.match(stylesSource, /\.sidebar \.tool-trace-panel \.trace-list \{ min-height: 0; max-height: none; flex: 1 1 auto; overflow-y: auto;/);
+  assert.doesNotMatch(stylesSource, /\.sidebar \{[^}]*overflow-y: auto/);
 });
 
 test("trace summaries show a readable outcome before raw tool data", () => {
@@ -69,16 +71,9 @@ test("trace metrics surface conversation-level LLM calls and token usage", () =>
   assert.match(mainSource, /llmUsage: payload\.metrics/);
 });
 
-test("buyer dossiers are on-demand and scoped to the focused inventory vehicle", () => {
-  assert.match(mainSource, /function BuyerDossierPanel/);
-  assert.match(mainSource, /fetch\("\/buyer-dossier"/);
-  assert.match(mainSource, /conversation_id: conversationId, vehicle_id: requestedVehicleId/);
-  assert.match(mainSource, /activeVehicleId\.current !== requestedVehicleId/);
-  assert.match(mainSource, /conversationState\?\.focused_vehicle_id/);
-  assert.match(mainSource, /Buyer Dossier/);
-  assert.match(mainSource, /onMetrics\(resolved\.metrics\)/);
-  assert.match(stylesSource, /\.sidebar\.sidebar-with-dossier\s*\{/);
-  assert.match(stylesSource, /\.buyer-dossier-panel\s*\{ max-height: min\(360px, 45vh\); overflow: auto;/);
+test("the evidence rail contains only metrics and the tool trace", () => {
+  assert.doesNotMatch(mainSource, /BuyerDossier|buyer-dossier|dossier/i);
+  assert.doesNotMatch(stylesSource, /buyer-dossier|dossier/i);
 });
 
 test("live trace labels use the backend's canonical tool names", () => {

@@ -81,8 +81,6 @@ def normalize_inventory_record(record: dict[str, Any]) -> Vehicle:
         provenance=provenance,
         image_url=_optional_text(record, "image_url", errors),
         image_source_url=_optional_text(record, "image_source_url", errors),
-        image_attribution=_optional_text(record, "image_attribution", errors),
-        image_license=_optional_text(record, "image_license", errors),
     )
 
 

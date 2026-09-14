@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from .lookup_models import ExactVehicleLookupResult, ExactVehicleQuery
-from .models import ShopperPreferences
+from .models import ShopperPreferences, is_valid_email_address
 from .repositories import InventoryRepository, KnowledgeRepository, ReviewRepository, TestDriveScheduler
 
 
@@ -176,7 +176,7 @@ class SalesTools:
 
     @staticmethod
     def valid_email(email: str | None) -> bool:
-        return bool(email and re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email))
+        return is_valid_email_address(email)
 
 
 def _normalize_identity(value: str) -> str:

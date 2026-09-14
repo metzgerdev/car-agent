@@ -3,10 +3,79 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+import re
 from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 TracePhase = Literal["retrieve", "evaluate", "act"]
+_EMAIL_ADDRESS_PATTERN = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
+
+
+def normalize_email_address(value: str) -> str:
+    """Remove a mail client URI prefix before storing an email address."""
+
+    return re.sub(r"^(?:mailto:)+", "", value.strip(), flags=re.IGNORECASE)
+
+
+def is_valid_email_address(value: str | None) -> bool:
+    """Accept a plain email address, never a URI or a partial match."""
+
+    return bool(value and _EMAIL_ADDRESS_PATTERN.fullmatch(value.strip()))
+
+
+class StrictContractModel(BaseModel):
+    """Base model for trusted application contracts that reject unknown fields."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class TestDriveRequest(StrictContractModel):
+    """Validated data required before a test-drive request can be created."""
+
+    vehicle_id: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=254)
+    preferred_time: str = Field(min_length=1, max_length=200)
+
+    @field_validator("vehicle_id", "name", "preferred_time")
+    @classmethod
+    def require_nonblank(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("value must not be blank")
+        return cleaned
+
+    @field_validator("email")
+    @classmethod
+    def require_valid_email(cls, value: str) -> str:
+        cleaned = normalize_email_address(value)
+        if not is_valid_email_address(cleaned):
+            raise ValueError("email must be valid")
+        return cleaned
+
+
+class ScheduledTestDrive(StrictContractModel):
+    """The durable, non-sensitive shape of a created test-drive request."""
+
+    request_id: str = Field(min_length=1)
+    vehicle_id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    email: str = Field(min_length=3)
+    preferred_time: str = Field(min_length=1)
+    status: Literal["requested"]
+
+
+class TestDriveSuccess(StrictContractModel):
+    ok: Literal[True]
+    duplicate: bool
+    request: ScheduledTestDrive
+
+
+class TestDriveFailure(StrictContractModel):
+    ok: Literal[False]
+    error: str = Field(min_length=1)
 
 
 _TRACE_DESCRIPTORS: dict[str, tuple[TracePhase, str]] = {
@@ -142,8 +211,6 @@ class Vehicle:
     provenance: Provenance | None = None
     image_url: str | None = None
     image_source_url: str | None = None
-    image_attribution: str | None = None
-    image_license: str | None = None
 
     @property
     def name(self) -> str:

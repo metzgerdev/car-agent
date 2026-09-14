@@ -5,10 +5,59 @@ from crewai.types.streaming import CrewStreamingOutput, StreamChunk, StreamChunk
 
 from car_agent.agent import DeterministicRouter
 from car_agent.conversation_context import ConversationTurn
-from car_agent.crewai_agent import BuyerDossierOutput, CrewAISalesAgent, CrewTurnOutput, _state_from_dict
+from car_agent.crewai_agent import (
+    CreateTestDriveInput,
+    CrewAISalesAgent,
+    CrewTurnOutput,
+    ExactVehicleLookupInput,
+    GetMagazineReviewsInput,
+    GetServiceHistoryInput,
+    GetVehicleComparisonInput,
+    GetVehicleFactsInput,
+    GetVehicleInput,
+    ListInventoryInput,
+    _state_from_dict,
+)
 from car_agent.intent_parser import IntentEnvelope, InventoryIntentFilters
 from car_agent.models import ConversationState, ShopperPreferences
 from car_agent.profiling import TimingRecorder
+
+
+def _crew_state(**overrides):
+    preference_overrides = overrides.pop("preferences", {})
+    state = {
+        "preferences": {
+            "budget_max": None,
+            "intended_use": None,
+            "body_style": None,
+            "driving_style": None,
+            "timeline": None,
+            "selected_vehicle_id": None,
+            "name": None,
+            "email": None,
+            "preferred_time": None,
+        },
+        "stage": "qualifying",
+        "last_vehicle_ids": [],
+        "shown_vehicle_ids": [],
+        "focused_vehicle_id": None,
+        "pending_followup": None,
+    }
+    state["preferences"].update(preference_overrides)
+    state.update(overrides)
+    return state
+
+
+def _intent_filters(**overrides):
+    filters = {
+        "query": None,
+        "budget_max": None,
+        "intended_use": None,
+        "body_style": None,
+        "driving_style": None,
+    }
+    filters.update(overrides)
+    return InventoryIntentFilters(**filters)
 
 
 def test_crewai_crew_is_constructed_without_an_api_key() -> None:
@@ -33,6 +82,53 @@ def test_crewai_crew_is_constructed_without_an_api_key() -> None:
     assert crew.tasks[0].output_pydantic is not None
 
 
+def test_live_crew_output_schema_is_strict_at_every_object_level() -> None:
+    schema = CrewTurnOutput.model_json_schema()
+
+    def assert_strict_objects(value):
+        if isinstance(value, dict):
+            if value.get("type") == "object":
+                assert value.get("additionalProperties") is False
+                assert set(value.get("required", [])) == set(value.get("properties", {}))
+            for nested in value.values():
+                assert_strict_objects(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                assert_strict_objects(nested)
+
+    assert_strict_objects(schema)
+
+
+def test_live_crew_tool_input_schemas_are_strict_at_every_object_level() -> None:
+    tool_input_models = (
+        ListInventoryInput,
+        ExactVehicleLookupInput,
+        GetVehicleInput,
+        GetVehicleFactsInput,
+        GetMagazineReviewsInput,
+        GetServiceHistoryInput,
+        GetVehicleComparisonInput,
+        CreateTestDriveInput,
+    )
+
+    def assert_strict_objects(value):
+        if isinstance(value, dict):
+            if value.get("type") == "object":
+                assert value.get("additionalProperties") is False
+                assert set(value.get("required", [])) == set(value.get("properties", {}))
+            for nested in value.values():
+                assert_strict_objects(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                assert_strict_objects(nested)
+
+    for model in tool_input_models:
+        assert_strict_objects(model.model_json_schema())
+
+    assert ListInventoryInput(filters=_intent_filters(query="BMW")).filters.query == "BMW"
+    assert GetVehicleFactsInput(vehicle_id="honda-s2000-2004", topic=None).topic is None
+
+
 def test_openrouter_llm_configuration_uses_only_the_openrouter_key(monkeypatch) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
     monkeypatch.setenv("OPENAI_API_KEY", "should-not-be-used")
@@ -41,7 +137,7 @@ def test_openrouter_llm_configuration_uses_only_the_openrouter_key(monkeypatch) 
     crew = agent.build_crew()
     llm = crew.agents[0].llm
 
-    assert llm.model == "deepseek/deepseek-chat"
+    assert llm.model == "openai/gpt-5.4-nano"
     assert llm.provider == "openrouter"
     assert llm.base_url == "https://openrouter.ai/api/v1"
     assert llm.api_key == "test-openrouter-key"
@@ -63,78 +159,6 @@ def test_crewai_facade_keeps_offline_acceptance_behavior() -> None:
         "list_inventory",
         "get_vehicle_facts",
     ]
-
-
-def test_buyer_dossier_is_tied_to_the_focused_listing_and_has_a_grounded_fallback() -> None:
-    agent = CrewAISalesAgent(use_live_model=False)
-    conversation_id = "buyer-dossier-offline"
-    agent.sessions[conversation_id] = ConversationState(
-        conversation_id,
-        preferences=ShopperPreferences(budget_max=60_000, intended_use="weekend driving"),
-        focused_vehicle_id="mock-0037",
-    )
-
-    dossier = agent.generate_buyer_dossier(conversation_id, "mock-0037")
-
-    assert dossier["vehicle_id"] == "mock-0037"
-    assert dossier["vehicle_name"] == "1971 BMW 2002"
-    assert dossier["mode"] == "grounded_fallback"
-    assert dossier["recommendation"] == "investigate"
-    assert dossier["confidence"] == "low"
-    assert "synthetic demo" in dossier["evidence_note"].lower()
-    assert any("$54,228" in reason for reason in dossier["fit_reasons"])
-    assert all("2008 BMW Z4 M Coupe" not in item for item in dossier["watchouts"])
-
-
-def test_live_buyer_dossier_uses_only_the_focused_listing_and_records_usage(monkeypatch) -> None:
-    agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
-    conversation_id = "buyer-dossier-live"
-    agent.sessions[conversation_id] = ConversationState(
-        conversation_id,
-        preferences=ShopperPreferences(selected_vehicle_id="honda-s2000-2004"),
-        focused_vehicle_id="honda-s2000-2004",
-    )
-
-    class FakeCrew:
-        def kickoff(self, *, inputs):
-            evidence = json.loads(inputs["evidence_json"])
-            assert inputs["vehicle_name"] == "2004 Honda S2000"
-            assert evidence["vehicle"]["id"] == "honda-s2000-2004"
-            assert "name" not in evidence["shopper_preferences"]
-            return type(
-                "FakeCrewOutput",
-                (),
-                {
-                    "pydantic": BuyerDossierOutput(
-                        summary="The listing is a 2004 Honda S2000.",
-                        fit_reasons=["The listing records a manual RWD roadster."],
-                        watchouts=["Verify the service records."],
-                        seller_questions=["Can you share the invoices?"],
-                        inspection_priorities=["Inspect the soft top."],
-                        recommendation="investigate",
-                        confidence="medium",
-                    ),
-                    "usage_metrics": {
-                        "successful_requests": 1,
-                        "prompt_tokens": 120,
-                        "completion_tokens": 30,
-                        "total_tokens": 150,
-                    },
-                },
-            )()
-
-    monkeypatch.setattr(agent, "build_buyer_dossier_crew", lambda: FakeCrew())
-
-    dossier = agent.generate_buyer_dossier(conversation_id, "honda-s2000-2004")
-
-    assert dossier["mode"] == "llm"
-    assert dossier["vehicle_id"] == "honda-s2000-2004"
-    assert dossier["metrics"] == {
-        "llm_calls": 1,
-        "prompt_tokens": 120,
-        "completion_tokens": 30,
-        "total_tokens": 150,
-    }
 
 
 def test_live_facade_exposes_a_deterministic_router_boundary() -> None:
@@ -175,7 +199,11 @@ def test_live_facade_routes_unscoped_notes_without_an_llm_call(monkeypatch) -> N
 def test_live_model_failure_falls_back_to_the_deterministic_router(monkeypatch) -> None:
     class GeneralIntentParser:
         def parse(self, message, *, known_makes):
-            return IntentEnvelope(intent="general_conversation", confidence=1.0)
+            return IntentEnvelope(
+                intent="general_conversation",
+                confidence=1.0,
+                filters=_intent_filters(),
+            )
 
     agent = CrewAISalesAgent(use_live_model=True, intent_parser=GeneralIntentParser())
 
@@ -324,7 +352,7 @@ def test_live_facade_uses_validated_intent_parser_for_indirect_inventory_request
             return IntentEnvelope(
                 intent="list_inventory",
                 confidence=0.94,
-                filters=InventoryIntentFilters(query="BMW", intended_use="weekend"),
+                filters=_intent_filters(query="BMW", intended_use="weekend"),
             )
 
     agent = CrewAISalesAgent(use_live_model=True, intent_parser=FakeIntentParser())
@@ -471,7 +499,12 @@ def test_live_facade_synthesizes_contextual_magazine_reviews_with_model(monkeypa
                             "[Car and Driver](https://www.caranddriver.com/reviews/a15133774/honda-s2000-short-take-road-test/) "
                             "[MotorTrend](https://www.motortrend.com/reviews/honda-s2000-3)"
                         ),
-                        state={"stage": "recommending", "last_vehicle_ids": ["honda-s2000-2004"]},
+                        state=_crew_state(
+                            stage="recommending",
+                            last_vehicle_ids=["honda-s2000-2004"],
+                            shown_vehicle_ids=["honda-s2000-2004"],
+                            focused_vehicle_id="honda-s2000-2004",
+                        ),
                     ),
                     # Streaming can leave this first shape empty even though
                     # the finalized usage_metrics payload contains totals.
@@ -501,6 +534,37 @@ def test_live_facade_synthesizes_contextual_magazine_reviews_with_model(monkeypa
     }
 
 
+def test_live_review_synthesis_failure_does_not_repeat_magazine_retrieval(monkeypatch) -> None:
+    agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
+    agent.sessions["live-review-fallback"] = ConversationState(
+        "live-review-fallback",
+        stage="recommending",
+        last_vehicle_ids=["honda-s2000-2004"],
+    )
+    trace_events: list[tuple[str, str]] = []
+    deltas: list[str] = []
+
+    class FailingCrew:
+        def kickoff(self, *, inputs):
+            raise RuntimeError("review synthesis provider failure")
+
+    monkeypatch.setattr(agent, "build_crew", lambda trace, **kwargs: FailingCrew())
+
+    response = agent.respond(
+        "live-review-fallback",
+        "What do the magazine reviews say about it?",
+        trace_observer=lambda status, name, arguments, call: trace_events.append((status, name)),
+        response_observer=deltas.append,
+    )
+
+    assert [call.name for call in response.trace] == ["get_magazine_reviews"]
+    assert trace_events == [
+        ("start", "get_magazine_reviews"),
+        ("complete", "get_magazine_reviews"),
+    ]
+    assert "".join(deltas) == response.message
+
+
 def test_live_explicit_vehicle_wins_over_stale_state_for_review_followup(monkeypatch) -> None:
     agent = CrewAISalesAgent(use_live_model=True, llm="test-model")
     agent.sessions["live-rx7"] = ConversationState(
@@ -519,11 +583,23 @@ def test_live_explicit_vehicle_wins_over_stale_state_for_review_followup(monkeyp
                 {
                     "pydantic": CrewTurnOutput(
                         message="The 1992 Mazda RX-7 is the rotary-powered lightweight option.",
-                        state={
-                            "stage": "recommending",
-                            "preferences": {"selected_vehicle_id": "bmw-z4-m-2008"},
-                            "last_vehicle_ids": ["bmw-z4-m-2008"],
-                        },
+                        state=_crew_state(
+                            stage="recommending",
+                            preferences={
+                                "budget_max": None,
+                                "intended_use": None,
+                                "body_style": None,
+                                "driving_style": None,
+                                "timeline": None,
+                                "selected_vehicle_id": "bmw-z4-m-2008",
+                                "name": None,
+                                "email": None,
+                                "preferred_time": None,
+                            },
+                            last_vehicle_ids=["bmw-z4-m-2008"],
+                            shown_vehicle_ids=["bmw-z4-m-2008"],
+                            focused_vehicle_id="bmw-z4-m-2008",
+                        ),
                     )
                 },
             )()
@@ -538,7 +614,12 @@ def test_live_explicit_vehicle_wins_over_stale_state_for_review_followup(monkeyp
                 {
                     "pydantic": CrewTurnOutput(
                         message="The Car and Driver review places the RX-7 in a lightweight, rotary-powered group.",
-                        state={"stage": "recommending", "last_vehicle_ids": ["mazda-rx7-1992"]},
+                        state=_crew_state(
+                            stage="recommending",
+                            last_vehicle_ids=["mazda-rx7-1992"],
+                            shown_vehicle_ids=["mazda-rx7-1992"],
+                            focused_vehicle_id="mazda-rx7-1992",
+                        ),
                     )
                 },
             )()
@@ -573,10 +654,13 @@ def test_live_crewai_output_is_normalized_to_the_domain_contract(monkeypatch) ->
                 {
                     "pydantic": CrewTurnOutput(
                         message="I found a grounded match.",
-                        state={
-                            "stage": "recommending",
-                            "last_vehicle_ids": ["honda-s2000-2004"],
-                        },
+                        state=_crew_state(
+                            stage="recommending",
+                            preferences={"budget_max": 40000},
+                            last_vehicle_ids=["honda-s2000-2004"],
+                            shown_vehicle_ids=["honda-s2000-2004"],
+                            focused_vehicle_id="honda-s2000-2004",
+                        ),
                     )
                 },
             )()
@@ -608,7 +692,7 @@ def test_live_usage_metrics_accumulate_provider_reported_llm_calls_by_conversati
                 {
                     "pydantic": CrewTurnOutput(
                         message="I can help you weigh the options.",
-                        state={"stage": "qualifying"},
+                        state=_crew_state(),
                     ),
                     "token_usage": {
                         "successful_requests": 2,
@@ -706,10 +790,12 @@ def test_live_turn_receives_bounded_history_and_grounded_context(monkeypatch) ->
                 {
                     "pydantic": CrewTurnOutput(
                         message="The S2000 remains the active grounded vehicle.",
-                        state={
-                            "stage": "recommending",
-                            "last_vehicle_ids": ["honda-s2000-2004"],
-                        },
+                        state=_crew_state(
+                            stage="recommending",
+                            last_vehicle_ids=["honda-s2000-2004"],
+                            shown_vehicle_ids=["honda-s2000-2004"],
+                            focused_vehicle_id="honda-s2000-2004",
+                        ),
                     )
                 },
             )()
@@ -731,7 +817,12 @@ def test_live_crewai_stream_emits_only_the_shopper_message(monkeypatch) -> None:
         {
             "pydantic": CrewTurnOutput(
                 message="The 2004 Honda S2000 is a high-revving roadster.",
-                state={"stage": "recommending", "last_vehicle_ids": ["honda-s2000-2004"]},
+                state=_crew_state(
+                    stage="recommending",
+                    last_vehicle_ids=["honda-s2000-2004"],
+                    shown_vehicle_ids=["honda-s2000-2004"],
+                    focused_vehicle_id="honda-s2000-2004",
+                ),
             )
         },
     )()

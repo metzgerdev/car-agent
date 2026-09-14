@@ -12,7 +12,7 @@ from typing import Any, Iterator, Literal
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
 
 from .crewai_agent import CrewAISalesAgent
 from .models import ToolCall, trace_descriptor
@@ -24,7 +24,13 @@ WEB_ROOT = Path(__file__).parent / "web"
 LOGGER = logging.getLogger(__name__)
 
 
-class ChatRequest(BaseModel):
+class _StrictApiModel(BaseModel):
+    """Base API contract that rejects unknown fields and type coercion."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class ChatRequest(_StrictApiModel):
     conversation_id: str = Field(min_length=1)
     message: str = Field(min_length=1)
 
@@ -37,17 +43,17 @@ class ChatRequest(BaseModel):
         return cleaned
 
 
-class HealthResponse(BaseModel):
+class HealthResponse(_StrictApiModel):
     status: Literal["ok"]
 
 
-class VehicleReviewsResponse(BaseModel):
+class VehicleReviewsResponse(_StrictApiModel):
     vehicle_id: str
     vehicle_name: str
     reviews: list[MagazineReview]
 
 
-class InventoryVehicleResponse(BaseModel):
+class InventoryVehicleResponse(_StrictApiModel):
     id: str
     name: str
     make: str
@@ -60,52 +66,87 @@ class InventoryVehicleResponse(BaseModel):
     drivetrain: str
     horsepower: int
     description: str
-    tags: list[str] = Field(default_factory=list)
-    image_url: str | None = None
-    image_source_url: str | None = None
-    image_attribution: str | None = None
-    image_license: str | None = None
+    tags: list[str]
+    image_url: str | None
+    image_source_url: str | None
 
 
-class InventoryResponse(BaseModel):
+class InventoryResponse(_StrictApiModel):
     total: int
     vehicles: list[InventoryVehicleResponse]
 
 
-class ChatResponse(BaseModel):
+class ShopperPreferencesResponse(_StrictApiModel):
+    budget_max: int | None
+    intended_use: str | None
+    body_style: str | None
+    driving_style: str | None
+    timeline: str | None
+    selected_vehicle_id: str | None
+    name: str | None
+    email: str | None
+    preferred_time: str | None
+
+
+class ConversationStateResponse(_StrictApiModel):
+    conversation_id: str
+    preferences: ShopperPreferencesResponse
+    stage: str
+    last_vehicle_ids: list[str]
+    shown_vehicle_ids: list[str]
+    focused_vehicle_id: str | None
+    pending_followup: Literal["service_history"] | None
+
+
+class LLMUsageResponse(_StrictApiModel):
+    llm_calls: int = Field(ge=0)
+    prompt_tokens: int = Field(ge=0)
+    completion_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
+
+
+class ToolCallResponse(_StrictApiModel):
+    """Strict trace envelope with JSON-safe variable tool payloads."""
+
+    name: str = Field(min_length=1)
+    arguments: dict[str, JsonValue]
+    result: dict[str, JsonValue]
+    phase: Literal["retrieve", "evaluate", "act"]
+    purpose: str = Field(min_length=1)
+    outcome: str = Field(min_length=1)
+    duration_ms: float = Field(ge=0)
+
+
+class ChatResponse(_StrictApiModel):
     message: str
-    state: dict[str, Any]
-    trace: list[dict[str, Any]]
-    metrics: dict[str, int]
-    reviews: list[VehicleReviewsResponse] = Field(default_factory=list)
+    state: ConversationStateResponse
+    trace: list[ToolCallResponse]
+    metrics: LLMUsageResponse
+    reviews: list[VehicleReviewsResponse]
 
 
-class BuyerDossierRequest(BaseModel):
-    conversation_id: str = Field(min_length=1)
-    vehicle_id: str = Field(min_length=1)
+class TraceStreamEvent(_StrictApiModel):
+    trace_id: str = Field(min_length=1)
+    status: Literal["running", "complete"]
+    name: str = Field(min_length=1)
+    phase: Literal["retrieve", "evaluate", "act"]
+    purpose: str = Field(min_length=1)
+    outcome: str = Field(min_length=1)
+    duration_ms: float | None = Field(ge=0)
+    arguments: dict[str, JsonValue]
+    call: ToolCallResponse | None
 
-    @field_validator("conversation_id", "vehicle_id")
-    @classmethod
-    def require_nonblank(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("value must not be blank")
-        return cleaned
+
+class ResponseDeltaStreamEvent(_StrictApiModel):
+    delta: str
 
 
-class BuyerDossierResponse(BaseModel):
-    vehicle_id: str
-    vehicle_name: str
-    summary: str
-    fit_reasons: list[str] = Field(default_factory=list)
-    watchouts: list[str] = Field(default_factory=list)
-    seller_questions: list[str] = Field(default_factory=list)
-    inspection_priorities: list[str] = Field(default_factory=list)
-    recommendation: Literal["buy", "investigate", "pass"]
-    confidence: Literal["low", "medium", "high"]
-    evidence_note: str
-    mode: Literal["llm", "grounded_fallback"]
-    metrics: dict[str, int]
+class ErrorStreamEvent(_StrictApiModel):
+    message: str = Field(min_length=1)
+
+
+class DoneStreamEvent(_StrictApiModel):
+    pass
 
 
 def create_app(
@@ -135,10 +176,7 @@ def create_app(
     @api.get("/inventory", response_model=InventoryResponse)
     def inventory(limit: int = Query(default=12, ge=1, le=100)) -> InventoryResponse:
         all_vehicles = service.tools.inventory.all()
-        featured = [
-            InventoryVehicleResponse.model_validate(vehicle.to_dict(include_service_history=False))
-            for vehicle in all_vehicles[:limit]
-        ]
+        featured = [_inventory_vehicle_response(vehicle) for vehicle in all_vehicles[:limit]]
         return InventoryResponse(total=len(all_vehicles), vehicles=featured)
 
 
@@ -165,22 +203,6 @@ def create_app(
         return ChatResponse.model_validate(payload)
 
 
-    @api.post("/buyer-dossier", response_model=BuyerDossierResponse)
-    def buyer_dossier(request: BuyerDossierRequest) -> BuyerDossierResponse:
-        """Create a purchase brief only for the vehicle focused in this conversation."""
-
-        try:
-            payload = service.generate_buyer_dossier(
-                request.conversation_id,
-                request.vehicle_id,
-            )
-        except LookupError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
-        except ValueError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        return BuyerDossierResponse.model_validate(payload)
-
-
     @api.get("/vehicles/{vehicle_id}/reviews", response_model=VehicleReviewsResponse)
     def vehicle_reviews(vehicle_id: str) -> VehicleReviewsResponse:
         vehicle = service.tools.inventory.get(vehicle_id)
@@ -203,7 +225,7 @@ def _stream_chat(
 ) -> Iterator[str]:
     """Run one synchronous agent turn while yielding trace events as tools run."""
 
-    events: Queue[tuple[str, dict[str, Any]] | None] = Queue()
+    events: Queue[tuple[str, _StrictApiModel] | None] = Queue()
     pending_trace_ids: dict[str, list[str]] = {}
     trace_counter = 0
 
@@ -231,6 +253,7 @@ def _stream_chat(
             "outcome": "Running…" if status == "start" else "Operation completed.",
             "duration_ms": None if status == "start" else 0.0,
             "arguments": _redacted_arguments(name, arguments),
+            "call": None,
         }
         if call is not None:
             call_payload = call.to_dict(redact_sensitive=True)
@@ -243,7 +266,7 @@ def _stream_chat(
                     "duration_ms": call_payload["duration_ms"],
                 }
             )
-        events.put(("trace", payload))
+        events.put(("trace", TraceStreamEvent.model_validate(payload)))
 
     def work() -> None:
         try:
@@ -252,15 +275,15 @@ def _stream_chat(
                 message,
                 trace_observer=observe,
                 response_observer=lambda delta: events.put(
-                    ("response_delta", {"delta": delta})
+                    ("response_delta", ResponseDeltaStreamEvent(delta=delta))
                 ),
             )
             payload = response.to_dict()
             payload["reviews"] = _reviews_for_response(service, response, repository)
-            events.put(("response", ChatResponse.model_validate(payload).model_dump(mode="json")))
+            events.put(("response", ChatResponse.model_validate(payload)))
         except Exception:  # pragma: no cover - surfaced through the client event
             LOGGER.exception("Chat stream failed for conversation %s", conversation_id)
-            events.put(("error", {"message": "The advisor encountered an internal error."}))
+            events.put(("error", ErrorStreamEvent(message="The advisor encountered an internal error.")))
         finally:
             events.put(None)
 
@@ -271,11 +294,11 @@ def _stream_chat(
             break
         event_name, payload = item
         yield _sse(event_name, payload)
-    yield _sse("done", {})
+    yield _sse("done", DoneStreamEvent())
 
 
-def _sse(event_name: str, payload: dict[str, Any]) -> str:
-    return f"event: {event_name}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+def _sse(event_name: str, payload: _StrictApiModel) -> str:
+    return f"event: {event_name}\ndata: {json.dumps(payload.model_dump(mode='json'), ensure_ascii=False)}\n\n"
 
 
 def _redacted_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -322,6 +345,17 @@ def _reviews_for_response(
                 )
             )
     return groups
+
+
+def _inventory_vehicle_response(vehicle: Any) -> InventoryVehicleResponse:
+    """Project an internal vehicle record onto the intentional public API shape."""
+
+    record = vehicle.to_dict(include_service_history=False)
+    public_record = {
+        field_name: record[field_name]
+        for field_name in InventoryVehicleResponse.model_fields
+    }
+    return InventoryVehicleResponse.model_validate(public_record)
 
 
 def _add_tool_result_vehicle_ids(result: Any, add_vehicle_id: Any) -> None:

@@ -143,8 +143,7 @@ a { color: #18181b; }
 .modal-price-row strong { color: var(--chat-text); font-size: 1.45rem; }
 .modal-price-row span { color: var(--chat-muted); font-size: 0.78rem; }
 .gallery-modal-details > p { margin: 15px 0; color: var(--chat-muted); font-size: 0.84rem; }
-.image-credit { font-size: 0.7rem !important; }
-.image-credit a { color: #18181b; }
+.image-source-link { display: inline-block; margin-top: 15px; color: #18181b; font-size: 0.7rem; }
 .listing-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 0; }
 .listing-specs div { padding: 9px; background: #f8f8f8; border-radius: 6px; }
 .listing-specs dt { color: var(--chat-subtle); font-size: 0.62rem; text-transform: uppercase; }
@@ -382,26 +381,6 @@ a { color: #18181b; }
 .metric-cell span { display: block; min-height: 28px; color: var(--chat-subtle); font-size: 0.62rem; line-height: 1.2; text-transform: uppercase; letter-spacing: 0.045em; }
 .metric-cell strong { display: block; margin-top: 4px; color: var(--chat-text); font-size: 1rem; line-height: 1; }
 .metrics-summary { margin: 11px 0 0; color: var(--chat-muted); font-size: 0.68rem; line-height: 1.45; }
-.buyer-dossier-panel { min-width: 0; background: #fff; }
-.dossier-action { flex: 0 0 auto; padding: 6px 9px; font-size: 0.7rem; }
-.dossier-intro, .dossier-status, .dossier-error { margin: 0; color: var(--chat-muted); font-size: 0.72rem; line-height: 1.5; }
-.dossier-status { display: flex; align-items: center; gap: 7px; }
-.dossier-status::before { width: 7px; height: 7px; flex: 0 0 auto; border: 2px solid #d4d4d4; border-top-color: #18181b; border-radius: 50%; content: ""; animation: spin 800ms linear infinite; }
-.dossier-error { color: var(--chat-danger); }
-.dossier-content { min-width: 0; }
-.dossier-verdict { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; color: var(--chat-muted); font-size: 0.65rem; text-transform: capitalize; }
-.dossier-recommendation { padding: 2px 5px; color: #52525b; background: #f4f4f5; border-radius: 4px; font-size: 0.58rem; font-weight: 750; letter-spacing: 0.045em; text-transform: uppercase; }
-.dossier-recommendation-buy { color: #166534; background: #f0fdf4; }
-.dossier-recommendation-investigate { color: #a16207; background: #fffbeb; }
-.dossier-recommendation-pass { color: #b91c1c; background: #fef2f2; }
-.dossier-vehicle { margin: 0 0 5px; color: var(--chat-text); font-size: 0.78rem; font-weight: 700; }
-.dossier-summary { margin: 0 0 12px; color: var(--chat-muted); font-size: 0.72rem; line-height: 1.5; }
-.dossier-section { margin-top: 11px; }
-.dossier-section h3 { margin: 0 0 4px; color: var(--chat-text); font-size: 0.67rem; font-weight: 700; }
-.dossier-section ul { padding-left: 16px; margin: 0; color: var(--chat-muted); font-size: 0.68rem; line-height: 1.45; }
-.dossier-section li + li { margin-top: 4px; }
-.dossier-evidence-note { padding-top: 10px; margin: 12px 0 0; color: var(--chat-subtle); border-top: 1px solid #f4f4f5; font-size: 0.64rem; line-height: 1.45; }
-
 @media (min-width: 901px) {
   html, body, #root { height: 100%; overflow: hidden; }
   .shell { width: 100%; height: 100vh; height: 100dvh; min-height: 0; padding: 24px 20px 40px; margin: 0; overflow: hidden; }
@@ -420,13 +399,12 @@ a { color: #18181b; }
   .workspace > .inventory-gallery .inventory-card-focused .inventory-card-kicker { display: flex; margin-bottom: 4px; }
   .workspace > .inventory-gallery .inventory-card-focused .inventory-card-kicker span + span { display: none; }
   .workspace > .inventory-gallery .gallery-pagination { margin: 10px 0 0; }
-  /* Keep the desktop viewport fixed while making the rail—not the document—
-     responsible for any overflow introduced by an expanded buyer dossier. */
-  .sidebar { height: 100%; min-height: 0; align-content: start; overflow-y: auto; padding-right: 2px; }
-  .sidebar.sidebar-with-dossier { grid-template-rows: none; }
-  .buyer-dossier-panel { max-height: min(360px, 45vh); overflow: auto; }
-  .tool-trace-panel { min-height: 0; }
-  .tool-trace-panel .trace-list { max-height: 260px; }
+  /* The evidence rail stays fully in view. Only the long tool history may scroll. */
+  .sidebar { display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: hidden; }
+  .sidebar > .panel { flex: 0 0 auto; }
+  .sidebar .tool-trace-panel { display: flex; min-height: 0; flex: 1 1 0; flex-direction: column; overflow: hidden; }
+  .sidebar .tool-trace-panel .section-heading, .sidebar .tool-trace-panel .trace-progress { flex: 0 0 auto; }
+  .sidebar .tool-trace-panel .trace-list { min-height: 0; max-height: none; flex: 1 1 auto; overflow-y: auto; }
 }
 
 @keyframes appear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

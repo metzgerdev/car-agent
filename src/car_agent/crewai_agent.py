@@ -7,19 +7,26 @@ import logging
 import os
 import re
 from time import perf_counter
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 
 from crewai import Agent, Crew, LLM, Process, Task
 from crewai.tools import BaseTool
 from crewai.types.streaming import CrewStreamingOutput, StreamChunkType
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 
 from .agent import DeterministicRouter, TraceObserver
 from .conversation_context import ConversationTurn, build_prompt_context
-from .intent_parser import IntentEnvelope, IntentParser, LLMIntentParser
+from .intent_parser import InventoryIntentFilters, IntentEnvelope, IntentParser, LLMIntentParser
 from .lookup_models import ExactVehicleQuery
-from .models import AgentResponse, ConversationState, LLMUsage, ShopperPreferences, ToolCall
+from .models import (
+    AgentResponse,
+    ConversationState,
+    LLMUsage,
+    ShopperPreferences,
+    TestDriveRequest,
+    ToolCall,
+)
 from .persona import CLASSIC_CAR_PERSONA
 from .profiling import TimingRecorder
 from .repositories import PROJECT_ROOT
@@ -33,59 +40,112 @@ ResponseObserver = Callable[[str], None]
 LOGGER = logging.getLogger(__name__)
 
 
-class ListInventoryInput(BaseModel):
-    filters: dict[str, Any] = Field(default_factory=dict, description="Hard and soft shopper filters")
+class _StrictToolInput(BaseModel):
+    """Reject malformed or unknown arguments before a CrewAI tool is run."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class ListInventoryInput(_StrictToolInput):
+    filters: InventoryIntentFilters = Field(description="Complete shopper filters; use null for no preference")
 
 
 class ExactVehicleLookupInput(ExactVehicleQuery):
     """Structured identity for an authoritative availability lookup."""
 
 
-class GetVehicleInput(BaseModel):
-    vehicle_id: str = Field(description="Exact inventory vehicle ID")
+class _VehicleIdToolInput(_StrictToolInput):
+    vehicle_id: str = Field(min_length=1, max_length=128, description="Exact inventory vehicle ID")
+
+    @field_validator("vehicle_id")
+    @classmethod
+    def require_nonblank_vehicle_id(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("vehicle_id must not be blank")
+        return cleaned
 
 
-class GetVehicleFactsInput(BaseModel):
-    vehicle_id: str = Field(description="Exact inventory vehicle ID")
-    topic: str | None = Field(default=None, description="Optional fact topic such as maintenance")
+class GetVehicleInput(_VehicleIdToolInput):
+    pass
 
 
-class GetServiceHistoryInput(BaseModel):
-    vehicle_id: str = Field(description="Exact inventory vehicle ID")
+class GetVehicleFactsInput(_VehicleIdToolInput):
+    topic: str | None = Field(max_length=80, description="Fact topic such as maintenance, or null")
+
+    @field_validator("topic")
+    @classmethod
+    def normalize_optional_topic(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
 
 
-class GetMagazineReviewsInput(BaseModel):
-    vehicle_id: str = Field(description="Exact inventory vehicle ID")
+class GetServiceHistoryInput(_VehicleIdToolInput):
+    pass
 
 
-class GetVehicleComparisonInput(BaseModel):
+class GetMagazineReviewsInput(_VehicleIdToolInput):
+    pass
+
+
+class GetVehicleComparisonInput(_StrictToolInput):
     vehicle_ids: list[str] = Field(description="Exactly two inventory vehicle IDs", min_length=2, max_length=2)
 
+    @field_validator("vehicle_ids")
+    @classmethod
+    def require_two_distinct_vehicle_ids(cls, value: list[str]) -> list[str]:
+        cleaned = [vehicle_id.strip() for vehicle_id in value]
+        if any(not vehicle_id for vehicle_id in cleaned):
+            raise ValueError("vehicle_ids must not contain blank values")
+        if len(set(cleaned)) != len(cleaned):
+            raise ValueError("vehicle_ids must be distinct")
+        return cleaned
 
-class CreateTestDriveInput(BaseModel):
-    vehicle_id: str = Field(description="Exact inventory vehicle ID")
-    name: str = Field(description="Shopper's full name")
-    email: str = Field(description="Shopper's email address")
-    preferred_time: str = Field(description="Shopper's preferred day and time")
+
+class CreateTestDriveInput(TestDriveRequest):
+    """CrewAI tool input sharing the scheduler's validated request contract."""
+
+
+class CrewShopperPreferencesOutput(BaseModel):
+    """Strict structured-output representation of shopper preferences."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    budget_max: int | None
+    intended_use: str | None
+    body_style: str | None
+    driving_style: str | None
+    timeline: str | None
+    selected_vehicle_id: str | None
+    name: str | None
+    email: str | None
+    preferred_time: str | None
+
+
+class CrewConversationStateOutput(BaseModel):
+    """Strict state schema accepted by OpenAI-compatible structured outputs."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    preferences: CrewShopperPreferencesOutput
+    stage: str
+    last_vehicle_ids: list[str]
+    shown_vehicle_ids: list[str]
+    focused_vehicle_id: str | None
+    pending_followup: Literal["service_history"] | None
 
 
 class CrewTurnOutput(BaseModel):
     """Structured output required from a live CrewAI turn."""
 
+    model_config = ConfigDict(extra="forbid", strict=True)
+
     message: str = Field(description="The concise shopper-facing response")
-    state: dict[str, Any] = Field(description="Updated conversation state matching the domain schema")
-
-
-class BuyerDossierOutput(BaseModel):
-    """A compact, evidence-bound purchase brief for one resolved listing."""
-
-    summary: str = Field(description="A concise listing summary grounded in the supplied evidence")
-    fit_reasons: list[str] = Field(default_factory=list)
-    watchouts: list[str] = Field(default_factory=list)
-    seller_questions: list[str] = Field(default_factory=list)
-    inspection_priorities: list[str] = Field(default_factory=list)
-    recommendation: str = Field(description="One of: buy, investigate, or pass")
-    confidence: str = Field(description="One of: low, medium, or high")
+    state: CrewConversationStateOutput = Field(
+        description="Complete updated conversation state matching the domain schema"
+    )
 
 
 class _CrewSalesTool(BaseTool):
@@ -144,11 +204,13 @@ class ListInventoryTool(_CrewSalesTool):
     description: str = "List ranked current used classic sports-car inventory records matching filters."
     args_schema: type[BaseModel] = ListInventoryInput
 
-    def _run(self, filters: dict[str, Any]) -> str:
+    def _run(self, filters: InventoryIntentFilters | dict[str, Any]) -> str:
+        request = ListInventoryInput(filters=filters)
+        filter_payload = request.filters.model_dump(exclude_none=True)
         return self._run_backend(
             "list_inventory",
-            {"filters": filters},
-            lambda: self._backend.list_inventory(filters),
+            {"filters": filter_payload},
+            lambda: self._backend.list_inventory(filter_payload),
         )
 
 
@@ -158,7 +220,8 @@ class LookupVehicleExactTool(_CrewSalesTool):
     args_schema: type[BaseModel] = ExactVehicleLookupInput
 
     def _run(self, year: int, make: str, model: str) -> str:
-        arguments = {"year": year, "make": make, "model": model}
+        request = ExactVehicleLookupInput(year=year, make=make, model=model)
+        arguments = request.model_dump()
         return self._run_backend(
             "lookup_vehicle_exact",
             arguments,
@@ -172,10 +235,11 @@ class GetVehicleTool(_CrewSalesTool):
     args_schema: type[BaseModel] = GetVehicleInput
 
     def _run(self, vehicle_id: str) -> str:
+        request = GetVehicleInput(vehicle_id=vehicle_id)
         return self._run_backend(
             "get_vehicle",
-            {"vehicle_id": vehicle_id},
-            lambda: self._backend.get_vehicle(vehicle_id),
+            request.model_dump(),
+            lambda: self._backend.get_vehicle(request.vehicle_id),
         )
 
 
@@ -184,12 +248,13 @@ class GetVehicleFactsTool(_CrewSalesTool):
     description: str = "Get sourced ownership and vehicle facts for one exact vehicle ID."
     args_schema: type[BaseModel] = GetVehicleFactsInput
 
-    def _run(self, vehicle_id: str, topic: str | None = None) -> str:
-        arguments = {"vehicle_id": vehicle_id, "topic": topic}
+    def _run(self, vehicle_id: str, topic: str | None) -> str:
+        request = GetVehicleFactsInput(vehicle_id=vehicle_id, topic=topic)
+        arguments = request.model_dump()
         return self._run_backend(
             "get_vehicle_facts",
             arguments,
-            lambda: self._backend.get_vehicle_facts(vehicle_id, topic),
+            lambda: self._backend.get_vehicle_facts(request.vehicle_id, request.topic),
         )
 
 
@@ -199,10 +264,11 @@ class GetServiceHistoryTool(_CrewSalesTool):
     args_schema: type[BaseModel] = GetServiceHistoryInput
 
     def _run(self, vehicle_id: str) -> str:
+        request = GetServiceHistoryInput(vehicle_id=vehicle_id)
         return self._run_backend(
             "get_service_history",
-            {"vehicle_id": vehicle_id},
-            lambda: self._backend.get_service_history(vehicle_id),
+            request.model_dump(),
+            lambda: self._backend.get_service_history(request.vehicle_id),
         )
 
 
@@ -212,10 +278,11 @@ class GetMagazineReviewsTool(_CrewSalesTool):
     args_schema: type[BaseModel] = GetMagazineReviewsInput
 
     def _run(self, vehicle_id: str) -> str:
+        request = GetMagazineReviewsInput(vehicle_id=vehicle_id)
         return self._run_backend(
             "get_magazine_reviews",
-            {"vehicle_id": vehicle_id},
-            lambda: self._backend.get_magazine_reviews(vehicle_id),
+            request.model_dump(),
+            lambda: self._backend.get_magazine_reviews(request.vehicle_id),
         )
 
 
@@ -225,10 +292,11 @@ class GetVehicleComparisonTool(_CrewSalesTool):
     args_schema: type[BaseModel] = GetVehicleComparisonInput
 
     def _run(self, vehicle_ids: list[str]) -> str:
+        request = GetVehicleComparisonInput(vehicle_ids=vehicle_ids)
         return self._run_backend(
             "get_vehicle_comparison",
-            {"vehicle_ids": vehicle_ids},
-            lambda: self._backend.get_vehicle_comparison(vehicle_ids),
+            request.model_dump(),
+            lambda: self._backend.get_vehicle_comparison(request.vehicle_ids),
         )
 
 
@@ -238,20 +306,18 @@ class CreateTestDriveTool(_CrewSalesTool):
     args_schema: type[BaseModel] = CreateTestDriveInput
 
     def _run(self, vehicle_id: str, name: str, email: str, preferred_time: str) -> str:
-        arguments = {
-            "vehicle_id": vehicle_id,
-            "name": name,
-            "email": email,
-            "preferred_time": preferred_time,
-        }
+        request = CreateTestDriveInput(
+            vehicle_id=vehicle_id,
+            name=name,
+            email=email,
+            preferred_time=preferred_time,
+        )
+        arguments = request.model_dump()
         return self._run_backend(
             "create_test_drive",
             arguments,
             lambda: self._backend.create_test_drive(
-                vehicle_id=vehicle_id,
-                name=name,
-                email=email,
-                preferred_time=preferred_time,
+                **arguments,
             ),
         )
 
@@ -281,7 +347,7 @@ class CrewAISalesAgent:
             if use_live_model is None
             else use_live_model
         )
-        self.llm = llm or os.getenv("CAR_AGENT_CREWAI_MODEL") or "openrouter/deepseek/deepseek-chat"
+        self.llm = llm or os.getenv("CAR_AGENT_CREWAI_MODEL") or "openrouter/openai/gpt-5.4-nano"
         self.intent_parser = intent_parser
 
     def respond(
@@ -608,146 +674,6 @@ class CrewAISalesAgent:
     def _record_crew_usage(self, conversation_id: str, result: Any) -> None:
         self._add_conversation_usage(conversation_id, _crew_result_usage(result))
 
-    def generate_buyer_dossier(self, conversation_id: str, vehicle_id: str) -> dict[str, Any]:
-        """Create an evidence-bound buyer brief for the currently focused listing.
-
-        The target is intentionally validated against conversation state before any
-        model work. This keeps the dossier coupled to the same inventory identity
-        that was resolved in the chat, rather than letting a model select a nearby
-        make/model match from a prompt.
-        """
-
-        state = self.sessions.get(conversation_id)
-        if state is None or state.focused_vehicle_id != vehicle_id:
-            raise ValueError("Resolve this listing in the conversation before generating its dossier.")
-
-        vehicle = self.tools.inventory.get(vehicle_id)
-        if vehicle is None:
-            raise LookupError("Vehicle not found.")
-
-        facts_result = self.tools.get_vehicle_facts(vehicle_id)
-        service_result = self.tools.get_service_history(vehicle_id)
-        reviews_result = self.tools.get_magazine_reviews(vehicle_id)
-        evidence = self._buyer_dossier_evidence(
-            vehicle.to_dict(include_service_history=False),
-            facts_result,
-            service_result,
-            reviews_result,
-            state.preferences,
-        )
-        fallback = _grounded_buyer_dossier(evidence)
-        if not self.use_live_model:
-            return self._with_dossier_metrics(conversation_id, fallback, mode="grounded_fallback")
-
-        try:
-            with self.profiler.span("crewai.buyer_dossier"):
-                crew = self.build_buyer_dossier_crew()
-                result = crew.kickoff(
-                    inputs={
-                        "vehicle_name": vehicle.name,
-                        "evidence_json": json.dumps(evidence, ensure_ascii=False),
-                    }
-                )
-            self._record_crew_usage(conversation_id, result)
-            output = _coerce_buyer_dossier_output(result)
-            normalized = _normalize_buyer_dossier_output(output, fallback)
-            return self._with_dossier_metrics(conversation_id, normalized, mode="llm")
-        except Exception:
-            # The dossier is an enhancement, not a reason to make a grounded
-            # listing unavailable. Preserve the fully sourced deterministic brief.
-            LOGGER.warning(
-                "Buyer dossier synthesis failed; returning grounded fallback for conversation %s",
-                conversation_id,
-                exc_info=True,
-            )
-            return self._with_dossier_metrics(conversation_id, fallback, mode="grounded_fallback")
-
-    def _with_dossier_metrics(
-        self,
-        conversation_id: str,
-        dossier: dict[str, Any],
-        *,
-        mode: str,
-    ) -> dict[str, Any]:
-        return {
-            **dossier,
-            "mode": mode,
-            "metrics": self.conversation_llm_usage.get(conversation_id, LLMUsage()).to_dict(),
-        }
-
-    @staticmethod
-    def _buyer_dossier_evidence(
-        vehicle: dict[str, Any],
-        facts_result: dict[str, Any],
-        service_result: dict[str, Any],
-        reviews_result: dict[str, Any],
-        preferences: ShopperPreferences,
-    ) -> dict[str, Any]:
-        """Limit model input to the exact listing and non-sensitive shopper fit data."""
-
-        return {
-            "vehicle": vehicle,
-            "shopper_preferences": {
-                key: value
-                for key, value in preferences.to_dict().items()
-                if key in {"budget_max", "intended_use", "body_style", "driving_style", "timeline"}
-                and value is not None
-            },
-            "ownership_facts": facts_result.get("facts", []),
-            "service_history": {
-                "records": service_result.get("service_history", []),
-                "record_count": service_result.get("record_count", 0),
-                "synthetic": service_result.get("synthetic", False),
-            },
-            "editorial_reviews": reviews_result.get("reviews", []),
-        }
-
-    def build_buyer_dossier_crew(self) -> Crew:
-        """Build a no-tools CrewAI synthesis that can only see supplied evidence."""
-
-        analyst = Agent(
-            role="Grounded classic-car buyer analyst",
-            goal="Turn one supplied vehicle evidence packet into a cautious purchase brief.",
-            backstory=(
-                "You separate listing claims, maintenance evidence, ownership notes, and editorial "
-                "context. You never fill gaps with automotive lore or assumptions."
-            ),
-            llm=self._live_llm(),
-            tools=[],
-            allow_delegation=False,
-            max_iter=1,
-            verbose=False,
-        )
-        dossier = Task(
-            name="buyer_dossier",
-            description=(
-                "Write a buyer dossier for {vehicle_name} using only this JSON evidence packet:\n"
-                "{evidence_json}\n\n"
-                "Every statement must be directly supported by that packet. Do not invent condition, "
-                "ownership, pricing, rarity, maintenance, or suitability claims. Treat editorial reviews "
-                "as general vehicle context, never as a condition report for this listing. Keep seller "
-                "questions and inspection priorities framed as questions or verification steps. If service "
-                "records are marked synthetic or the listing provenance is illustrative, say that evidence "
-                "needs verification and set recommendation to investigate. Otherwise use buy, investigate, "
-                "or pass only when the supplied evidence supports it. Set confidence to low, medium, or high."
-            ),
-            expected_output=(
-                "JSON with summary, fit_reasons, watchouts, seller_questions, inspection_priorities, "
-                "recommendation, and confidence."
-            ),
-            agent=analyst,
-            output_pydantic=BuyerDossierOutput,
-        )
-        return Crew(
-            name="buyer_dossier_crew",
-            agents=[analyst],
-            tasks=[dossier],
-            process=Process.sequential,
-            verbose=False,
-            share_crew=False,
-            tracing=False,
-        )
-
     def build_crew(
         self,
         trace: list[ToolCall] | None = None,
@@ -818,7 +744,8 @@ class CrewAISalesAgent:
                 "than two useful questions in one turn. Never guess an ambiguous model or an "
                 "unsupported specification. "
                 f"{CLASSIC_CAR_PERSONA.task_guidance} Return a concise response plus the complete "
-                "updated domain state."
+                "updated domain state. Include every state and preferences field; use null for an "
+                "empty scalar value and [] for an empty vehicle list."
             ),
             expected_output="A JSON object with message (string) and state (object).",
             agent=salesperson,
@@ -894,7 +821,7 @@ class CrewAISalesAgent:
                 output = _coerce_crew_output(result)
                 state = _state_from_dict(
                     conversation_id,
-                    output.state,
+                    output.state.model_dump(),
                     previous_state,
                     valid_vehicle_ids=self._inventory_vehicle_ids(),
                 )
@@ -948,35 +875,55 @@ class CrewAISalesAgent:
             prepared.state,
             self.tools.inventory,
         ).as_prompt_inputs()
-        with self.profiler.span("crewai.live_review_turn"):
-            with self.profiler.span("crewai.crew_build"):
-                build_kwargs: dict[str, Any] = {"review_only": True}
-                if trace_observer:
-                    build_kwargs["trace_observer"] = trace_observer
-                if response_observer:
-                    build_kwargs["stream"] = True
-                crew = self.build_crew(trace, **build_kwargs)
-            with self.profiler.span("crewai.crew_kickoff"):
-                result = self._kickoff(
-                    crew,
-                    {
-                        "conversation_id": conversation_id,
-                        "user_message": user_message.strip(),
-                        "state_json": json.dumps(prepared.state.to_dict()),
-                        "review_context": json.dumps(reviews, ensure_ascii=False),
-                        **prompt_context,
-                    },
-                    response_observer,
-                )
-            self._record_crew_usage(conversation_id, result)
-            with self.profiler.span("crewai.output_normalization"):
-                output = _coerce_crew_output(result)
-                state = _state_from_dict(
-                    conversation_id,
-                    output.state,
-                    prepared.state,
-                    valid_vehicle_ids=self._inventory_vehicle_ids(),
-                )
+        response_started = False
+
+        def observe_live_response(delta: str) -> None:
+            nonlocal response_started
+            response_started = True
+            if response_observer:
+                response_observer(delta)
+
+        try:
+            with self.profiler.span("crewai.live_review_turn"):
+                with self.profiler.span("crewai.crew_build"):
+                    build_kwargs: dict[str, Any] = {"review_only": True}
+                    if trace_observer:
+                        build_kwargs["trace_observer"] = trace_observer
+                    if response_observer:
+                        build_kwargs["stream"] = True
+                    crew = self.build_crew(trace, **build_kwargs)
+                with self.profiler.span("crewai.crew_kickoff"):
+                    result = self._kickoff(
+                        crew,
+                        {
+                            "conversation_id": conversation_id,
+                            "user_message": user_message.strip(),
+                            "state_json": json.dumps(prepared.state.to_dict()),
+                            "review_context": json.dumps(reviews, ensure_ascii=False),
+                            **prompt_context,
+                        },
+                        observe_live_response if response_observer else None,
+                    )
+                self._record_crew_usage(conversation_id, result)
+                with self.profiler.span("crewai.output_normalization"):
+                    output = _coerce_crew_output(result)
+                    state = _state_from_dict(
+                        conversation_id,
+                        output.state.model_dump(),
+                        prepared.state,
+                        valid_vehicle_ids=self._inventory_vehicle_ids(),
+                    )
+        except Exception:
+            # The deterministic preparation already performed the one allowed review retrieval.
+            # Re-running the general fallback here would retrieve the same source a second time.
+            LOGGER.warning(
+                "Live magazine-review synthesis failed; returning the retrieved review response for conversation %s",
+                conversation_id,
+                exc_info=True,
+            )
+            if response_observer and not response_started:
+                _emit_response_chunks(prepared.message, response_observer)
+            return prepared
         self.sessions[conversation_id] = state
         message = _ensure_review_citations(output.message.strip(), reviews)
         return AgentResponse(message, state, trace)
@@ -1091,149 +1038,6 @@ def _coerce_crew_output(result: Any) -> CrewTurnOutput:
         return CrewTurnOutput.model_validate_json(raw)
     except ValueError as exc:
         raise ValueError("CrewAI returned a response that does not match CrewTurnOutput") from exc
-
-
-def _coerce_buyer_dossier_output(result: Any) -> BuyerDossierOutput:
-    """Normalize a CrewAI result without accepting free-form output as evidence."""
-
-    structured = getattr(result, "pydantic", None)
-    if structured is not None:
-        return BuyerDossierOutput.model_validate(structured)
-    raw = getattr(result, "raw", str(result))
-    try:
-        return BuyerDossierOutput.model_validate_json(raw)
-    except ValueError as exc:
-        raise ValueError("CrewAI returned a response that does not match BuyerDossierOutput") from exc
-
-
-def _normalize_buyer_dossier_output(
-    output: BuyerDossierOutput,
-    fallback: dict[str, Any],
-) -> dict[str, Any]:
-    """Keep an LLM brief bounded and retain deterministic provenance language."""
-
-    recommendation = output.recommendation.strip().lower()
-    confidence = output.confidence.strip().lower()
-    if recommendation not in {"buy", "investigate", "pass"}:
-        recommendation = fallback["recommendation"]
-    # A synthetic-only record set never supports a purchase recommendation,
-    # even if a model disregards the task instruction.
-    if fallback["confidence"] == "low":
-        recommendation = fallback["recommendation"]
-    if confidence not in {"low", "medium", "high"}:
-        confidence = fallback["confidence"]
-    if fallback["confidence"] == "low":
-        confidence = "low"
-
-    def compact(items: list[str], default: list[str]) -> list[str]:
-        cleaned = [item.strip() for item in items if isinstance(item, str) and item.strip()]
-        return cleaned[:4] or default
-
-    return {
-        "vehicle_id": fallback["vehicle_id"],
-        "vehicle_name": fallback["vehicle_name"],
-        "summary": output.summary.strip() or fallback["summary"],
-        "fit_reasons": compact(output.fit_reasons, fallback["fit_reasons"]),
-        "watchouts": compact(output.watchouts, fallback["watchouts"]),
-        "seller_questions": compact(output.seller_questions, fallback["seller_questions"]),
-        "inspection_priorities": compact(output.inspection_priorities, fallback["inspection_priorities"]),
-        "recommendation": recommendation,
-        "confidence": confidence,
-        # Generated deterministically so the UI can always distinguish listing
-        # evidence from editorial context, regardless of model wording.
-        "evidence_note": fallback["evidence_note"],
-    }
-
-
-def _grounded_buyer_dossier(evidence: dict[str, Any]) -> dict[str, Any]:
-    """Build a useful no-model buyer dossier from the exact evidence packet."""
-
-    vehicle = evidence["vehicle"]
-    preferences = evidence["shopper_preferences"]
-    facts = evidence["ownership_facts"]
-    service = evidence["service_history"]
-    reviews = evidence["editorial_reviews"]
-    name = str(vehicle["name"])
-    price = int(vehicle["price"])
-    mileage = int(vehicle["mileage"])
-    configuration = ", ".join(
-        str(vehicle[key]) for key in ("body_style", "transmission", "drivetrain") if vehicle.get(key)
-    )
-    summary = (
-        f"{name} is listed at ${price:,.0f} with {mileage:,} miles. "
-        f"The listing identifies it as a {configuration} vehicle."
-    )
-
-    fit_reasons: list[str] = []
-    budget = preferences.get("budget_max")
-    if isinstance(budget, int):
-        relation = "within" if price <= budget else "above"
-        fit_reasons.append(
-            f"The ${price:,.0f} asking price is {relation} the stated ${budget:,.0f} budget."
-        )
-    if preferences.get("intended_use"):
-        fit_reasons.append(
-            f"Your stated use is {preferences['intended_use']}; validate the listing's {configuration} configuration on a drive."
-        )
-    if preferences.get("driving_style"):
-        fit_reasons.append(
-            f"Your stated driving preference is {preferences['driving_style']}; keep the test drive focused on whether this configuration fits it."
-        )
-    if not fit_reasons:
-        fit_reasons.append(
-            f"The current listing records a {configuration} configuration; use a drive to decide whether it fits your needs."
-        )
-
-    watchouts: list[str] = []
-    if service.get("synthetic"):
-        watchouts.append(
-            "The service entries are synthetic demo records, not seller documents or a condition report."
-        )
-    description = str(vehicle.get("description", "")).strip()
-    if description:
-        watchouts.append(f"Listing note: {description}")
-    for fact in facts[:2]:
-        if isinstance(fact, dict) and fact.get("fact"):
-            watchouts.append(f"Sourced ownership note: {fact['fact']}")
-    if not watchouts:
-        watchouts.append("The current packet does not include verified seller documents or an independent condition report.")
-
-    last_record = service.get("records", [])[-1] if service.get("records") else None
-    seller_questions = [
-        "Can you provide itemized invoices and seller documentation for the listed maintenance?",
-        "Are there any condition issues, repairs, or modifications beyond what is described in the listing?",
-    ]
-    inspection_priorities = [
-        "Arrange an independent pre-purchase inspection before relying on the listing or editorial context.",
-    ]
-    if isinstance(last_record, dict) and last_record.get("service_type"):
-        inspection_priorities.append(
-            f"Verify the scope and supporting paperwork for the {last_record['service_type']} recorded on {last_record.get('date', 'the latest entry')}."
-        )
-    else:
-        inspection_priorities.append("Confirm the service history with supporting paperwork and a specialist inspection.")
-
-    fact_count = len(facts)
-    record_count = int(service.get("record_count", 0))
-    review_count = len(reviews)
-    service_provenance = " Service history is marked synthetic demo data." if service.get("synthetic") else ""
-    evidence_note = (
-        f"Grounded in the current inventory listing, {fact_count} ownership fact(s), "
-        f"{record_count} service record(s), and {review_count} editorial review(s)."
-        f"{service_provenance} Editorial reviews describe the model, not this listing's condition."
-    )
-    return {
-        "vehicle_id": vehicle["id"],
-        "vehicle_name": name,
-        "summary": summary,
-        "fit_reasons": fit_reasons,
-        "watchouts": watchouts[:4],
-        "seller_questions": seller_questions,
-        "inspection_priorities": inspection_priorities,
-        "recommendation": "investigate",
-        "confidence": "low" if service.get("synthetic") else "medium",
-        "evidence_note": evidence_note,
-    }
 
 
 class _MessageStream:

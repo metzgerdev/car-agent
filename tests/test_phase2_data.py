@@ -130,7 +130,6 @@ def test_phase2_checked_in_inventory_has_50_typed_records_and_real_photos() -> N
     generated = vehicles[6:]
     assert all(vehicle.image_url for vehicle in vehicles)
     assert all(vehicle.image_source_url for vehicle in vehicles)
-    assert all(vehicle.image_license for vehicle in vehicles)
     assert all(vehicle.id.startswith("mock-") for vehicle in generated)
     assert all(vehicle.provenance.source_type == "illustrative_fixture" for vehicle in vehicles)
     assert all(vehicle.service_history for vehicle in vehicles)

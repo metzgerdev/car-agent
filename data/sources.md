@@ -12,9 +12,6 @@ grounding without requiring live marketplace ingestion.
 | Checked-in mock inventory (`data/inventory.json`) | Canonical listing facts: price, mileage, description, configuration, provenance, and synthetic service history | `Vehicle` through `normalize_inventory_record` | Validated `Vehicle` records |
 | Deterministic inventory generator (`scripts/generate_mock_inventory.py`) | Reproducible synthetic auction-style records inspired by common enthusiast-listing fields; preserves the six curated demo vehicles, constrains each model to its valid production-year ranges, and maps every model family to a real reference photo | Generator output validated by `normalize_inventory_record` | 44 generated `Vehicle` records with local provenance, model-reference photo metadata, and model-year validity |
 | Model-year reference catalog in the generator | Prevents a generic year formula from creating impossible combinations such as a 2006 BMW 2002 or a 2017 E36 328is; separate ranges represent separate generations when a model name spans them | `production_year_ranges` on each catalog family | Deterministic model/year pairs that stay within the curated production ranges |
-| [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/) | VIN decoding and vehicle identity/specification normalization | `NHTSAVPICResponse` / `NHTSAVPICResult` | Provenance-backed `VehicleFact(topic="identity")` |
-| [NHTSA recalls](https://www.nhtsa.gov/nhtsa-datasets-and-apis) | Safety recall and campaign context | `NHTSARecallResponse` / `NHTSARecallRecord` | Provenance-backed `VehicleFact(topic="safety_recall")` |
-| [EPA FuelEconomy.gov](https://www.fueleconomy.gov/feg/ws/) | Fuel type, MPG, estimated fuel cost, emissions, drivetrain, and related configuration data | `EPAFuelEconomyVehicle` | Provenance-backed efficiency, ownership, emissions, and specification facts |
 | Local knowledge fixture | Curated ownership and driving notes for the sales conversation | Existing `VehicleFact` records | Model-specific retrieved facts |
 | Synthetic service-history fixture | Listing-level maintenance events used to demonstrate a second inventory enrichment path | `ServiceRecord` | Dedicated `retrieve_service_history` tool output, explicitly marked `synthetic_demo` |
 | [Car and Driver](https://www.caranddriver.com/) / [MotorTrend](https://www.motortrend.com/) | Editorial context for a matched model: a link plus a short paraphrased summary | `MagazineReview` | Chat/API review context kept separate from canonical vehicle facts |
@@ -29,14 +26,9 @@ grounding without requiring live marketplace ingestion.
    year selected from its model-specific production ranges.
 2. Validate the checked-in JSON records with `normalize_inventory_record` and
    load them through `InventoryRepository`.
-3. Use a VIN, when present in an enrichment fixture, to associate NHTSA vPIC
-   identity facts. Use year/make/model and matching options to associate EPA
-   configuration facts.
-4. Store inventory observations and external facts separately. No source
-   silently overwrites another source's fields.
-5. Expose the resulting facts through retrieval tools so CrewAI can use
+3. Expose the local knowledge facts through retrieval tools so CrewAI can use
    source-grounded information in its response and trace.
-6. Keep listing-level service history separate from general knowledge facts.
+4. Keep listing-level service history separate from general knowledge facts.
    The checked-in records are synthetic, typed as `ServiceRecord`, and
    retrieved only through `retrieve_service_history`.
 
@@ -44,20 +36,15 @@ grounding without requiring live marketplace ingestion.
 
 - The mock inventory owns listing-specific observations: asking price,
   mileage, description, configuration, and listing provenance.
-- NHTSA owns VIN identity and safety-recall context.
-- EPA owns fuel-economy and emissions estimates for a vehicle configuration.
-- External facts enrich the mock listing but do not overwrite its canonical
-  inventory fields.
-- EPA matches are configuration-level matches, not claims about the physical
-  condition of a particular used vehicle.
+- Local knowledge records provide model-level ownership and driving context;
+  they do not overwrite listing-specific observations.
 
 ## Provenance contract
 
 Every inventory record and external fact carries:
 
 - `source_url`: provider endpoint or a local recorded-fixture URI;
-- `source_type`: for example `illustrative_fixture`, `nhtsa_vpic`,
-  `nhtsa_recalls`, or `fueleconomy_api`;
+- `source_type`: for example `illustrative_fixture`;
 - `retrieved_at`: an ISO-8601 timestamp for the fixture capture or enrichment;
 - `source_record_id` when the source supplies one;
 - `license` when the source license is known.
@@ -90,8 +77,6 @@ discloses that limitation before suggesting a pre-purchase inspection.
   and the [BMW E36 model-year table](https://en.wikipedia.org/wiki/BMW_3_Series_%28E36%29).
   The ranges are still demo catalog metadata, not a VIN decoder or title-history
   assertion.
-- Recorded NHTSA vPIC, NHTSA recall, and EPA fixtures provide offline tests for
-  the enrichment adapter contract.
 - Curated Car and Driver and MotorTrend links are validated with Pydantic and
   served by the review endpoint for the browser demo.
 - Live provider calls remain opt-in; the default test suite never needs a

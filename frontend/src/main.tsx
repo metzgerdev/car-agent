@@ -4,7 +4,7 @@ import {
   type ChatModelAdapter,
   type ThreadMessage,
 } from "@assistant-ui/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Thread } from "./components/assistant-ui/elements/thread";
 import { mergeTraceHistory } from "./trace-history.js";
@@ -25,21 +25,6 @@ type ChatPayload = {
   message: string;
   state: ConversationState;
   trace: ToolCall[];
-  metrics: LLMUsage;
-};
-
-type BuyerDossier = {
-  vehicle_id: string;
-  vehicle_name: string;
-  summary: string;
-  fit_reasons: string[];
-  watchouts: string[];
-  seller_questions: string[];
-  inspection_priorities: string[];
-  recommendation: "buy" | "investigate" | "pass";
-  confidence: "low" | "medium" | "high";
-  evidence_note: string;
-  mode: "llm" | "grounded_fallback";
   metrics: LLMUsage;
 };
 
@@ -72,8 +57,6 @@ type InventoryVehicle = {
   tags: string[];
   image_url: string | null;
   image_source_url: string | null;
-  image_attribution: string | null;
-  image_license: string | null;
 };
 
 type InventoryPayload = {
@@ -529,10 +512,9 @@ function InventoryGallery({ focusedVehicleId }: { focusedVehicleId: string | nul
                   <div><dt>Transmission</dt><dd>{selectedVehicle.transmission}</dd></div>
                 </dl>
                 {selectedVehicle.image_source_url ? (
-                  <p className="image-credit">
-                    Photo: <a href={selectedVehicle.image_source_url} target="_blank" rel="noreferrer">{selectedVehicle.image_attribution ?? "Wikimedia Commons"}</a>
-                    {selectedVehicle.image_license ? ` · ${selectedVehicle.image_license}` : ""}
-                  </p>
+                  <a className="image-source-link" href={selectedVehicle.image_source_url} target="_blank" rel="noreferrer">
+                    View source image
+                  </a>
                 ) : null}
                 <button className="button button-secondary gallery-modal-action" type="button" onClick={() => setSelectedVehicle(null)}>
                   Close listing preview
@@ -543,97 +525,6 @@ function InventoryGallery({ focusedVehicleId }: { focusedVehicleId: string | nul
         </div>
       ) : null}
     </>
-  );
-}
-
-function BuyerDossierPanel({
-  conversationId,
-  vehicleId,
-  onMetrics,
-}: {
-  conversationId: string;
-  vehicleId: string;
-  onMetrics: (metrics: LLMUsage) => void;
-}) {
-  const [dossier, setDossier] = useState<BuyerDossier | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const activeVehicleId = useRef(vehicleId);
-
-  useEffect(() => {
-    activeVehicleId.current = vehicleId;
-    setDossier(null);
-    setError(null);
-    setLoading(false);
-  }, [vehicleId, conversationId]);
-
-  const generate = useCallback(async () => {
-    const requestedVehicleId = vehicleId;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/buyer-dossier", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversation_id: conversationId, vehicle_id: requestedVehicleId }),
-      });
-      const payload = await response.json() as BuyerDossier | { detail?: string };
-      if (!response.ok) {
-        throw new Error("detail" in payload ? payload.detail : "The buyer dossier is unavailable.");
-      }
-      if (activeVehicleId.current !== requestedVehicleId) return;
-      const resolved = payload as BuyerDossier;
-      setDossier(resolved);
-      onMetrics(resolved.metrics);
-    } catch (requestError) {
-      if (activeVehicleId.current !== requestedVehicleId) return;
-      setError(requestError instanceof Error ? requestError.message : "The buyer dossier is unavailable.");
-    } finally {
-      if (activeVehicleId.current === requestedVehicleId) setLoading(false);
-    }
-  }, [conversationId, onMetrics, vehicleId]);
-
-  const lists: Array<[string, string[]]> = dossier ? [
-    ["Fit for your brief", dossier.fit_reasons],
-    ["Watchouts", dossier.watchouts],
-    ["Ask the seller", dossier.seller_questions],
-    ["Inspection priorities", dossier.inspection_priorities],
-  ] : [];
-
-  return (
-    <section className="panel evidence-card buyer-dossier-panel" aria-labelledby="buyer-dossier-title">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Evidence-bound synthesis</p>
-          <h2 id="buyer-dossier-title">Buyer Dossier</h2>
-        </div>
-        <button className="button button-secondary dossier-action" type="button" onClick={generate} disabled={loading}>
-          {loading ? "Building…" : dossier ? "Refresh" : "Generate"}
-        </button>
-      </div>
-      {!dossier && !loading && !error ? (
-        <p className="dossier-intro">Create a structured buying brief for this resolved listing.</p>
-      ) : null}
-      {loading ? <p className="dossier-status" aria-live="polite">Reviewing the listing evidence…</p> : null}
-      {error ? <p className="dossier-error" role="alert">{error}</p> : null}
-      {dossier ? (
-        <div className="dossier-content">
-          <div className="dossier-verdict">
-            <span className={`dossier-recommendation dossier-recommendation-${dossier.recommendation}`}>{dossier.recommendation}</span>
-            <span>{dossier.confidence} confidence</span>
-          </div>
-          <p className="dossier-vehicle">{dossier.vehicle_name}</p>
-          <p className="dossier-summary">{dossier.summary}</p>
-          {lists.map(([heading, items]) => items.length ? (
-            <section className="dossier-section" key={heading}>
-              <h3>{heading}</h3>
-              <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul>
-            </section>
-          ) : null)}
-          <p className="dossier-evidence-note">{dossier.evidence_note}</p>
-        </div>
-      ) : null}
-    </section>
   );
 }
 
@@ -697,13 +588,11 @@ function TraceMetricsPanel({ dashboard }: { dashboard: Dashboard }) {
   const { llmUsage } = dashboard;
 
   return (
-    <section className="panel evidence-card trace-metrics-panel" aria-label="Evaluation and trace metrics">
+    <section className="panel evidence-card trace-metrics-panel" aria-label="Trace metrics">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">AI engineering</p>
-          <h2>Evaluation &amp; Trace Metrics</h2>
+          <h2>Trace Metrics</h2>
         </div>
-        <span className="step-count">live</span>
       </div>
       <div className="metrics-grid">
         <div className="metric-cell">
@@ -723,32 +612,26 @@ function TraceMetricsPanel({ dashboard }: { dashboard: Dashboard }) {
           <strong>{formatTokenCount(llmUsage.total_tokens)}</strong>
         </div>
       </div>
-      <p className="metrics-summary">
-        {conversation.callCount || llmUsage.llm_calls
-          ? `${conversation.callCount} grounded call${conversation.callCount === 1 ? "" : "s"} · ${llmUsage.llm_calls} provider-reported LLM call${llmUsage.llm_calls === 1 ? "" : "s"} · ${formatTokenCount(llmUsage.total_tokens)} tokens used.`
-          : "Metrics populate as the advisor grounds a response with tools."}
-      </p>
+      {conversation.callCount || llmUsage.llm_calls ? (
+        <p className="metrics-summary">
+          {conversation.callCount} grounded call{conversation.callCount === 1 ? "" : "s"} · {llmUsage.llm_calls} provider-reported LLM call{llmUsage.llm_calls === 1 ? "" : "s"} · {formatTokenCount(llmUsage.total_tokens)} tokens used.
+        </p>
+      ) : null}
     </section>
   );
 }
 
 function AdvisorWorkspace({
   dashboard,
-  conversationId,
   conversationState,
   hasConversation,
   onBackToHome,
-  onDossierMetrics,
 }: {
   dashboard: Dashboard;
-  conversationId: string;
   conversationState: ConversationState | null;
   hasConversation: boolean;
   onBackToHome: () => void;
-  onDossierMetrics: (metrics: LLMUsage) => void;
 }) {
-  const focusedVehicleId = conversationState?.focused_vehicle_id ?? null;
-
   return (
     <main className="shell">
       <div className="workspace">
@@ -764,15 +647,8 @@ function AdvisorWorkspace({
           ) : null}
           <Thread />
         </section>
-        <aside className={`sidebar${focusedVehicleId ? " sidebar-with-dossier" : ""}`} aria-label="Agent evidence">
+        <aside className="sidebar" aria-label="Agent evidence">
           <TraceMetricsPanel dashboard={dashboard} />
-          {focusedVehicleId ? (
-            <BuyerDossierPanel
-              conversationId={conversationId}
-              vehicleId={focusedVehicleId}
-              onMetrics={onDossierMetrics}
-            />
-          ) : null}
           <ToolTracePanel dashboard={dashboard} />
         </aside>
       </div>
@@ -790,7 +666,6 @@ function RuntimeShell({
   onBackToHome,
   onTrace,
   onStreamFinished,
-  onDossierMetrics,
 }: {
   conversationId: string;
   onStreamStarted: () => void;
@@ -801,7 +676,6 @@ function RuntimeShell({
   conversationState: ConversationState | null;
   hasConversation: boolean;
   onBackToHome: () => void;
-  onDossierMetrics: (metrics: LLMUsage) => void;
 }) {
   const adapter = useMemo(
     () => createChatAdapter(conversationId, onStreamStarted, onResponse, onTrace, onStreamFinished),
@@ -812,11 +686,9 @@ function RuntimeShell({
     <AssistantRuntimeProvider runtime={runtime}>
       <AdvisorWorkspace
         dashboard={dashboard}
-        conversationId={conversationId}
         conversationState={conversationState}
         hasConversation={hasConversation}
         onBackToHome={onBackToHome}
-        onDossierMetrics={onDossierMetrics}
       />
     </AssistantRuntimeProvider>
   );
@@ -877,10 +749,6 @@ function App() {
     setConversationState(null);
     setHasConversation(false);
   }, []);
-  const handleDossierMetrics = useCallback((metrics: LLMUsage) => {
-    setDashboard((current) => ({ ...current, llmUsage: metrics }));
-  }, []);
-
   return (
     <RuntimeShell
       key={conversationId}
@@ -889,7 +757,6 @@ function App() {
       onResponse={handleResponse}
       onTrace={handleTrace}
       onStreamFinished={handleStreamFinished}
-      onDossierMetrics={handleDossierMetrics}
       dashboard={dashboard}
       conversationState={conversationState}
       hasConversation={hasConversation}

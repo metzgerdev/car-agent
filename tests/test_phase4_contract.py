@@ -2,11 +2,19 @@ import json
 import re
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
-from car_agent.app import create_app
+from car_agent.app import ChatRequest, ChatResponse, TraceStreamEvent, create_app
 from car_agent.crewai_agent import CrewAISalesAgent
-from car_agent.models import AgentResponse, ConversationState, ToolCall
+from car_agent.models import (
+    AgentResponse,
+    ConversationState,
+    TestDriveFailure as ScheduledTestDriveFailure,
+    TestDriveSuccess as ScheduledTestDriveSuccess,
+    ToolCall,
+)
 
 
 def _offline_client() -> tuple[TestClient, CrewAISalesAgent]:
@@ -30,6 +38,10 @@ def test_p4_t1_api_contract_and_validation() -> None:
         },
     )
     malformed = client.post("/chat", json={"conversation_id": "", "message": "hello"})
+    unknown_field = client.post(
+        "/chat",
+        json={"conversation_id": "api-contract", "message": "hello", "unexpected": True},
+    )
 
     assert health.status_code == 200
     assert health.json() == {"status": "ok"}
@@ -43,38 +55,33 @@ def test_p4_t1_api_contract_and_validation() -> None:
         "total_tokens": 0,
     }
     assert malformed.status_code == 422
+    assert unknown_field.status_code == 422
 
 
-def test_buyer_dossier_api_requires_the_conversation_focused_vehicle() -> None:
-    client, agent = _offline_client()
-    conversation_id = "buyer-dossier-api"
-    agent.sessions[conversation_id] = ConversationState(
-        conversation_id,
-        focused_vehicle_id="mock-0037",
-    )
+def test_pydantic_public_and_sse_contracts_are_strict() -> None:
+    def assert_strict_known_objects(value):
+        if isinstance(value, dict):
+            if value.get("type") == "object" and value.get("properties"):
+                assert value.get("additionalProperties") is False
+                assert set(value.get("required", [])) == set(value["properties"])
+            for nested in value.values():
+                assert_strict_known_objects(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                assert_strict_known_objects(nested)
 
-    dossier = client.post(
-        "/buyer-dossier",
-        json={"conversation_id": conversation_id, "vehicle_id": "mock-0037"},
-    )
-    mismatch = client.post(
-        "/buyer-dossier",
-        json={"conversation_id": conversation_id, "vehicle_id": "bmw-z4-m-2008"},
-    )
-    unknown_conversation = client.post(
-        "/buyer-dossier",
-        json={"conversation_id": "not-focused", "vehicle_id": "mock-0037"},
-    )
+    for model in (ChatRequest, ChatResponse, TraceStreamEvent):
+        assert_strict_known_objects(model.model_json_schema())
 
-    assert dossier.status_code == 200
-    payload = dossier.json()
-    assert payload["vehicle_id"] == "mock-0037"
-    assert payload["vehicle_name"] == "1971 BMW 2002"
-    assert payload["mode"] == "grounded_fallback"
-    assert payload["recommendation"] == "investigate"
-    assert payload["metrics"]["llm_calls"] == 0
-    assert mismatch.status_code == 409
-    assert unknown_conversation.status_code == 409
+    client, _ = _offline_client()
+    payload = client.post(
+        "/chat",
+        json={"conversation_id": "strict-contract", "message": "Show me classic BMWs"},
+    ).json()
+    assert ChatResponse.model_validate(payload).message
+    payload["state"]["unexpected"] = "rejected"
+    with pytest.raises(ValidationError):
+        ChatResponse.model_validate(payload)
 
 
 def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
@@ -101,12 +108,15 @@ def test_p4_t7_browser_demo_shell_and_assets_are_served() -> None:
     assert any("cursor:not-allowed" in css.replace(" ", "") for css in css_assets)
     assert all(".aui-styled-send:disabled{cursor:wait" not in css.replace(" ", "") for css in css_assets)
     assert any("Tool Trace" in javascript for javascript in javascript_assets)
-    assert any("Evaluation & Trace Metrics" in javascript for javascript in javascript_assets)
+    assert any("Trace Metrics" in javascript for javascript in javascript_assets)
+    assert all("Evaluation & Trace Metrics" not in javascript for javascript in javascript_assets)
     assert any("inventory-card-focused" in javascript for javascript in javascript_assets)
     assert any(">GP<" in javascript or "children:`GP`" in javascript for javascript in javascript_assets)
     assert any("trace-summary-purpose" in javascript for javascript in javascript_assets)
     assert any("listing-photo" in javascript for javascript in javascript_assets)
-    assert any("image-credit" in javascript for javascript in javascript_assets)
+    assert any("image-source-link" in javascript for javascript in javascript_assets)
+    assert all("image_attribution" not in javascript for javascript in javascript_assets)
+    assert all("image_license" not in javascript for javascript in javascript_assets)
     assert any("Grand Prix Motors Inventory" in javascript for javascript in javascript_assets)
     assert any("Specializing in classic/modern-classic enthusiast sports cars" in javascript for javascript in javascript_assets)
     assert any("elevenlabs-empty-state" in javascript for javascript in javascript_assets)
@@ -147,7 +157,8 @@ def test_p4_t18_inventory_gallery_returns_typed_featured_listings() -> None:
     assert {"id", "name", "price", "mileage", "body_style", "description"} <= payload["vehicles"][0].keys()
     assert payload["vehicles"][0]["image_url"].startswith("https://commons.wikimedia.org/")
     assert payload["vehicles"][0]["image_source_url"].startswith("https://commons.wikimedia.org/wiki/File:")
-    assert payload["vehicles"][0]["image_license"] == "CC BY-SA 3.0"
+    assert "image_attribution" not in payload["vehicles"][0]
+    assert "image_license" not in payload["vehicles"][0]
 
 
 def test_p4_t31_inventory_gallery_can_request_the_full_paginated_dataset() -> None:
@@ -547,6 +558,32 @@ def test_p4_t3_identical_booking_is_idempotent() -> None:
     assert first.trace[-1].result["request"]["request_id"] == "td-0001"
     assert second.trace[-1].result["request"]["request_id"] == "td-0001"
     assert second.trace[-1].result["duplicate"] is True
+
+
+def test_test_drive_scheduler_validates_the_same_strict_request_contract_as_crewai() -> None:
+    agent = CrewAISalesAgent(use_live_model=False)
+    scheduler = agent.tools.scheduler
+
+    invalid = scheduler.schedule(
+        vehicle_id="honda-s2000-2004",
+        name="Alex Rivera",
+        email="not-an-email",
+        preferred_time="Saturday at 10am",
+    )
+    valid = scheduler.schedule(
+        vehicle_id=" honda-s2000-2004 ",
+        name=" Alex Rivera ",
+        email=" MAILTO:ALEX@example.com ",
+        preferred_time=" Saturday at 10am ",
+    )
+
+    assert ScheduledTestDriveFailure.model_validate(invalid).error == "Please provide a valid email address."
+    scheduled = ScheduledTestDriveSuccess.model_validate(valid)
+    assert scheduled.ok is True
+    assert scheduled.request.vehicle_id == "honda-s2000-2004"
+    assert scheduled.request.name == "Alex Rivera"
+    assert scheduled.request.email == "ALEX@example.com"
+    assert len(scheduler.requests) == 1
 
 
 def test_p4_t4_public_response_redacts_contact_values() -> None:
